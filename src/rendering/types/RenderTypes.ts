@@ -8,8 +8,20 @@ export interface WorldObject {
   type: string;
 }
 
+export interface ShapePoint {
+  x: number;
+  y: number;
+}
+
+export interface ShapeSegment {
+  type: string;
+  points: ShapePoint[];
+}
+
+export type Shape = ShapePoint[] | ShapeSegment[];
+
 export interface ObstacleObject extends WorldObject {
-  shape?: Array<{x: number, y: number}> | Array<{type: string, points: Array<{x: number, y: number}>}>;
+  shape?: Shape;
   aspectRatio?: number;
   rotation?: number;
   width?: number;

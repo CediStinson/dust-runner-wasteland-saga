@@ -1,6 +1,6 @@
 
 import p5 from 'p5';
-import { ObstacleObject } from '../types/RenderTypes';
+import { ObstacleObject, ShapePoint, ShapeSegment, Shape } from '../types/RenderTypes';
 
 export default class ObstacleRenderer {
   private p: p5;
@@ -89,27 +89,40 @@ export default class ObstacleRenderer {
     if (obs.shape) {
       this.p.fill(80, 70, 60);
       this.p.beginShape();
-      for (let point of obs.shape) {
-        this.p.vertex(point.x, point.y);
+      
+      // Check if shape is an array of points or segments
+      if (this.isShapePointArray(obs.shape)) {
+        for (let point of obs.shape) {
+          this.p.vertex(point.x, point.y);
+        }
       }
+      
       this.p.endShape(this.p.CLOSE);
 
       this.p.fill(100, 90, 80);
       this.p.beginShape();
-      for (let point of obs.shape) {
-        let offsetX = 2 * obs.size;
-        let offsetY = 2 * obs.size;
-        this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+      
+      if (this.isShapePointArray(obs.shape)) {
+        for (let point of obs.shape) {
+          let offsetX = 2 * obs.size;
+          let offsetY = 2 * obs.size;
+          this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+        }
       }
+      
       this.p.endShape(this.p.CLOSE);
 
       this.p.fill(120, 110, 100);
       this.p.beginShape();
-      for (let point of obs.shape) {
-        let offsetX = -2 * obs.size;
-        let offsetY = -2 * obs.size;
-        this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
+      
+      if (this.isShapePointArray(obs.shape)) {
+        for (let point of obs.shape) {
+          let offsetX = -2 * obs.size;
+          let offsetY = -2 * obs.size;
+          this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
+        }
       }
+      
       this.p.endShape(this.p.CLOSE);
     }
 
@@ -139,18 +152,26 @@ export default class ObstacleRenderer {
     if (obs.shape) {
       this.p.fill(50, 70, 30);
       this.p.beginShape();
-      for (let point of obs.shape) {
-        this.p.vertex(point.x, point.y);
+      
+      if (this.isShapePointArray(obs.shape)) {
+        for (let point of obs.shape) {
+          this.p.vertex(point.x, point.y);
+        }
       }
+      
       this.p.endShape(this.p.CLOSE);
 
       this.p.fill(70, 90, 50);
       this.p.beginShape();
-      for (let point of obs.shape) {
-        let offsetX = 1 * obs.size;
-        let offsetY = -1 * obs.size;
-        this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+      
+      if (this.isShapePointArray(obs.shape)) {
+        for (let point of obs.shape) {
+          let offsetX = 1 * obs.size;
+          let offsetY = -1 * obs.size;
+          this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+        }
       }
+      
       this.p.endShape(this.p.CLOSE);
 
       // Add some berry-like details
@@ -288,52 +309,54 @@ export default class ObstacleRenderer {
 
     // Draw cactus segments
     if (obs.shape) {
-      for (let segment of obs.shape) {
-        if (segment.type === 'body' || segment.type === 'arm') {
-          this.p.fill(30, 80, 50);
-          this.p.beginShape();
-          for (let point of segment.points) {
-            this.p.vertex(point.x, point.y);
-          }
-          this.p.endShape(this.p.CLOSE);
-          
-          // Add highlights to give dimension
-          this.p.fill(40, 100, 60);
-          this.p.beginShape();
-          for (let i = 0; i < segment.points.length / 2; i++) {
-            let point = segment.points[i];
-            this.p.vertex(point.x, point.y);
-          }
-          for (let i = segment.points.length - 1; i >= segment.points.length / 2; i--) {
-            let point = segment.points[i];
-            const offsetX = 1;
-            const offsetY = -1;
-            this.p.vertex(point.x * 0.9 + offsetX, point.y * 0.9 + offsetY);
-          }
-          this.p.endShape(this.p.CLOSE);
-          
-          // Add spines
-          this.p.stroke(200, 200, 180);
-          this.p.strokeWeight(1);
-          if (segment.type === 'body') {
-            for (let i = 0; i < 8; i++) {
-              const yPos = -i * 3 * obs.size;
-              this.p.line(3 * obs.size, yPos, 6 * obs.size, yPos - 1);
-              this.p.line(-3 * obs.size, yPos, -6 * obs.size, yPos - 1);
+      if (this.isShapeSegmentArray(obs.shape)) {
+        for (let segment of obs.shape) {
+          if (segment.type === 'body' || segment.type === 'arm') {
+            this.p.fill(30, 80, 50);
+            this.p.beginShape();
+            for (let point of segment.points) {
+              this.p.vertex(point.x, point.y);
             }
-          } else if (segment.type === 'arm') {
-            // Determine direction and add spines accordingly
-            const isLeftArm = segment.points[0].x < 0;
-            const spineDirection = isLeftArm ? -1 : 1;
-            const startY = segment.points[0].y;
+            this.p.endShape(this.p.CLOSE);
             
-            for (let i = 0; i < 3; i++) {
-              const xPos = (isLeftArm ? segment.points[0].x - 3 : segment.points[0].x + 3);
-              const yPos = startY - i * 3 * obs.size;
-              this.p.line(xPos, yPos, xPos + spineDirection * 3, yPos - 1);
+            // Add highlights to give dimension
+            this.p.fill(40, 100, 60);
+            this.p.beginShape();
+            for (let i = 0; i < segment.points.length / 2; i++) {
+              let point = segment.points[i];
+              this.p.vertex(point.x, point.y);
             }
+            for (let i = segment.points.length - 1; i >= segment.points.length / 2; i--) {
+              let point = segment.points[i];
+              const offsetX = 1;
+              const offsetY = -1;
+              this.p.vertex(point.x * 0.9 + offsetX, point.y * 0.9 + offsetY);
+            }
+            this.p.endShape(this.p.CLOSE);
+            
+            // Add spines
+            this.p.stroke(200, 200, 180);
+            this.p.strokeWeight(1);
+            if (segment.type === 'body') {
+              for (let i = 0; i < 8; i++) {
+                const yPos = -i * 3 * obs.size;
+                this.p.line(3 * obs.size, yPos, 6 * obs.size, yPos - 1);
+                this.p.line(-3 * obs.size, yPos, -6 * obs.size, yPos - 1);
+              }
+            } else if (segment.type === 'arm') {
+              // Determine direction and add spines accordingly
+              const isLeftArm = segment.points[0].x < 0;
+              const spineDirection = isLeftArm ? -1 : 1;
+              const startY = segment.points[0].y;
+              
+              for (let i = 0; i < 3; i++) {
+                const xPos = (isLeftArm ? segment.points[0].x - 3 : segment.points[0].x + 3);
+                const yPos = startY - i * 3 * obs.size;
+                this.p.line(xPos, yPos, xPos + spineDirection * 3, yPos - 1);
+              }
+            }
+            this.p.noStroke();
           }
-          this.p.noStroke();
         }
       }
     }
@@ -350,6 +373,7 @@ export default class ObstacleRenderer {
     
     // Darker, more subtle ground stain - fixed in place
     this.p.noStroke();
+    const opacity = obs.opacity || 100;
     this.p.fill(20, 20, 20, 40); // Even more subtle opacity
     
     // Main oil puddle
@@ -578,5 +602,14 @@ export default class ObstacleRenderer {
     }
     
     this.p.pop();
+  }
+
+  // Type guard functions to help TypeScript understand the shape structure
+  private isShapePointArray(shape: Shape): shape is ShapePoint[] {
+    return Array.isArray(shape) && shape.length > 0 && 'x' in shape[0] && !('type' in shape[0]);
+  }
+
+  private isShapeSegmentArray(shape: Shape): shape is ShapeSegment[] {
+    return Array.isArray(shape) && shape.length > 0 && 'type' in shape[0];
   }
 }
