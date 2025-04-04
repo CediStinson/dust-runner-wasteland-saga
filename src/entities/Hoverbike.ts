@@ -283,113 +283,117 @@ export default class Hoverbike implements HoverbikeType {
     if (this.worldX === this.player.worldX && this.worldY === this.player.worldY) {
       this.p.push();
       this.p.translate(this.x, this.y);
-      this.p.rotate(this.angle);
+      this.p.rotate(this.angle + this.p.PI/2); // Rotate by 90 degrees clockwise (PI/2)
       
       // Draw smoke particles (behind the hoverbike)
+      this.p.noStroke(); // Make sure no outline for the smoke
       for (const particle of this.smokeParticles) {
-        this.p.fill(150, 150, 150, particle.opacity);
-        this.p.ellipse(particle.x, particle.y, particle.size, particle.size);
+        // Simple line-like smoke effect
+        const smokeGray = 150 + this.p.random(-30, 30);
+        this.p.fill(smokeGray, smokeGray, smokeGray, particle.opacity);
+        // Draw elongated particle (more like a line)
+        this.p.ellipse(particle.x, particle.y, particle.size * 1.5, particle.size * 0.8);
       }
       
-      // Main body - slimmer futuristic hoverbike rotated 90 degrees
+      // Main body - slimmer futuristic hoverbike (top view, rotated 90 degrees clockwise)
       // First layer - base chassis (gray metallic)
       this.p.fill(130, 130, 140);
       this.p.beginShape();
-      this.p.vertex(0, -20);     // Front point
-      this.p.vertex(-6, -16);    // Front left
-      this.p.vertex(-8, 0);      // Mid left
-      this.p.vertex(-6, 16);     // Rear left
-      this.p.vertex(6, 16);      // Rear right
-      this.p.vertex(8, 0);       // Mid right
-      this.p.vertex(6, -16);     // Front right
+      this.p.vertex(20, 0);     // Front point (now right side)
+      this.p.vertex(16, 6);     // Front right (now bottom right)
+      this.p.vertex(0, 8);      // Mid right (now bottom)
+      this.p.vertex(-16, 6);    // Rear right (now bottom left)
+      this.p.vertex(-16, -6);   // Rear left (now top left)
+      this.p.vertex(0, -8);     // Mid left (now top)
+      this.p.vertex(16, -6);    // Front left (now top right)
       this.p.endShape(this.p.CLOSE);
       
       // Central section (seat and controls)
       this.p.fill(80, 80, 90);
       this.p.beginShape();
-      this.p.vertex(0, -14);    // Front
-      this.p.vertex(-5, -10);   // Front left
-      this.p.vertex(-6, 6);     // Mid left
-      this.p.vertex(-4, 10);    // Rear left
-      this.p.vertex(4, 10);     // Rear right
-      this.p.vertex(6, 6);      // Mid right
-      this.p.vertex(5, -10);    // Front right
+      this.p.vertex(14, 0);     // Front (now right)
+      this.p.vertex(10, 5);     // Front right (now bottom right)
+      this.p.vertex(-6, 6);     // Mid right (now bottom left)
+      this.p.vertex(-10, 4);    // Rear right (now bottom left)
+      this.p.vertex(-10, -4);   // Rear left (now top left)
+      this.p.vertex(-6, -6);    // Mid left (now top left)
+      this.p.vertex(10, -5);    // Front left (now top right)
       this.p.endShape(this.p.CLOSE);
       
       // Seat
       this.p.fill(60, 60, 65);
-      this.p.ellipse(0, 0, 10, 14);
+      this.p.ellipse(0, 0, 14, 10);
       
       // Handlebars
       this.p.stroke(70, 70, 75);
       this.p.strokeWeight(2);
-      this.p.line(-4, -8, -8, -6);
-      this.p.line(4, -8, 8, -6);
+      this.p.line(8, -4, 6, -8);
+      this.p.line(8, 4, 6, 8);
       this.p.noStroke();
       
       // Handlebar grips
       this.p.fill(40, 40, 45);
-      this.p.ellipse(-8, -6, 3, 4);
-      this.p.ellipse(8, -6, 3, 4);
+      this.p.ellipse(6, -8, 4, 3);
+      this.p.ellipse(6, 8, 4, 3);
       
-      // Front lights
+      // Front lights (now on right)
       this.p.fill(200, 200, 100);
-      this.p.ellipse(0, -18, 3, 6);
+      this.p.ellipse(18, 0, 6, 3);
       
-      // Jet engine at the back
+      // Jet engine at the back (now on left)
       this.p.fill(90, 90, 95);
       this.p.beginShape();
-      this.p.vertex(-6, 14);  // Left edge of engine
-      this.p.vertex(6, 14);   // Right edge of engine
-      this.p.vertex(5, 20);   // Right exhaust
-      this.p.vertex(-5, 20);  // Left exhaust
+      this.p.vertex(-14, -6);  // Top edge of engine
+      this.p.vertex(-14, 6);   // Bottom edge of engine
+      this.p.vertex(-20, 5);   // Bottom exhaust
+      this.p.vertex(-20, -5);  // Top exhaust
       this.p.endShape(this.p.CLOSE);
       
       // Engine details
       this.p.fill(50, 50, 55);
-      this.p.rect(-4, 15, 8, 4, 1);
+      this.p.rect(-15, -4, 4, 8, 1);
       
       // Exhaust flame
       this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
-      this.p.ellipse(0, 22, 8, 4);
+      this.p.ellipse(-22, 0, 4, 8);
       this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
-      this.p.ellipse(0, 24, 5, 3);
+      this.p.ellipse(-24, 0, 3, 5);
       
       // Side panels with makeshift repairs
       this.p.fill(100, 100, 110);
       this.p.beginShape();
-      this.p.vertex(-8, -5);
-      this.p.vertex(-10, 0);
-      this.p.vertex(-8, 5);
+      this.p.vertex(-5, -8);
+      this.p.vertex(0, -10);
+      this.p.vertex(5, -8);
       this.p.endShape(this.p.CLOSE);
       
       this.p.beginShape();
-      this.p.vertex(8, -5);
-      this.p.vertex(10, 0);
-      this.p.vertex(8, 5);
+      this.p.vertex(-5, 8);
+      this.p.vertex(0, 10);
+      this.p.vertex(5, 8);
       this.p.endShape(this.p.CLOSE);
       
       // Bolts and rivets
       this.p.fill(60, 60, 65);
       this.p.ellipse(-8, -8, 2, 2);
-      this.p.ellipse(-8, 0, 2, 2);
-      this.p.ellipse(-8, 8, 2, 2);
+      this.p.ellipse(0, -8, 2, 2);
       this.p.ellipse(8, -8, 2, 2);
-      this.p.ellipse(8, 0, 2, 2);
+      this.p.ellipse(-8, 8, 2, 2);
+      this.p.ellipse(0, 8, 2, 2);
       this.p.ellipse(8, 8, 2, 2);
       
       // Wires and hoses
       this.p.stroke(40, 40, 45);
       this.p.strokeWeight(1);
-      this.p.line(-6, 8, -4, 14);
-      this.p.line(-2, 8, -2, 14);
-      this.p.line(2, 8, 2, 14);
-      this.p.line(6, 8, 4, 14);
+      this.p.line(-8, -6, -14, -4);
+      this.p.line(-8, -2, -14, -2);
+      this.p.line(-8, 2, -14, 2);
+      this.p.line(-8, 6, -14, 4);
       this.p.noStroke();
       
       // Shadow
       this.p.fill(50, 50, 60, 100);
-      this.p.ellipse(0, 20, 25, 6);
+      this.p.ellipse(0, 0, 25, 20);
       
       this.p.pop();
     }
