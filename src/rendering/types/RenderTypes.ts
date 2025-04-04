@@ -9,7 +9,7 @@ export interface WorldObject {
 }
 
 export interface ObstacleObject extends WorldObject {
-  shape?: Array<{x: number, y: number}>;
+  shape?: Array<{x: number, y: number}> | Array<{type: string, points: Array<{x: number, y: number}>}>;
   aspectRatio?: number;
   rotation?: number;
   width?: number;
