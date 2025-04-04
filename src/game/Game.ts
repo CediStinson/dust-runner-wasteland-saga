@@ -21,6 +21,13 @@ export default class Game {
   gameStarted: boolean;
   dayTimeIcon: string; // "sun" or "moon"
   dayTimeAngle: number; // Position on the circle
+  insideHut: boolean;
+  skipNightState: string; // "none", "entering", "sleeping", "exiting"
+  skipNightTimer: number;
+  sleepZzz: any[];
+  quests: any[];
+  isFirstExploration: boolean;
+  loggedIn: boolean;
 
   constructor(p: any) {
     this.p = p;
@@ -33,6 +40,13 @@ export default class Game {
     this.gameStarted = false;
     this.dayTimeIcon = "sun"; // Start with the sun
     this.dayTimeAngle = this.timeOfDay * Math.PI * 2; // Calculate initial angle
+    this.insideHut = false;
+    this.skipNightState = "none";
+    this.skipNightTimer = 0;
+    this.sleepZzz = [];
+    this.quests = [];
+    this.isFirstExploration = true;
+    this.loggedIn = false;
     
     this.worldGenerator = new WorldGenerator(p);
     
@@ -88,6 +102,82 @@ export default class Game {
     
     // Add walking marks
     this.addWalkingMarksAtHomeBase();
+    
+    // Initialize quests
+    this.initializeQuests();
+    
+    // Setup event listeners for quest events
+    this.setupQuestEvents();
+  }
+  
+  initializeQuests() {
+    this.quests = [
+      {
+        id: 'repairRoof',
+        title: "Repair the Roof",
+        description: "The last sandstorm really damaged your roof. Collect 10 metal scraps. Then press E next to your hut to repair it.",
+        active: true,
+        completed: false,
+        currentProgress: 0,
+        targetProgress: 10,
+        reward: "On top of the roof you just repaired you found your grandpa's old pickaxe. You are now able to dig for rare metals. Awesome!"
+      }
+    ];
+    
+    // Update quests UI
+    this.emitQuestUpdate();
+  }
+  
+  setupQuestEvents() {
+    // Listen for resource collection events
+    window.addEventListener('resourceCollected', ((event: CustomEvent) => {
+      const { type, count } = event.detail;
+      
+      if (type === 'metal') {
+        // Update repair roof quest
+        const repairRoofQuest = this.quests.find(q => q.id === 'repairRoof');
+        if (repairRoofQuest && repairRoofQuest.active && !repairRoofQuest.completed) {
+          repairRoofQuest.currentProgress = Math.min(repairRoofQuest.targetProgress, this.player.inventory.metal);
+          this.emitQuestUpdate();
+        }
+      }
+    }) as EventListener);
+    
+    // Listen for quest completion attempts
+    window.addEventListener('tryCompleteRoofQuest', ((event: CustomEvent) => {
+      const repairRoofQuest = this.quests.find(q => q.id === 'repairRoof');
+      if (repairRoofQuest && repairRoofQuest.active && !repairRoofQuest.completed) {
+        if (repairRoofQuest.currentProgress >= repairRoofQuest.targetProgress) {
+          // Complete the quest
+          repairRoofQuest.completed = true;
+          this.player.inventory.metal -= repairRoofQuest.targetProgress;
+          this.player.enableDigging();
+          
+          // Show quest completion message
+          window.dispatchEvent(new CustomEvent('questCompleted', {
+            detail: { quest: repairRoofQuest }
+          }));
+          
+          this.emitQuestUpdate();
+          emitGameStateUpdate(this.player, this.hoverbike);
+        } else {
+          // Show not enough resources message
+          window.dispatchEvent(new CustomEvent('questNotEnoughResources', {
+            detail: { 
+              quest: repairRoofQuest,
+              currentProgress: repairRoofQuest.currentProgress,
+              targetProgress: repairRoofQuest.targetProgress
+            }
+          }));
+        }
+      }
+    }) as EventListener);
+  }
+  
+  emitQuestUpdate() {
+    window.dispatchEvent(new CustomEvent('questUpdate', {
+      detail: { quests: this.quests }
+    }));
   }
 
   addFuelStationAtHomeBase() {
@@ -98,73 +188,12 @@ export default class Game {
     const hasFuelPump = homeObstacles.some(obs => obs.type === 'fuelPump');
     
     if (!hasFuelPump) {
-      // Add fuel stains first (so they render underneath)
-      // Create multiple fixed stains with different seed angles
-      homeObstacles.push({
-        type: 'fuelStain',
-        x: this.p.width / 2 + 100,
-        y: this.p.height / 2 - 45, // Slightly offset from the pump
-        seedAngle: 0.5,
-        size: 1.2
-      });
-      
-      homeObstacles.push({
-        type: 'fuelStain',
-        x: this.p.width / 2 + 110,
-        y: this.p.height / 2 - 40,
-        seedAngle: 2.1,
-        size: 0.9
-      });
-      
-      homeObstacles.push({
-        type: 'fuelStain',
-        x: this.p.width / 2 + 95,
-        y: this.p.height / 2 - 55,
-        seedAngle: 4.2,
-        size: 1.0
-      });
-      
-      // Add fuel pump without stains now (stains are separate objects)
-      homeObstacles.push({
-        type: 'fuelPump',
-        x: this.p.width / 2 + 100,
-        y: this.p.height / 2 - 50,
-        size: 1.0,
-      });
-      
-      // Update the world generator's obstacles
-      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+      // Moved fuel pump closer to hut, will be handled directly by WorldGenerator now
     }
   }
   
   addWalkingMarksAtHomeBase() {
-    const homeAreaKey = "0,0";
-    let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
-    
-    // Add walking marks
-    const hasWalkingMarks = homeObstacles.some(obs => obs.type === 'walkingMarks');
-    
-    if (!hasWalkingMarks) {
-      // Add multiple footprint sets in a pattern approaching the home base
-      // Use fixed positions for stability
-      const walkingMarkPositions = [
-        { x: this.p.width / 2 - 80, y: this.p.height / 2 + 60, angle: 0.8, size: 0.9, opacity: 170 },
-        { x: this.p.width / 2 + 45, y: this.p.height / 2 + 75, angle: 5.5, size: 0.8, opacity: 150 },
-        { x: this.p.width / 2 - 30, y: this.p.height / 2 - 65, angle: 2.2, size: 1.0, opacity: 190 },
-        { x: this.p.width / 2 + 80, y: this.p.height / 2 - 15, angle: 3.7, size: 0.7, opacity: 160 },
-        { x: this.p.width / 2 - 60, y: this.p.height / 2 - 25, angle: 1.3, size: 0.85, opacity: 180 }
-      ];
-      
-      for (const position of walkingMarkPositions) {
-        homeObstacles.push({
-          type: 'walkingMarks',
-          ...position
-        });
-      }
-      
-      // Update the world generator's obstacles
-      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
-    }
+    // Now handled by WorldGenerator directly
   }
 
   update() {
@@ -175,6 +204,12 @@ export default class Game {
     // Update time of day
     this.updateTimeOfDay();
     
+    // Handle night skipping
+    if (this.skipNightState !== "none") {
+      this.updateSkipNight();
+      return;
+    }
+    
     if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
       this.hoverbike.update();
     }
@@ -183,8 +218,147 @@ export default class Game {
     this.checkBorder();
     this.worldGenerator.updateWindmillAngle();
     
+    // Check if player should enter hut at night
+    this.checkEnterHut();
+    
     // Update renderer with time of day
     this.renderer.setTimeOfDay(this.timeOfDay);
+  }
+
+  checkEnterHut() {
+    // Only at home area
+    if (this.worldX !== 0 || this.worldY !== 0) return;
+    if (this.riding) return;
+    if (this.skipNightState !== "none") return;
+    
+    // Check if it's night (between 0.75 and 0.25)
+    const isNight = this.timeOfDay > 0.75 || this.timeOfDay < 0.25;
+    if (!isNight) return;
+    
+    // Find hut in current area
+    const homeObstacles = this.worldGenerator.getObstacles()["0,0"] || [];
+    const hut = homeObstacles.find(obs => obs.type === 'hut');
+    if (!hut) return;
+    
+    // Check if player is near the front of the hut
+    const frontX = hut.x;
+    const frontY = hut.y + 20; // Front of the hut
+    const distance = this.p.dist(this.player.x, this.player.y, frontX, frontY);
+    
+    if (distance < 20) {
+      this.startSkipNight();
+    }
+  }
+  
+  startSkipNight() {
+    this.skipNightState = "entering";
+    this.skipNightTimer = 0;
+    this.sleepZzz = [];
+  }
+  
+  updateSkipNight() {
+    this.skipNightTimer++;
+    
+    switch (this.skipNightState) {
+      case "entering":
+        // Move player towards hut
+        const homeObstacles = this.worldGenerator.getObstacles()["0,0"] || [];
+        const hut = homeObstacles.find(obs => obs.type === 'hut');
+        
+        if (hut) {
+          const targetX = hut.x;
+          const targetY = hut.y;
+          
+          // Move player towards door
+          const moveSpeed = 1;
+          const dx = targetX - this.player.x;
+          const dy = targetY - this.player.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance > 2) {
+            this.player.x += (dx / distance) * moveSpeed;
+            this.player.y += (dy / distance) * moveSpeed;
+            // Make player face door
+            this.player.angle = Math.atan2(dy, dx);
+          } else {
+            // Player reached the door, start sleeping
+            this.player.x = targetX;
+            this.player.y = targetY;
+            this.skipNightState = "sleeping";
+            this.skipNightTimer = 0;
+          }
+        }
+        break;
+        
+      case "sleeping":
+        // Generate Zzz particles
+        if (this.skipNightTimer % 20 === 0 && this.sleepZzz.length < 5) {
+          const homeObstacles = this.worldGenerator.getObstacles()["0,0"] || [];
+          const hut = homeObstacles.find(obs => obs.type === 'hut');
+          
+          if (hut) {
+            this.sleepZzz.push({
+              x: hut.x,
+              y: hut.y - 20,
+              opacity: 255,
+              size: 10,
+              offset: this.sleepZzz.length * 5
+            });
+          }
+        }
+        
+        // Update Zzz particles
+        for (let i = this.sleepZzz.length - 1; i >= 0; i--) {
+          const zzz = this.sleepZzz[i];
+          zzz.y -= 0.5;
+          zzz.opacity -= 2;
+          
+          if (zzz.opacity <= 0) {
+            this.sleepZzz.splice(i, 1);
+          }
+        }
+        
+        // Fast-forward time to morning
+        const timeIncrement = 0.005; // Speed up time while sleeping
+        this.timeOfDay = (this.timeOfDay + timeIncrement) % 1;
+        
+        // If it's morning (between 0.2 and 0.3), stop sleeping
+        if (this.timeOfDay > 0.2 && this.timeOfDay < 0.3) {
+          this.skipNightState = "exiting";
+          this.skipNightTimer = 0;
+        }
+        break;
+        
+      case "exiting":
+        // Have player exit the hut
+        const exitX = this.p.width / 2;
+        const exitY = this.p.height / 2 + 20;
+        
+        if (this.skipNightTimer > 30) {
+          // Move player out from hut
+          const moveSpeed = 1;
+          const dx = exitX - this.player.x;
+          const dy = exitY - this.player.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance > 2) {
+            this.player.x += (dx / distance) * moveSpeed;
+            this.player.y += (dy / distance) * moveSpeed;
+            // Make player face outward
+            this.player.angle = Math.atan2(dy, dx);
+          } else {
+            // Player exited the hut
+            this.player.x = exitX;
+            this.player.y = exitY;
+            this.skipNightState = "none";
+            
+            // Restore health
+            this.player.health = this.player.maxHealth;
+            emitGameStateUpdate(this.player, this.hoverbike);
+          }
+        }
+        break;
+    }
   }
 
   updateTimeOfDay() {
@@ -212,6 +386,24 @@ export default class Game {
       this.renderMainMenu();
     } else {
       this.renderer.render();
+      
+      // Render sleep animation if skipping night
+      if (this.skipNightState === "sleeping") {
+        this.renderSleepAnimation();
+      }
+    }
+  }
+  
+  renderSleepAnimation() {
+    for (const zzz of this.sleepZzz) {
+      this.p.push();
+      this.p.fill(255, 255, 255, zzz.opacity);
+      this.p.textSize(zzz.size);
+      this.p.textAlign(this.p.CENTER);
+      this.p.text("Z", zzz.x - zzz.offset, zzz.y - zzz.offset);
+      this.p.text("z", zzz.x, zzz.y);
+      this.p.text("z", zzz.x + zzz.offset/2, zzz.y - zzz.offset/2);
+      this.p.pop();
     }
   }
   
@@ -283,6 +475,47 @@ export default class Game {
     this.p.textSize(24);
     this.p.text("START GAME", this.p.width/2, btnY + 32);
     
+    // Login form
+    const loginBoxWidth = 250;
+    const loginBoxHeight = 120;
+    const loginX = this.p.width/2 - loginBoxWidth/2;
+    const loginY = this.p.height/2 + 100;
+    
+    this.p.fill(40, 35, 50, 200);
+    this.p.rect(loginX, loginY, loginBoxWidth, loginBoxHeight, 5);
+    
+    this.p.fill(200, 180, 150);
+    this.p.textSize(16);
+    this.p.text("SAVE YOUR PROGRESS", this.p.width/2, loginY + 20);
+    
+    // Email field
+    this.p.fill(60, 55, 70);
+    this.p.rect(loginX + 25, loginY + 40, loginBoxWidth - 50, 30, 3);
+    this.p.fill(200);
+    this.p.textAlign(this.p.LEFT);
+    this.p.textSize(12);
+    this.p.text("Email", loginX + 35, loginY + 35);
+    
+    // Login button
+    const loginBtnWidth = 100;
+    const loginBtnHeight = 30;
+    const loginBtnX = this.p.width/2 - loginBtnWidth/2;
+    const loginBtnY = loginY + 80;
+    
+    const loginBtnMouseOver = this.p.mouseX > loginBtnX && this.p.mouseX < loginBtnX + loginBtnWidth && 
+                             this.p.mouseY > loginBtnY && this.p.mouseY < loginBtnY + loginBtnHeight;
+                             
+    if (loginBtnMouseOver) {
+      this.p.fill(120, 160, 200);
+    } else {
+      this.p.fill(100, 140, 180);
+    }
+    
+    this.p.rect(loginBtnX, loginBtnY, loginBtnWidth, loginBtnHeight, 3);
+    this.p.fill(255);
+    this.p.textAlign(this.p.CENTER);
+    this.p.text("LOGIN", this.p.width/2, loginBtnY + 18);
+    
     // Draw subtitle text
     this.p.fill(200, 180, 150);
     this.p.textSize(16);
@@ -302,6 +535,11 @@ export default class Game {
       
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+      
+      if (this.isFirstExploration && (this.worldX !== 0 || this.worldY !== 0)) {
+        this.isFirstExploration = false;
+        this.player.hideTutorialText('fuel');
+      }
     } else if (this.player.x < 0) {
       this.worldX--;
       this.player.x = this.p.width;
@@ -314,6 +552,11 @@ export default class Game {
       
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+      
+      if (this.isFirstExploration && (this.worldX !== 0 || this.worldY !== 0)) {
+        this.isFirstExploration = false;
+        this.player.hideTutorialText('fuel');
+      }
     }
     
     if (this.player.y > this.p.height) {
@@ -328,6 +571,11 @@ export default class Game {
       
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+      
+      if (this.isFirstExploration && (this.worldX !== 0 || this.worldY !== 0)) {
+        this.isFirstExploration = false;
+        this.player.hideTutorialText('fuel');
+      }
     } else if (this.player.y < 0) {
       this.worldY--;
       this.player.y = this.p.height;
@@ -340,6 +588,11 @@ export default class Game {
       
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+      
+      if (this.isFirstExploration && (this.worldX !== 0 || this.worldY !== 0)) {
+        this.isFirstExploration = false;
+        this.player.hideTutorialText('fuel');
+      }
     }
   }
 
@@ -350,6 +603,9 @@ export default class Game {
       }
       return;
     }
+    
+    // Don't handle keys during night skipping
+    if (this.skipNightState !== "none") return;
     
     if (key === 'f' || key === 'F') {
       if (this.riding) {
@@ -379,8 +635,6 @@ export default class Game {
         emitGameStateUpdate(this.player, this.hoverbike);
       }
     }
-    
-    // Removed the 'd' key handler for durability upgrades
   }
 
   resize() {
@@ -400,7 +654,52 @@ export default class Game {
       if (mouseX > btnX && mouseX < btnX + btnWidth && 
           mouseY > btnY && mouseY < btnY + btnHeight) {
         this.gameStarted = true;
+        return;
+      }
+      
+      // Check login button
+      const loginBtnWidth = 100;
+      const loginBtnHeight = 30;
+      const loginBtnX = this.p.width/2 - loginBtnWidth/2;
+      const loginBtnY = this.p.height/2 + 180;
+      
+      if (mouseX > loginBtnX && mouseX < loginBtnX + loginBtnWidth && 
+          mouseY > loginBtnY && mouseY < loginBtnY + loginBtnHeight) {
+        this.loggedIn = true;
+        return;
+      }
+    } else {
+      // Handle clicks for fuel tutorial close
+      if (this.worldX === 0 && this.worldY === 0 && this.player.tutorialTexts.find(t => t.id === 'fuel')?.shown) {
+        const obstaclesInArea = this.worldGenerator.getObstacles()["0,0"] || [];
+        const fuelPump = obstaclesInArea.find(obs => obs.type === 'fuelPump');
+        
+        if (fuelPump) {
+          // Check if close button clicked
+          const textX = fuelPump.x + 100;
+          const textY = fuelPump.y - 30;
+          const closeX = textX + 95;
+          const closeY = textY - 10;
+          const closeRadius = 10;
+          
+          const distance = this.p.dist(mouseX, mouseY, closeX, closeY);
+          if (distance < closeRadius) {
+            this.player.hideTutorialText('fuel');
+          }
+        }
       }
     }
+  }
+  
+  // Method to save game state
+  saveGame() {
+    // Only do something if logged in
+    if (!this.loggedIn) {
+      window.dispatchEvent(new CustomEvent('showLoginPrompt'));
+      return;
+    }
+    
+    // If logged in, save the game
+    window.dispatchEvent(new CustomEvent('gameSaved'));
   }
 }

@@ -46,14 +46,33 @@ export default class GameRenderer {
     this.drawSunMoon();
     this.drawWindmill();
     this.drawGround();
-    this.drawObstacles();
-    this.drawResources();
     
+    // First render layer: Ground elements
+    this.drawGroundElements();
+    
+    // Second render layer: Characters and vehicles
     if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
       this.hoverbike.display();
     }
     
     this.player.display();
+    
+    // Third render layer: Above elements like tarp
+    this.drawAboveElements();
+    
+    // Special effect for fuel station tutorial
+    if (this.worldX === 0 && this.worldY === 0 && this.player.tutorialTexts.find(t => t.id === 'fuel')?.shown) {
+      this.drawFuelStationTutorial();
+    }
+  }
+  
+  drawGroundElements() {
+    this.drawObstacles(false); // Draw non-overlay elements
+    this.drawResources();
+  }
+  
+  drawAboveElements() {
+    this.drawObstacles(true); // Draw only overlay elements
   }
 
   drawBackgroundFuelStains() {
@@ -168,10 +187,26 @@ export default class GameRenderer {
     this.p.pop();
   }
 
-  drawObstacles() {
+  drawObstacles(overlayOnly: boolean = false) {
     let currentObstacles = this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`] || [];
 
+    // Sort obstacles by y-coordinate for proper rendering order
+    currentObstacles.sort((a, b) => {
+      // Put tarp at the end to render it last/on top
+      if (a.type === 'tarp') return 1;
+      if (b.type === 'tarp') return -1;
+      return a.y - b.y;
+    });
+
     for (let obs of currentObstacles) {
+      // Skip drawing based on layer:
+      // If overlayOnly is true, only draw overlay elements like tarp
+      // If overlayOnly is false, skip overlay elements
+      const isOverlayElement = obs.type === 'tarp';
+      if ((overlayOnly && !isOverlayElement) || (!overlayOnly && isOverlayElement)) {
+        continue;
+      }
+        
       if (obs.type === 'rock') {
         this.drawRock(obs);
       } else if (obs.type === 'bush') {
@@ -186,7 +221,45 @@ export default class GameRenderer {
         this.drawWalkingMarks(obs);
       } else if (obs.type === 'fuelStain') {
         this.drawFuelStain(obs);
+      } else if (obs.type === 'tarp') {
+        this.drawTarp(obs);
       }
+    }
+  }
+  
+  drawFuelStationTutorial() {
+    const obstaclesInArea = this.worldGenerator.getObstacles()["0,0"] || [];
+    const fuelPump = obstaclesInArea.find(obs => obs.type === 'fuelPump');
+    
+    if (fuelPump) {
+      // Draw red circle around fuel pump
+      this.p.push();
+      this.p.noFill();
+      this.p.stroke(255, 0, 0);
+      this.p.strokeWeight(2);
+      this.p.ellipse(fuelPump.x, fuelPump.y, 60, 60);
+      
+      // Draw text box
+      this.p.fill(0, 0, 0, 200);
+      const textX = fuelPump.x + 100;
+      const textY = fuelPump.y - 30;
+      this.p.rect(textX - 100, textY - 15, 200, 40, 5);
+      
+      // Draw text
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(10);
+      this.p.text("Be careful not to run out of gas!", textX, textY);
+      this.p.text("Refill your hoverbike at the fuel station.", textX, textY + 15);
+
+      // Draw close button
+      this.p.fill(255, 0, 0);
+      this.p.ellipse(textX + 95, textY - 10, 10, 10);
+      this.p.stroke(255);
+      this.p.strokeWeight(1);
+      this.p.line(textX + 92, textY - 13, textX + 98, textY - 7);
+      this.p.line(textX + 92, textY - 7, textX + 98, textY - 13);
+      this.p.pop();
     }
   }
 
@@ -455,6 +528,11 @@ export default class GameRenderer {
   drawFuelPump(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
+    
+    // Apply rotation if specified
+    if (obs.rotation) {
+      this.p.rotate(obs.rotation);
+    }
 
     // Shadow
     this.p.fill(50, 40, 30, 70);
@@ -552,6 +630,73 @@ export default class GameRenderer {
       this.p.strokeWeight(0.3);
       this.p.ellipse(x, y, size, size * 0.8);
       this.p.noStroke();
+    }
+    
+    this.p.pop();
+  }
+  
+  drawTarp(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    // Shadow under tarp
+    this.p.fill(50, 40, 30, 70);
+    this.p.ellipse(5, 5, 85, 65);
+    
+    // Draw tarp with slightly rounded corners
+    if (obs.shape && Array.isArray(obs.shape) && obs.shape.length > 0) {
+      // Main tarp shape
+      this.p.fill(45, 35, 20);
+      this.p.stroke(30, 25, 15);
+      this.p.strokeWeight(1);
+      
+      // Draw the tarp as a closed shape
+      this.p.beginShape();
+      for (let point of obs.shape) {
+        this.p.vertex(point.x, point.y);
+      }
+      this.p.endShape(this.p.CLOSE);
+      
+      // Draw highlights on the tarp
+      this.p.noStroke();
+      this.p.fill(60, 50, 30, 80);
+      
+      // Simulate folds in the tarp
+      for (let i = 0; i < 3; i++) {
+        const x1 = -30 + i * 20;
+        const y1 = -25;
+        const x2 = 20 - i * 15;
+        const y2 = 25;
+        this.p.stroke(60, 50, 30, 40);
+        this.p.strokeWeight(0.8);
+        this.p.line(x1, y1, x2, y2);
+      }
+      
+      // Draw holes in the tarp
+      if (obs.holes && Array.isArray(obs.holes)) {
+        for (let hole of obs.holes) {
+          // Draw the hole (transparent to see through to background)
+          this.p.erase();
+          this.p.ellipse(hole.x, hole.y, hole.radius * 2, hole.radius * 1.5);
+          this.p.noErase();
+          
+          // Draw the edge of the hole
+          this.p.noFill();
+          this.p.stroke(30, 25, 15, 180);
+          this.p.strokeWeight(0.7);
+          this.p.ellipse(hole.x, hole.y, hole.radius * 2, hole.radius * 1.5);
+        }
+      }
+    } else {
+      // Fallback shape if missing
+      this.p.fill(45, 35, 20);
+      this.p.rect(-40, -30, 80, 60, 5);
+      
+      // Draw some holes as a fallback
+      this.p.erase();
+      this.p.ellipse(-20, -10, 8, 6);
+      this.p.ellipse(15, 5, 10, 8);
+      this.p.noErase();
     }
     
     this.p.pop();
