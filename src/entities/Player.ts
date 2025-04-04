@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -87,18 +86,15 @@ export default class Player implements PlayerType {
             let hitboxWidth = 15 * obs.size;
             let distance = this.p.sqrt(dx * dx + dy * dy);
             
-            if (distance < hitboxWidth) {
-              willCollide = true;
-              // Damage player when colliding with cactus
-              if (this.p.frameCount % 30 === 0) { // Apply damage every 30 frames (0.5 seconds)
-                const oldHealth = this.health;
-                this.health = this.p.max(0, this.health - 1);
-                if (oldHealth !== this.health) {
-                  emitGameStateUpdate(this, this.hoverbike);
-                }
+            // Player CAN walk over cactus but will take damage
+            if (distance < hitboxWidth && this.p.frameCount % 30 === 0) { // Apply damage every 30 frames (0.5 seconds)
+              const oldHealth = this.health;
+              this.health = this.p.max(0, this.health - 1);
+              if (oldHealth !== this.health) {
+                emitGameStateUpdate(this, this.hoverbike);
               }
-              break;
             }
+            // No collision block for cactus - player can walk through but takes damage
           }
         }
         
@@ -250,7 +246,7 @@ export default class Player implements PlayerType {
     
     // Visual indicator for resources within collection range
     for (let res of currentResources) {
-      if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
+      if ((res.type === 'metal' || res.type === 'copper') && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
         // Draw a small indicator above the resource
         this.p.push();
         this.p.fill(255, 255, 100, 150);
@@ -262,8 +258,27 @@ export default class Player implements PlayerType {
         this.p.pop();
       }
     }
+    
+    // Check for tutorial text obstacles - update visibility
+    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+    for (let obs of currentObstacles) {
+      if (obs.type === 'tutorialText') {
+        // Update the tutorial text visibility based on conditions
+        if (obs.resourceType === 'metal') {
+          // For metal tutorial, check if there's any metal resource left
+          const metalExists = currentResources.some(res => res.type === 'metal');
+          obs.visible = metalExists;
+        } else if (obs.resourceType === 'copper') {
+          // For copper tutorial, check if there's any copper resource left
+          const copperExists = currentResources.some(res => res.type === 'copper');
+          obs.visible = copperExists;
+        } else if (obs.resourceType === 'fuel') {
+          // Fuel tutorial stays visible until dismissed
+        }
+      }
+    }
   }
-
+  
   collectResource() {
     let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
     
@@ -285,6 +300,20 @@ export default class Player implements PlayerType {
         if (res.type === 'copper' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
           this.startDigging(res);
           break;
+        }
+      }
+    }
+    
+    // Check for tutorial text close button
+    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+    for (let obs of currentObstacles) {
+      if (obs.type === 'tutorialText' && obs.visible && obs.showCloseButton) {
+        // Calculate distance to close button
+        const closeButtonX = obs.x + obs.width/2 - 10;
+        const closeButtonY = obs.y - obs.height - 5;
+        if (this.p.dist(this.x, this.y, closeButtonX, closeButtonY) < 20) {
+          // Close this tutorial text
+          obs.visible = false;
         }
       }
     }

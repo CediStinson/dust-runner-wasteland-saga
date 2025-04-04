@@ -98,17 +98,96 @@ export default class GameRenderer {
       if (obs.type === 'rock') {
         this.drawRock(obs);
       } else if (obs.type === 'hut') {
+        // Draw shadows first
+        if (this.worldX === 0 && this.worldY === 0) {
+          // Draw texture around home hut
+          this.drawGroundTexture(obs.x, obs.y, 70, 3);
+        }
         this.drawHut(obs);
       } else if (obs.type === 'bush') {
         this.drawBush(obs);
       } else if (obs.type === 'cactus') {
         this.drawCactus(obs);
       } else if (obs.type === 'fuelPump') {
+        // Draw ground texture around fuel pump
+        if (this.worldX === 0 && this.worldY === 0) {
+          this.drawGroundTexture(obs.x, obs.y, 50, 5);
+        }
         this.drawFuelPump(obs);
       } else if (obs.type === 'fuelStain') {
         this.drawFuelStain(obs);
+      } else if (obs.type === 'walkingMarks') {
+        this.drawWalkingMarks(obs);
+      } else if (obs.type === 'tutorialText') {
+        this.drawTutorialText(obs);
       }
     }
+  }
+  
+  drawGroundTexture(x: number, y: number, radius: number, density: number) {
+    // Add subtle ground texture/paths around structures
+    this.p.push();
+    this.p.translate(x, y);
+    
+    // Draw several small texture marks
+    this.p.noStroke();
+    
+    for (let i = 0; i < 60 * density; i++) {
+      // Use deterministic angle (based on i) for stable appearance
+      const angle = (i / 60) * Math.PI * 2;
+      const distance = this.p.random(radius * 0.3, radius);
+      
+      const dotX = Math.cos(angle) * distance;
+      const dotY = Math.sin(angle) * distance;
+      
+      // Different texture marks
+      const alpha = this.p.map(distance, radius * 0.3, radius, 70, 20);
+      if (i % 3 === 0) {
+        // Small rocks
+        this.p.fill(120, 110, 90, alpha);
+        const size = this.p.random(1, 3);
+        this.p.ellipse(dotX, dotY, size, size);
+      } else if (i % 3 === 1) {
+        // Small dirt patches
+        this.p.fill(100, 80, 60, alpha);
+        const size = this.p.random(2, 4);
+        this.p.ellipse(dotX, dotY, size, size * 0.7);
+      } else {
+        // Small debris
+        this.p.fill(130, 120, 100, alpha);
+        const size = this.p.random(1, 2);
+        this.p.rect(dotX, dotY, size, size);
+      }
+    }
+    
+    this.p.pop();
+  }
+
+  drawWalkingMarks(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    this.p.rotate(obs.angle);
+    
+    // Draw subtle walking marks/footprints
+    this.p.noStroke();
+    const opacity = obs.opacity || 100;
+    this.p.fill(190, 170, 140, opacity);
+    
+    // Draw a series of footprints
+    const spacing = 10;
+    const size = obs.size || 1;
+    
+    for (let i = 0; i < 5; i++) {
+      const xOffset = i * spacing * 2;
+      
+      // Left foot
+      this.p.ellipse(xOffset, -3, 4 * size, 7 * size);
+      
+      // Right foot
+      this.p.ellipse(xOffset + spacing, 3, 4 * size, 7 * size);
+    }
+    
+    this.p.pop();
   }
 
   drawRock(obs: any) {
@@ -273,23 +352,36 @@ export default class GameRenderer {
     
     this.p.pop();
   }
-  
+
   drawFuelStain(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
     
-    // Darker, more subtle ground stain
-    this.p.fill(20, 20, 20, 50);
+    // Darker, more subtle ground stain - fixed in place
+    this.p.noStroke();
+    this.p.fill(20, 20, 20, 40); // Even more subtle opacity
+    
+    // Main oil puddle
+    this.p.ellipse(0, 0, 16 * obs.size, 12 * obs.size);
     
     // Create several irregular oil patches with fixed shape
-    for (let i = 0; i < 5; i++) {
-      // Use fixed angles and distances for deterministic pattern
-      const angle = obs.seedAngle + i * 1.2; // Use seed angle from obstacle
-      const distance = 5 + i * 4; // Fixed pattern
+    // Use deterministic positions based on seedAngle
+    const numPatches = 5;
+    for (let i = 0; i < numPatches; i++) {
+      // Create fixed positions based on obs.seedAngle
+      const angle = obs.seedAngle + i * (Math.PI * 2 / numPatches);
+      const distance = 5 + i * 2.5; // Fixed pattern
       const x = Math.cos(angle) * distance;
       const y = Math.sin(angle) * distance;
-      const size = 8 + (i % 3) * 3;
-      this.p.ellipse(x, y, size, size);
+      
+      // Size variation based on position
+      const size = 3 + ((i * 29) % 5) * obs.size;
+      
+      // Slightly different shades of black for variation
+      const alpha = 30 + (i * 5);
+      this.p.fill(15, 15, 15, alpha);
+      
+      this.p.ellipse(x, y, size, size * 0.8);
     }
     
     this.p.pop();
@@ -299,56 +391,77 @@ export default class GameRenderer {
     this.p.push();
     this.p.translate(obs.x, obs.y);
     
-    // Don't draw oil stains here anymore - those are handled by separate objects
-    
     // Shadow
     this.p.fill(0, 0, 0, 40);
     this.p.ellipse(5, 5, 30, 10);
     
     // Base platform
-    this.p.fill(60, 60, 60); // Darker gray
+    this.p.fill(50, 50, 50); // Darker, rustier gray
     this.p.rect(-12, -15, 24, 30, 2);
     
-    // Fuel pump body - more weathered, rusty color
-    this.p.fill(140, 60, 50); // Rusty red color
+    // Fuel pump body - much more weathered, rusty color
+    this.p.fill(110, 50, 40); // More rusty, less vibrant red
     this.p.rect(-10, -15, 20, 25, 1);
     
-    // Rust streaks
-    this.p.fill(80, 40, 30, 120); // Dark rust color
-    this.p.rect(-10, -8, 3, 18, 0);
-    this.p.rect(0, -12, 5, 22, 0);
+    // Heavy rust streaks
+    this.p.fill(70, 35, 25, 180); // Darker rust color
+    this.p.rect(-10, -8, 5, 18, 0);
+    this.p.rect(3, -12, 5, 22, 0);
     
-    // Pump details - worn metal
-    this.p.fill(40, 40, 40);
+    // More rust spots - patches and splotches
+    this.p.fill(80, 40, 30, 150);
+    this.p.ellipse(-5, -10, 8, 5);
+    this.p.ellipse(2, 5, 6, 9);
+    
+    // Pump details - worn, rusty metal
+    this.p.fill(35, 35, 35);
     this.p.rect(-8, -10, 16, 8);
     
-    // Pump readings/display - faded
-    this.p.fill(180, 180, 100, 180); // More faded yellow
+    // Pump readings/display - very faded, almost unreadable
+    this.p.fill(150, 150, 80, 130); // More faded, dusty yellow
     this.p.rect(-6, -8, 12, 4);
     
-    // Pump nozzle - weathered metal
-    this.p.fill(70, 70, 70);
+    // Scratches on display
+    this.p.stroke(70, 70, 60, 100);
+    this.p.strokeWeight(1);
+    this.p.line(-5, -7, 0, -5);
+    this.p.line(2, -8, 5, -6);
+    this.p.noStroke();
+    
+    // Pump nozzle - heavily weathered metal
+    this.p.fill(60, 60, 60);
     this.p.rect(5, 0, 10, 3);
+    this.p.fill(50, 50, 50);
     this.p.rect(13, -5, 2, 10);
     
-    // Top of pump - worn paint
-    this.p.fill(120, 50, 40); // Darker, more worn red
+    // Top of pump - chipped, worn paint
+    this.p.fill(100, 45, 35); // Darker, duller red
     this.p.rect(-8, -18, 16, 3);
     
-    // Fuel barrel next to the pump - rusty, worn
-    this.p.fill(130, 50, 40); // Rusty barrel color
+    // Chipped paint effect on top
+    this.p.fill(70, 35, 30);
+    this.p.rect(-6, -18, 3, 1);
+    this.p.rect(2, -18, 4, 2);
+    
+    // Fuel barrel next to the pump - very rusty, worn
+    this.p.fill(100, 45, 35); // More rusty barrel color
     this.p.ellipse(20, 0, 20, 20);
     
-    // Barrel top - worn metal
-    this.p.fill(100, 40, 30); // Darker rusty color
+    // Heavy rust on barrel
+    this.p.fill(70, 35, 30);
+    this.p.arc(20, 0, 20, 20, this.p.PI * 0.2, this.p.PI * 0.8);
+    
+    // Barrel top - worn, rusty metal
+    this.p.fill(80, 35, 25); // Darker rusty color
     this.p.ellipse(20, 0, 15, 15);
     
-    // Barrel details - rust streaks
-    this.p.stroke(80, 30, 20);
+    // Barrel details - heavy rust streaks and cracks
+    this.p.stroke(60, 25, 20);
     this.p.strokeWeight(1);
     this.p.line(14, -4, 26, -4);
     this.p.line(14, 0, 26, 0);
     this.p.line(14, 4, 26, 4);
+    this.p.line(20, -7, 20, 7);
     this.p.noStroke();
     
     // Worn hazard symbol on barrel
@@ -481,6 +594,34 @@ export default class GameRenderer {
           this.p.ellipse(x, y - 2 * obs.size, 1 * obs.size, 1 * obs.size);
         }
       }
+    }
+    
+    this.p.pop();
+  }
+
+  drawTutorialText(obs: any) {
+    if (!obs.visible) return;
+    
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    // Draw indicator above resource
+    this.p.fill(255, 255, 255, 200);
+    this.p.rect(-obs.width/2, -obs.height - 10, obs.width, obs.height, 5);
+    
+    // Draw text
+    this.p.fill(0);
+    this.p.textAlign(this.p.CENTER);
+    this.p.textSize(10);
+    this.p.text(obs.text, 0, -obs.height/2 - 5);
+    
+    // Draw close button
+    if (obs.showCloseButton) {
+      this.p.fill(255, 100, 100, 200);
+      this.p.ellipse(obs.width/2 - 10, -obs.height - 5, 10, 10);
+      this.p.fill(255);
+      this.p.textSize(8);
+      this.p.text("x", obs.width/2 - 10, -obs.height - 3);
     }
     
     this.p.pop();
