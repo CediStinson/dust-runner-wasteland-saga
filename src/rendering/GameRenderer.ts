@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -16,6 +17,15 @@ export default class GameRenderer {
     this.hoverbike = hoverbike;
     this.worldX = worldX;
     this.worldY = worldY;
+    this.timeOfDay = timeOfDay;
+  }
+
+  setWorldCoordinates(worldX: number, worldY: number) {
+    this.worldX = worldX;
+    this.worldY = worldY;
+  }
+  
+  setTimeOfDay(timeOfDay: number) {
     this.timeOfDay = timeOfDay;
   }
 
@@ -595,4 +605,11 @@ export default class GameRenderer {
         this.p.beginShape();
         this.p.vertex(-6 * res.size, -4 * res.size);
         this.p.vertex(-4 * res.size, -5 * res.size);
-        this.p.vertex(-2 * res.size, -4 *
+        this.p.vertex(-2 * res.size, -4 * res.size);
+        this.p.endShape(this.p.CLOSE);
+      }
+      
+      this.p.pop();
+    }
+  }
+}
