@@ -23,6 +23,7 @@ export default class Player implements PlayerType {
   resources: Record<string, any[]>;
   hoverbike: any;
   riding: boolean;
+  cactusDamageTimer: number;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -44,6 +45,7 @@ export default class Player implements PlayerType {
     this.digTarget = null;
     this.health = 100;
     this.maxHealth = 100;
+    this.cactusDamageTimer = 0;
   }
 
   update() {
@@ -81,30 +83,15 @@ export default class Player implements PlayerType {
               willCollide = true;
               break;
             }
-          } else if (obs.type === 'cactus') {
-            let dx = newX - obs.x;
-            let dy = newY - obs.y;
-            let hitboxWidth = 15 * obs.size;
-            let distance = this.p.sqrt(dx * dx + dy * dy);
-            
-            if (distance < hitboxWidth) {
-              willCollide = true;
-              // Damage player when colliding with cactus
-              if (this.p.frameCount % 30 === 0) { // Apply damage every 30 frames (0.5 seconds)
-                const oldHealth = this.health;
-                this.health = this.p.max(0, this.health - 1);
-                if (oldHealth !== this.health) {
-                  emitGameStateUpdate(this, this.hoverbike);
-                }
-              }
-              break;
-            }
           }
         }
         
         if (!willCollide) {
           this.x += this.velX;
           this.y += this.velY;
+          
+          // Check for cactus damage after moving (player can walk over cacti now)
+          this.checkCactusDamage();
         } else {
           // Stop movement if collision would occur
           this.velX *= -0.5;
@@ -116,6 +103,44 @@ export default class Player implements PlayerType {
     } else {
       this.x = this.hoverbike.x;
       this.y = this.hoverbike.y;
+    }
+    
+    // Update damage timer
+    if (this.cactusDamageTimer > 0) {
+      this.cactusDamageTimer--;
+    }
+  }
+
+  checkCactusDamage() {
+    // Check if player is touching a cactus
+    if (this.riding) return; // No damage when riding hoverbike
+    
+    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+    for (let obs of currentObstacles) {
+      if (obs.type === 'cactus') {
+        let dx = this.x - obs.x;
+        let dy = this.y - obs.y;
+        let hitboxWidth = 15 * obs.size;
+        let distance = this.p.sqrt(dx * dx + dy * dy);
+        
+        if (distance < hitboxWidth) {
+          // Only apply damage every 30 frames (0.5 seconds) to avoid rapid damage
+          if (this.cactusDamageTimer <= 0) {
+            const oldHealth = this.health;
+            this.health = this.p.max(0, this.health - 2); // Do 2 damage points
+            if (oldHealth !== this.health) {
+              emitGameStateUpdate(this, this.hoverbike);
+              this.cactusDamageTimer = 30; // Reset cooldown timer
+            }
+          }
+          
+          // Visual indication of damage - player flashes red
+          if (this.cactusDamageTimer > 25) {
+            // Show visual pain effect here if desired
+          }
+          break;
+        }
+      }
     }
   }
 
@@ -152,6 +177,9 @@ export default class Player implements PlayerType {
     this.p.translate(this.x, this.y);
     this.p.rotate(this.angle + this.p.PI / 2);
     
+    // Flash red effect when taking cactus damage
+    const damageFlash = !this.riding && this.cactusDamageTimer > 25;
+    
     if (this.riding) {
       // Player riding hoverbike
       // Body
@@ -177,8 +205,15 @@ export default class Player implements PlayerType {
       this.p.rect(3, 0, 2, 4, 1);
     } else {
       // Standing player
-      // Cloak
-      this.p.fill(120, 100, 80);
+      // Cloak with outline
+      if (damageFlash) {
+        this.p.fill(200, 80, 60); // Red flash when damaged
+      } else {
+        this.p.fill(120, 100, 80);
+      }
+      
+      this.p.stroke(100, 80, 60); // Added outline
+      this.p.strokeWeight(0.8);   // Medium outline
       this.p.beginShape();
       this.p.vertex(-8, -10);
       this.p.vertex(-6, -4);
@@ -189,23 +224,28 @@ export default class Player implements PlayerType {
       this.p.vertex(6, -4);
       this.p.vertex(8, -10);
       this.p.endShape(this.p.CLOSE);
+      this.p.noStroke();
       
       // Cloak details
-      this.p.fill(150, 130, 110);
+      this.p.fill(damageFlash ? 220, 150, 130 : 150, 130, 110);
       this.p.ellipse(-4, 2, 4, 3);
       this.p.ellipse(4, 2, 4, 3);
-      this.p.fill(100, 80, 60);
+      this.p.fill(damageFlash ? 180, 60, 40 : 100, 80, 60);
       this.p.ellipse(-6, 0, 3, 2);
       this.p.ellipse(6, 0, 3, 2);
       
-      // Head
-      this.p.fill(80, 60, 40);
+      // Head with outline
+      this.p.fill(damageFlash ? 160, 80, 60 : 80, 60, 40);
+      this.p.stroke(60, 40, 20); // Added outline
+      this.p.strokeWeight(0.6);  // Thin outline
       this.p.ellipse(0, -6, 8, 6);
-      this.p.fill(60, 40, 20);
+      this.p.noStroke();
+      
+      this.p.fill(damageFlash ? 140, 60, 40 : 60, 40, 20);
       this.p.ellipse(0, -5, 6, 4);
       
       // Face
-      this.p.fill(200, 180, 150);
+      this.p.fill(damageFlash ? 255, 200, 180 : 200, 180, 150);
       this.p.ellipse(0, -5, 4, 2);
       this.p.fill(50, 50, 50);
       this.p.ellipse(-1, -5, 2, 1);
@@ -217,9 +257,9 @@ export default class Player implements PlayerType {
       
       // Show digging animation if active
       if (this.digging) {
-        this.p.fill(120, 100, 80);
+        this.p.fill(damageFlash ? 200, 80, 60 : 120, 100, 80);
         this.p.ellipse(6, 0, 4, 4);
-        this.p.stroke(80, 60, 40);
+        this.p.stroke(damageFlash ? 160, 60, 40 : 80, 60, 40);
         this.p.strokeWeight(1);
         this.p.line(6, 0, 12, this.p.sin(this.p.frameCount * 0.3) * 3);
         this.p.noStroke();

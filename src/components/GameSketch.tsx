@@ -32,7 +32,7 @@ const GameSketch = () => {
               maxHealth: game.hoverbike?.maxHealth || 100,
               fuel: game.hoverbike?.fuel || 0,
               maxFuel: game.hoverbike?.maxFuel || 100,
-              playerHealth: game.player?.health || 100,
+              playerHealth: game.player?.health || 0,
               maxPlayerHealth: game.player?.maxHealth || 100,
               worldX: game.player?.worldX || 0,
               worldY: game.player?.worldY || 0,

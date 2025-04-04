@@ -48,23 +48,22 @@ export default class GameRenderer {
   }
 
   drawBackgroundFuelStains() {
-    // Draw permanent background fuel stains for the home base area
+    // Draw more subtle background fuel stains for the home base area
     this.p.noStroke();
     
-    // Large stain under the fuel pump area
-    this.p.fill(10, 10, 10, 30);
-    this.p.ellipse(this.p.width / 2 + 100, this.p.height / 2 - 40, 80, 60);
+    // Main stain under the fuel pump area (reduced size and opacity)
+    this.p.fill(10, 10, 10, 20); // Reduced opacity from 30 to 20
+    this.p.ellipse(this.p.width / 2 + 100, this.p.height / 2 - 40, 60, 45); // Reduced size
     
-    // Darker center of the main stain
-    this.p.fill(0, 0, 0, 40);
-    this.p.ellipse(this.p.width / 2 + 100, this.p.height / 2 - 45, 50, 40);
+    // Darker center of the main stain (reduced size and opacity)
+    this.p.fill(0, 0, 0, 25); // Reduced opacity from 40 to 25
+    this.p.ellipse(this.p.width / 2 + 100, this.p.height / 2 - 45, 35, 28); // Reduced size
     
-    // Additional smaller stains with different opacities
+    // Fewer additional smaller stains with lower opacities
     const stainPositions = [
-      {x: this.p.width / 2 + 130, y: this.p.height / 2 - 30, size: 40, opacity: 25},
-      {x: this.p.width / 2 + 85, y: this.p.height / 2 - 60, size: 45, opacity: 20},
-      {x: this.p.width / 2 + 70, y: this.p.height / 2 - 35, size: 30, opacity: 35},
-      {x: this.p.width / 2 + 115, y: this.p.height / 2 - 15, size: 35, opacity: 30}
+      {x: this.p.width / 2 + 130, y: this.p.height / 2 - 30, size: 30, opacity: 15}, // Reduced opacity and size
+      {x: this.p.width / 2 + 85, y: this.p.height / 2 - 60, size: 35, opacity: 12}, // Reduced opacity and size
+      {x: this.p.width / 2 + 70, y: this.p.height / 2 - 35, size: 22, opacity: 18}  // Reduced opacity and size
     ];
     
     // Draw each additional stain
@@ -72,26 +71,18 @@ export default class GameRenderer {
       this.p.fill(5, 5, 5, stain.opacity);
       this.p.ellipse(stain.x, stain.y, stain.size, stain.size * 0.7);
       
-      // Add some darker spots within each stain for texture
-      this.p.fill(0, 0, 0, stain.opacity + 15);
-      this.p.ellipse(stain.x + 5, stain.y - 3, stain.size * 0.4, stain.size * 0.3);
+      // Add some darker spots within each stain for texture (reduced opacity)
+      this.p.fill(0, 0, 0, stain.opacity + 10); // Reduced opacity boost from 15 to 10
+      this.p.ellipse(stain.x + 5, stain.y - 3, stain.size * 0.3, stain.size * 0.2);
     }
     
-    // Draw a couple of drip trails
-    this.p.fill(0, 0, 0, 25);
+    // Only one subtle drip trail
+    this.p.fill(0, 0, 0, 15); // Reduced opacity from 25 to 15
     this.p.beginShape();
     this.p.vertex(this.p.width / 2 + 110, this.p.height / 2 - 20);
     this.p.vertex(this.p.width / 2 + 115, this.p.height / 2 - 20);
-    this.p.vertex(this.p.width / 2 + 120, this.p.height / 2);
-    this.p.vertex(this.p.width / 2 + 105, this.p.height / 2);
-    this.p.endShape(this.p.CLOSE);
-    
-    // Another drip trail
-    this.p.beginShape();
-    this.p.vertex(this.p.width / 2 + 85, this.p.height / 2 - 40);
-    this.p.vertex(this.p.width / 2 + 90, this.p.height / 2 - 40);
-    this.p.vertex(this.p.width / 2 + 80, this.p.height / 2 - 10);
-    this.p.vertex(this.p.width / 2 + 75, this.p.height / 2 - 10);
+    this.p.vertex(this.p.width / 2 + 120, this.p.height / 2 - 5);
+    this.p.vertex(this.p.width / 2 + 105, this.p.height / 2 - 5);
     this.p.endShape(this.p.CLOSE);
   }
 
@@ -207,6 +198,7 @@ export default class GameRenderer {
     this.p.push();
     this.p.translate(obs.x, obs.y);
 
+    // Shadow
     this.p.fill(50, 40, 30, 80);
     let shadowOffsetX = 5 * obs.size;
     let shadowOffsetY = 5 * obs.size;
@@ -214,14 +206,19 @@ export default class GameRenderer {
     let shadowHeight = 20 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
     this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
 
+    // Main rock shape
     this.p.fill(80, 70, 60);
+    this.p.stroke(50, 40, 30); // Added outline
+    this.p.strokeWeight(0.5);  // Thin outline
     this.p.beginShape();
     for (let point of obs.shape) {
       this.p.vertex(point.x, point.y);
     }
     this.p.endShape(this.p.CLOSE);
 
+    // Inner shape 1
     this.p.fill(100, 90, 80);
+    this.p.noStroke();  // No outline for inner shapes
     this.p.beginShape();
     for (let point of obs.shape) {
       let offsetX = 2 * obs.size;
@@ -230,6 +227,7 @@ export default class GameRenderer {
     }
     this.p.endShape(this.p.CLOSE);
 
+    // Inner shape 2
     this.p.fill(120, 110, 100);
     this.p.beginShape();
     for (let point of obs.shape) {
@@ -239,6 +237,7 @@ export default class GameRenderer {
     }
     this.p.endShape(this.p.CLOSE);
 
+    // Details
     this.p.fill(60, 50, 40);
     this.p.ellipse(-4 * obs.size, -2 * obs.size, 3 * obs.size, 1 * obs.size);
     this.p.ellipse(2 * obs.size, 3 * obs.size, 1 * obs.size, 3 * obs.size);
@@ -255,21 +254,25 @@ export default class GameRenderer {
     this.p.push();
     this.p.translate(obs.x, obs.y);
 
-    // Enhanced detailed desert hut from top-down perspective
-    
     // Larger shadow
     this.p.fill(50, 40, 30, 80);
     this.p.ellipse(8, 8, 50, 40);
     
     // Base foundation - circular platform
     this.p.fill(180, 160, 130);  // Sandy ground color
+    this.p.stroke(160, 140, 110); // Added outline
+    this.p.strokeWeight(0.8);     // Medium outline
     this.p.ellipse(0, 0, 55, 55);
+    this.p.noStroke();
     
     // Main structure - circular adobe/mud hut
     this.p.fill(210, 180, 140); // Sandstone/mud walls
+    this.p.stroke(170, 150, 120); // Added outline
+    this.p.strokeWeight(0.7);     // Medium outline
     this.p.ellipse(0, 0, 48, 48);
     
     // Inner structure
+    this.p.noStroke();
     this.p.fill(190, 160, 120);
     this.p.ellipse(0, 0, 40, 40);
     
@@ -285,15 +288,18 @@ export default class GameRenderer {
         Math.sin(angle) * 24
       );
     }
-    this.p.noStroke();
     
     // Entrance (dark opening)
+    this.p.noStroke();
     this.p.fill(60, 50, 40);
     this.p.arc(0, 22, 12, 14, -this.p.PI * 0.8, -this.p.PI * 0.2);
     
     // Conical roof
     this.p.fill(180, 150, 100);
+    this.p.stroke(150, 120, 80); // Added outline
+    this.p.strokeWeight(0.5);    // Thin outline
     this.p.ellipse(0, 0, 44, 44);
+    this.p.noStroke();
     this.p.fill(160, 130, 90);
     this.p.ellipse(0, 0, 34, 34);
     this.p.fill(140, 110, 80);
@@ -410,11 +416,14 @@ export default class GameRenderer {
     
     // Base platform
     this.p.fill(50, 50, 50); // Darker, rustier gray
+    this.p.stroke(30, 30, 30); // Added outline
+    this.p.strokeWeight(0.8);  // Medium outline
     this.p.rect(-12, -15, 24, 30, 2);
     
-    // Fuel pump body - much more weathered, rusty color
-    this.p.fill(110, 50, 40); // More rusty, less vibrant red
+    // Fuel pump body
+    this.p.fill(110, 50, 40); // Rusty red
     this.p.rect(-10, -15, 20, 25, 1);
+    this.p.noStroke();
     
     // Heavy rust streaks
     this.p.fill(70, 35, 25, 180); // Darker rust color
@@ -500,13 +509,18 @@ export default class GameRenderer {
     let shadowHeight = 10 * obs.size;
     this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
 
+    // Main bush shape
     this.p.fill(50, 70, 30);
+    this.p.stroke(30, 50, 20); // Added outline
+    this.p.strokeWeight(0.6);  // Medium outline
     this.p.beginShape();
     for (let point of obs.shape) {
       this.p.vertex(point.x, point.y);
     }
     this.p.endShape(this.p.CLOSE);
+    this.p.noStroke();
 
+    // Inner shapes
     this.p.fill(70, 90, 50);
     this.p.beginShape();
     for (let point of obs.shape) {
@@ -525,6 +539,7 @@ export default class GameRenderer {
     }
     this.p.endShape(this.p.CLOSE);
 
+    // Details
     this.p.fill(40, 60, 20);
     this.p.ellipse(-3 * obs.size, -2 * obs.size, 2 * obs.size, 1 * obs.size);
     this.p.ellipse(2 * obs.size, 1 * obs.size, 1 * obs.size, 2 * obs.size);
@@ -559,14 +574,20 @@ export default class GameRenderer {
     }
     this.p.endShape(this.p.CLOSE);
 
+    // Draw cactus parts with outlines
     for (let part of obs.shape) {
+      // Main cactus shape
       this.p.fill(40, 80, 40);
+      this.p.stroke(20, 60, 20); // Added outline
+      this.p.strokeWeight(0.7);  // Medium outline
       this.p.beginShape();
       for (let point of part.points) {
         this.p.vertex(point.x, point.y);
       }
       this.p.endShape(this.p.CLOSE);
+      this.p.noStroke();
 
+      // Inner shapes
       this.p.fill(60, 100, 60);
       this.p.beginShape();
       for (let i = 0; i < part.points.length; i++) {
@@ -577,92 +598,6 @@ export default class GameRenderer {
       }
       this.p.endShape(this.p.CLOSE);
 
+      // Cactus details
       this.p.fill(50, 90, 50);
-      for (let i = 0; i < part.points.length - 1; i += 2) {
-        let p1 = part.points[i];
-        let p2 = part.points[i + 1];
-        this.p.ellipse((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, 2 * obs.size, 2 * obs.size);
-      }
-    }
-
-    this.p.fill(200, 200, 150);
-    for (let part of obs.shape) {
-      if (part.type === 'body') {
-        for (let i = 0; i < 5; i++) {
-          let t = i / 4;
-          let p1 = part.points[0];
-          let p2 = part.points[part.points.length - 1];
-          let x = this.p.lerp(p1.x, p2.x, t);
-          let y = this.p.lerp(p1.y, p2.y, t);
-          this.p.ellipse(x - 3 * obs.size, y, 1 * obs.size, 1 * obs.size);
-          this.p.ellipse(x + 3 * obs.size, y, 1 * obs.size, 1 * obs.size);
-        }
-      } else if (part.type === 'arm') {
-        for (let i = 0; i < 3; i++) {
-          let t = i / 2;
-          let p1 = part.points[0];
-          let p2 = part.points[part.points.length - 1];
-          let x = this.p.lerp(p1.x, p2.x, t);
-          let y = this.p.lerp(p1.y, p2.y, t);
-          this.p.ellipse(x, y - 2 * obs.size, 1 * obs.size, 1 * obs.size);
-        }
-      }
-    }
-    
-    this.p.pop();
-  }
-
-  drawResources() {
-    let currentResources = this.worldGenerator.getResources()[`${this.worldX},${this.worldY}`] || [];
-    for (let res of currentResources) {
-      this.p.push();
-      this.p.translate(res.x, res.y);
-      
-      if (res.type === 'metal') {
-        // Rotate to random angle
-        this.p.rotate(res.rotation);
-        
-        // Half-buried metal scraps - lighter color, more square/sheet-like
-        let buriedDepth = res.buried; // 0.3-0.7, higher = more buried
-        
-        // Shadow under the metal
-        this.p.fill(80, 80, 80, 100);
-        this.p.ellipse(2, 2, 14 * res.size, 4 * res.size);
-        
-        // Base layer - buried part
-        this.p.fill(120, 120, 120);
-        this.p.beginShape();
-        this.p.vertex(-8 * res.size, buriedDepth * 5 * res.size);
-        this.p.vertex(8 * res.size, buriedDepth * 4 * res.size);
-        this.p.vertex(7 * res.size, buriedDepth * 8 * res.size);
-        this.p.vertex(-7 * res.size, buriedDepth * 7 * res.size);
-        this.p.endShape(this.p.CLOSE);
-        
-        // Main metal sheet
-        this.p.fill(200, 200, 210);
-        this.p.rect(-6 * res.size, -4 * res.size, 12 * res.size, 8 * res.size, 1);
-        
-        // Exposed part - showing above ground
-        let exposedHeight = this.p.map(buriedDepth, 0.3, 0.7, 6, 3);
-        this.p.fill(220, 220, 225);
-        this.p.rect(-5 * res.size, -4 * res.size, 10 * res.size, exposedHeight * res.size, 1);
-        
-        // Add details - rivets, bends, tears
-        this.p.fill(180, 180, 185);
-        this.p.ellipse(-4 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
-        this.p.ellipse(0, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
-        this.p.ellipse(4 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
-        
-        // Bent/damaged corner
-        this.p.fill(190, 190, 195);
-        this.p.beginShape();
-        this.p.vertex(-6 * res.size, -4 * res.size);
-        this.p.vertex(-4 * res.size, -5 * res.size);
-        this.p.vertex(-2 * res.size, -4 * res.size);
-        this.p.endShape(this.p.CLOSE);
-      }
-      
-      this.p.pop();
-    }
-  }
-}
+      for
