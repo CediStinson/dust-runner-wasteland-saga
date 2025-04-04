@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class WorldGenerator {
@@ -37,31 +36,33 @@ export default class WorldGenerator {
   generateSandTexture(worldX: number, worldY: number) {
     let zoneKey = `${worldX},${worldY}`;
     let sandTexture = this.p.createGraphics(this.p.width, this.p.height);
-    sandTexture.background(190, 170, 140);
-
-    sandTexture.loadPixels();
-    for (let i = 0; i < sandTexture.pixels.length; i += 4) {
-      let distance = this.p.dist(
-        sandTexture.width / 2,
-        sandTexture.height / 2,
-        (i / 4) % sandTexture.width,
-        this.p.floor((i / 4) / sandTexture.width)
-      );
-      let noiseValue = this.p.noise(
-        (worldX * sandTexture.width + (i / 4) % sandTexture.width) * 0.01,
-        (worldY * sandTexture.height + this.p.floor((i / 4) / sandTexture.width)) * 0.01,
-        distance * 0.005
-      );
-
-      let colorOffset = this.p.map(noiseValue, 0, 1, -30, 30);
-      sandTexture.pixels[i] += colorOffset;
-      sandTexture.pixels[i + 1] += colorOffset;
-      sandTexture.pixels[i + 2] += colorOffset;
-
-      let alphaOffset = this.p.map(noiseValue, 0, 1, -50, 50);
-      sandTexture.pixels[i + 3] = this.p.constrain(255 + alphaOffset, 0, 255);
+    sandTexture.noSmooth();
+    sandTexture.noStroke(); // Remove black grid lines
+    
+    // Randomize noise pattern for this zone
+    this.p.noiseSeed(this.p.random(1000)); 
+    
+    for (let i = 0; i < sandTexture.width; i += 4) {
+      for (let j = 0; j < sandTexture.height; j += 4) {
+        // Use Perlin noise for natural dune shapes
+        let noiseVal = this.p.noise(i * 0.01, j * 0.01);
+        
+        // Map noise to a color gradient (yellow to gold to light orange)
+        let r = this.p.map(noiseVal, 0, 1, 220, 255); // Yellow to orange
+        let g = this.p.map(noiseVal, 0, 1, 180, 200); // Gold tones
+        let b = this.p.map(noiseVal, 0, 1, 100, 120); // Light orange
+        
+        sandTexture.fill(r, g, b);
+        sandTexture.rect(i, j, 4, 4);
+        
+        // Add subtle darker patches for texture
+        if (noiseVal > 0.6) {
+          sandTexture.fill(r - 20, g - 20, b - 20);
+          sandTexture.rect(i + 1, j + 1, 2, 2);
+        }
+      }
     }
-    sandTexture.updatePixels();
+    
     this.sandTextures[zoneKey] = sandTexture;
   }
 
