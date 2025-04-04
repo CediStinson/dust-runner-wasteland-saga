@@ -14,6 +14,8 @@ export default class Player implements PlayerType {
   digging: boolean;
   digTimer: number;
   digTarget: any;
+  health: number;
+  maxHealth: number;
   p: any; 
   worldX: number;
   worldY: number;
@@ -40,6 +42,8 @@ export default class Player implements PlayerType {
     this.digging = false;
     this.digTimer = 0;
     this.digTarget = null;
+    this.health = 100;
+    this.maxHealth = 100;
   }
 
   update() {
@@ -57,7 +61,7 @@ export default class Player implements PlayerType {
         let newY = this.y + this.velY;
         
         for (let obs of currentObstacles) {
-          if (obs.type === 'rock' || obs.type === 'hut') {
+          if (obs.type === 'rock' || obs.type === 'hut' || obs.type === 'fuelPump') {
             let dx = newX - obs.x;
             let dy = newY - obs.y;
             
@@ -68,6 +72,8 @@ export default class Player implements PlayerType {
               collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.5;
             } else if (obs.type === 'hut') {
               collisionRadius = 30; // Hut collision radius
+            } else if (obs.type === 'fuelPump') {
+              collisionRadius = 25; // Fuel pump collision radius
             }
             
             let distance = this.p.sqrt(dx * dx + dy * dy);
@@ -85,9 +91,9 @@ export default class Player implements PlayerType {
               willCollide = true;
               // Damage player when colliding with cactus
               if (this.p.frameCount % 30 === 0) { // Apply damage every 30 frames (0.5 seconds)
-                const oldHealth = this.hoverbike.health;
-                this.hoverbike.health = this.p.max(0, this.hoverbike.health - 1);
-                if (oldHealth !== this.hoverbike.health) {
+                const oldHealth = this.health;
+                this.health = this.p.max(0, this.health - 1);
+                if (oldHealth !== this.health) {
                   emitGameStateUpdate(this, this.hoverbike);
                 }
               }
@@ -105,7 +111,7 @@ export default class Player implements PlayerType {
           this.velY *= -0.5;
         }
         
-        this.collectResource();
+        this.checkForCollectableResources();
       }
     } else {
       this.x = this.hoverbike.x;
@@ -129,6 +135,11 @@ export default class Player implements PlayerType {
 
     this.velX += moveX * this.speed * 0.2;
     this.velY += moveY * this.speed * 0.2;
+    
+    // Check for E key to collect metal or interact with copper
+    if (this.p.keyIsDown(69)) { // 'E' key
+      this.collectResource();
+    }
   }
 
   applyFriction() {
@@ -217,20 +228,58 @@ export default class Player implements PlayerType {
     }
     
     this.p.pop();
+    
+    // Draw player health bar above player
+    if (!this.riding) {
+      const barWidth = 20;
+      const barHeight = 3;
+      const healthPercent = this.health / this.maxHealth;
+      
+      this.p.push();
+      this.p.fill(0, 0, 0, 150);
+      this.p.rect(this.x - barWidth/2, this.y - 20, barWidth, barHeight);
+      this.p.fill(255, 50, 50);
+      this.p.rect(this.x - barWidth/2, this.y - 20, barWidth * healthPercent, barHeight);
+      this.p.pop();
+    }
+  }
+
+  checkForCollectableResources() {
+    // Only check for nearby resources
+    let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
+    
+    // Visual indicator for resources within collection range
+    for (let res of currentResources) {
+      if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
+        // Draw a small indicator above the resource
+        this.p.push();
+        this.p.fill(255, 255, 100, 150);
+        this.p.ellipse(res.x, res.y - 15, 5, 5);
+        this.p.fill(255);
+        this.p.textAlign(this.p.CENTER);
+        this.p.textSize(8);
+        this.p.text("E", res.x, res.y - 13);
+        this.p.pop();
+      }
+    }
   }
 
   collectResource() {
     let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
+    
+    // Check for metal to collect
     for (let i = currentResources.length - 1; i >= 0; i--) {
       let res = currentResources[i];
-      if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 20) {
-        this.inventory[res.type]++;
+      if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
+        this.inventory.metal++;
         currentResources.splice(i, 1);
+        // Send immediate update
+        emitGameStateUpdate(this, this.hoverbike);
       }
     }
     
-    // Check for nearby ore to interact with
-    if (this.p.keyIsDown(69) && !this.digging) { // 'E' key
+    // Check for copper ore to mine
+    if (!this.digging) {
       for (let i = 0; i < currentResources.length; i++) {
         let res = currentResources[i];
         if (res.type === 'copper' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {

@@ -15,12 +15,20 @@ export default class Game {
   worldX: number;
   worldY: number;
   riding: boolean;
+  timeOfDay: number;
+  dayLength: number; // In frames
+  nightLength: number; // In frames
+  gameStarted: boolean;
 
   constructor(p: any) {
     this.p = p;
     this.worldX = 0;
     this.worldY = 0;
     this.riding = false;
+    this.timeOfDay = 0; // 0 = midnight, 0.5 = noon, 1 = midnight again
+    this.dayLength = 60 * 60 * 15; // 15 minutes in frames (at 60fps)
+    this.nightLength = 60 * 60 * 7.5; // 7.5 minutes in frames
+    this.gameStarted = false;
     
     this.worldGenerator = new WorldGenerator(p);
     
@@ -61,7 +69,8 @@ export default class Game {
       this.player,
       this.hoverbike,
       this.worldX,
-      this.worldY
+      this.worldY,
+      this.timeOfDay
     );
     
     // Generate the initial area
@@ -72,6 +81,13 @@ export default class Game {
   }
 
   update() {
+    if (!this.gameStarted) {
+      return;
+    }
+    
+    // Update time of day
+    this.updateTimeOfDay();
+    
     if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
       this.hoverbike.update();
     }
@@ -79,10 +95,100 @@ export default class Game {
     this.player.update();
     this.checkBorder();
     this.worldGenerator.updateWindmillAngle();
+    
+    // Update renderer with time of day
+    this.renderer.setTimeOfDay(this.timeOfDay);
+  }
+
+  updateTimeOfDay() {
+    // Calculate total day-night cycle length
+    const totalCycleLength = this.dayLength + this.nightLength;
+    
+    // Increment timeOfDay
+    const increment = 1 / totalCycleLength;
+    this.timeOfDay = (this.timeOfDay + increment) % 1;
   }
 
   render() {
-    this.renderer.render();
+    if (!this.gameStarted) {
+      this.renderMainMenu();
+    } else {
+      this.renderer.render();
+    }
+  }
+  
+  renderMainMenu() {
+    // Draw background
+    this.p.background(20, 18, 24);
+    
+    // Draw stars
+    this.p.fill(255, 255, 255);
+    for (let i = 0; i < 100; i++) {
+      const x = this.p.random(this.p.width);
+      const y = this.p.random(this.p.height);
+      const size = this.p.random(1, 3);
+      const brightness = this.p.random(150, 255);
+      this.p.fill(brightness);
+      this.p.ellipse(x, y, size, size);
+    }
+    
+    // Draw large desert dune silhouette
+    this.p.fill(50, 30, 20);
+    this.p.beginShape();
+    this.p.vertex(0, this.p.height);
+    this.p.vertex(0, this.p.height * 0.7);
+    for (let x = 0; x <= this.p.width; x += 50) {
+      const y = this.p.height * 0.7 + this.p.sin(x * 0.01) * 50;
+      this.p.vertex(x, y);
+    }
+    this.p.vertex(this.p.width, this.p.height);
+    this.p.endShape(this.p.CLOSE);
+    
+    // Draw title text with glow effect
+    const titleText = "DUST RUNNER: WASTELAND SAGA";
+    this.p.textSize(42);
+    this.p.textAlign(this.p.CENTER);
+    this.p.textFont('Courier New');
+    
+    // Glow effect
+    this.p.fill(255, 220, 150, 30);
+    for (let i = 10; i > 0; i--) {
+      this.p.text(titleText, this.p.width/2, this.p.height/3 + i);
+      this.p.text(titleText, this.p.width/2 + i, this.p.height/3);
+      this.p.text(titleText, this.p.width/2 - i, this.p.height/3);
+    }
+    
+    // Main text
+    this.p.fill(255, 220, 150);
+    this.p.text(titleText, this.p.width/2, this.p.height/3);
+    
+    // Draw start button
+    const btnWidth = 200;
+    const btnHeight = 50;
+    const btnX = this.p.width/2 - btnWidth/2;
+    const btnY = this.p.height/2 + 30;
+    
+    const mouseOver = this.p.mouseX > btnX && this.p.mouseX < btnX + btnWidth && 
+                      this.p.mouseY > btnY && this.p.mouseY < btnY + btnHeight;
+                      
+    if (mouseOver) {
+      this.p.fill(255, 220, 150);
+      if (this.p.mouseIsPressed) {
+        this.gameStarted = true;
+      }
+    } else {
+      this.p.fill(200, 170, 100);
+    }
+    
+    this.p.rect(btnX, btnY, btnWidth, btnHeight, 5);
+    this.p.fill(40, 30, 20);
+    this.p.textSize(24);
+    this.p.text("START GAME", this.p.width/2, btnY + 32);
+    
+    // Draw subtitle text
+    this.p.fill(200, 180, 150);
+    this.p.textSize(16);
+    this.p.text("Survive the harsh desert. Collect resources. Upgrade your hoverbike.", this.p.width/2, this.p.height/2 - 20);
   }
 
   checkBorder() {
@@ -140,6 +246,13 @@ export default class Game {
   }
 
   handleKey(key: string) {
+    if (!this.gameStarted) {
+      if (key === ' ' || key === 'Enter') {
+        this.gameStarted = true;
+      }
+      return;
+    }
+    
     if (key === 'f' || key === 'F') {
       if (this.riding) {
         this.riding = false;
@@ -182,5 +295,21 @@ export default class Game {
   resize() {
     this.worldGenerator.clearTextures();
     this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+  }
+  
+  handleClick(mouseX: number, mouseY: number) {
+    // Handle clicks in main menu
+    if (!this.gameStarted) {
+      // Check if start button is clicked
+      const btnWidth = 200;
+      const btnHeight = 50;
+      const btnX = this.p.width/2 - btnWidth/2;
+      const btnY = this.p.height/2 + 30;
+      
+      if (mouseX > btnX && mouseX < btnX + btnWidth && 
+          mouseY > btnY && mouseY < btnY + btnHeight) {
+        this.gameStarted = true;
+      }
+    }
   }
 }

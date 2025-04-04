@@ -22,6 +22,8 @@ export default class Hoverbike implements HoverbikeType {
   p: any;
   obstacles: Record<string, any[]>;
   player: any;
+  previousAcceleration: number;
+  smokeParticles: Array<{x: number, y: number, opacity: number, size: number}>;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -42,6 +44,8 @@ export default class Hoverbike implements HoverbikeType {
     this.speedLevel = 0;
     this.durabilityLevel = 0;
     this.collisionCooldown = 0;
+    this.previousAcceleration = 0;
+    this.smokeParticles = [];
   }
 
   update() {
@@ -49,11 +53,22 @@ export default class Hoverbike implements HoverbikeType {
       this.handleControls();
       this.applyMovement();
       this.checkCollisions();
+      this.updateSmokeParticles();
+      
       if (this.collisionCooldown > 0) {
         this.collisionCooldown--;
       }
+    }
+  }
+
+  handleControls() {
+    let acceleration = 0;
+    
+    // Only consume fuel when pressing Up or Down arrows
+    if (this.p.keyIsDown(this.p.UP_ARROW) && this.fuel > 0) {
+      acceleration = 0.1;
       
-      // Consume fuel while riding
+      // Only consume fuel when actively accelerating
       if (this.p.frameCount % 60 === 0) { // Every second
         const oldFuel = this.fuel;
         this.fuel = Math.max(0, this.fuel - 0.5);
@@ -61,13 +76,56 @@ export default class Hoverbike implements HoverbikeType {
           emitGameStateUpdate(this.player, this);
         }
       }
+      
+      // Generate smoke particles when accelerating
+      if (this.p.random() < 0.3) {
+        this.addSmokeParticle();
+      }
+    } else if (this.p.keyIsDown(this.p.DOWN_ARROW)) {
+      // If moving forward, brake first
+      if (Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY) > 0.1) {
+        // Calculate if we're moving mostly in the direction we're facing
+        const movementAngle = Math.atan2(this.velocityY, this.velocityX);
+        const angleDifference = Math.abs((movementAngle - this.angle + Math.PI * 2) % (Math.PI * 2));
+        
+        if (angleDifference < Math.PI / 2 || angleDifference > Math.PI * 3 / 2) {
+          // We're moving forward, apply braking
+          acceleration = -0.05;
+        } else {
+          // We're already moving backward, accelerate backward
+          acceleration = -0.1;
+          
+          // Consume fuel for reverse movement
+          if (this.p.frameCount % 60 === 0 && this.fuel > 0) {
+            const oldFuel = this.fuel;
+            this.fuel = Math.max(0, this.fuel - 0.5);
+            if (oldFuel !== this.fuel) {
+              emitGameStateUpdate(this.player, this);
+            }
+          }
+        }
+      } else {
+        // If not moving or very slow, go in reverse
+        acceleration = -0.1;
+        
+        // Consume fuel for reverse movement
+        if (this.p.frameCount % 60 === 0 && this.fuel > 0) {
+          const oldFuel = this.fuel;
+          this.fuel = Math.max(0, this.fuel - 0.5);
+          if (oldFuel !== this.fuel) {
+            emitGameStateUpdate(this.player, this);
+          }
+        }
+        
+        // Generate some smoke for reverse too
+        if (this.p.random() < 0.2) {
+          this.addSmokeParticle();
+        }
+      }
     }
-  }
-
-  handleControls() {
-    let acceleration = 0;
-    if (this.p.keyIsDown(this.p.UP_ARROW)) acceleration = 0.1;
-    else if (this.p.keyIsDown(this.p.DOWN_ARROW)) acceleration = -0.1;
+    
+    // Store acceleration for particle effects
+    this.previousAcceleration = acceleration;
 
     let turningVelocity = 0;
     if (this.p.keyIsDown(this.p.LEFT_ARROW)) turningVelocity = -0.03;
@@ -79,6 +137,38 @@ export default class Hoverbike implements HoverbikeType {
     this.velocityX *= 0.95;
     this.velocityY *= 0.95;
   }
+  
+  updateSmokeParticles() {
+    // Update existing smoke particles
+    for (let i = this.smokeParticles.length - 1; i >= 0; i--) {
+      const particle = this.smokeParticles[i];
+      particle.opacity -= 2;
+      particle.size += 0.2;
+      
+      if (particle.opacity <= 0) {
+        this.smokeParticles.splice(i, 1);
+      }
+    }
+  }
+  
+  addSmokeParticle() {
+    // Calculate position behind the hoverbike (opposing the direction of travel)
+    const offsetDistance = 20;
+    const smokeX = -offsetDistance * Math.cos(this.angle);
+    const smokeY = -offsetDistance * Math.sin(this.angle);
+    
+    // Add some randomness to the position
+    const jitter = 3;
+    const randomX = this.p.random(-jitter, jitter);
+    const randomY = this.p.random(-jitter, jitter);
+    
+    this.smokeParticles.push({
+      x: smokeX + randomX,
+      y: smokeY + randomY,
+      opacity: 200,
+      size: this.p.random(3, 5)
+    });
+  }
 
   applyMovement() {
     // Check for collisions with the hut before moving
@@ -88,7 +178,7 @@ export default class Hoverbike implements HoverbikeType {
     let newY = this.y + this.velocityY;
     
     for (let obs of currentObstacles) {
-      if (obs.type === 'hut' || obs.type === 'rock') {
+      if (obs.type === 'hut' || obs.type === 'rock' || obs.type === 'fuelPump') {
         let dx = newX - obs.x;
         let dy = newY - obs.y;
         
@@ -99,6 +189,8 @@ export default class Hoverbike implements HoverbikeType {
           collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.5;
         } else if (obs.type === 'hut') {
           collisionRadius = 30; // Hut collision radius
+        } else if (obs.type === 'fuelPump') {
+          collisionRadius = 25; // Fuel pump collision radius
         }
         
         let distance = this.p.sqrt(dx * dx + dy * dy);
@@ -170,6 +262,19 @@ export default class Hoverbike implements HoverbikeType {
           this.y += pushY;
           break;
         }
+      } else if (obs.type === 'fuelPump') {
+        let dx = this.x - obs.x;
+        let dy = this.y - obs.y;
+        let distance = this.p.sqrt(dx * dx + dy * dy);
+        
+        // If close to fuel pump, refill fuel
+        if (distance < 40 && this.fuel < this.maxFuel) {
+          const oldFuel = this.fuel;
+          this.fuel = Math.min(this.maxFuel, this.fuel + 0.5);
+          if (oldFuel !== this.fuel && this.p.frameCount % 10 === 0) {
+            emitGameStateUpdate(this.player, this);
+          }
+        }
       }
     }
   }
@@ -179,6 +284,12 @@ export default class Hoverbike implements HoverbikeType {
       this.p.push();
       this.p.translate(this.x, this.y);
       this.p.rotate(this.angle);
+      
+      // Draw smoke particles (behind the hoverbike)
+      for (const particle of this.smokeParticles) {
+        this.p.fill(150, 150, 150, particle.opacity);
+        this.p.ellipse(particle.x, particle.y, particle.size, particle.size);
+      }
       
       // Main body - slimmer futuristic hoverbike rotated 90 degrees
       // First layer - base chassis (gray metallic)

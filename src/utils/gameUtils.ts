@@ -10,6 +10,8 @@ export interface PlayerType {
   digging: boolean;
   digTimer: number;
   digTarget: any;
+  health: number;
+  maxHealth: number;
   update: () => void;
   handleInput: () => void;
   applyFriction: () => void;
@@ -72,7 +74,13 @@ export function emitGameStateUpdate(player: any, hoverbike: any) {
       health: hoverbike?.health || 0,
       maxHealth: hoverbike?.maxHealth || 100,
       fuel: hoverbike?.fuel || 0,
-      maxFuel: hoverbike?.maxFuel || 100
+      maxFuel: hoverbike?.maxFuel || 100,
+      playerHealth: player?.health || 100,
+      maxPlayerHealth: player?.maxHealth || 100,
+      worldX: player?.worldX || 0,
+      worldY: player?.worldY || 0,
+      baseWorldX: 0, // Home base is at 0,0
+      baseWorldY: 0
     }
   });
   window.dispatchEvent(event);

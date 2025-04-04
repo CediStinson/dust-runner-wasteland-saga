@@ -13,12 +13,19 @@ const Index = () => {
   const [maxHealth, setMaxHealth] = useState(100);
   const [fuel, setFuel] = useState(100);
   const [maxFuel, setMaxFuel] = useState(100);
+  const [playerHealth, setPlayerHealth] = useState(100);
+  const [maxPlayerHealth, setMaxPlayerHealth] = useState(100);
+  const [worldX, setWorldX] = useState(0);
+  const [worldY, setWorldY] = useState(0);
   
   // Subscribe to game state updates
   useEffect(() => {
     // Set up a message listener for game state updates
     const handleGameStateUpdate = (event: CustomEvent) => {
-      const { resources, copper, health, maxHealth, fuel, maxFuel } = event.detail;
+      const { 
+        resources, copper, health, maxHealth, fuel, maxFuel,
+        playerHealth, maxPlayerHealth, worldX, worldY, baseWorldX, baseWorldY
+      } = event.detail;
       
       setResources(resources);
       setCopper(copper);
@@ -26,6 +33,10 @@ const Index = () => {
       setMaxHealth(maxHealth);
       setFuel(fuel);
       setMaxFuel(maxFuel);
+      setPlayerHealth(playerHealth || 100);
+      setMaxPlayerHealth(maxPlayerHealth || 100);
+      setWorldX(worldX || 0);
+      setWorldY(worldY || 0);
     };
     
     // Add event listener
@@ -47,10 +58,13 @@ const Index = () => {
         maxHealth={maxHealth}
         fuel={fuel}
         maxFuel={maxFuel}
+        playerHealth={playerHealth}
+        maxPlayerHealth={maxPlayerHealth}
+        worldX={worldX}
+        worldY={worldY}
+        baseWorldX={0}
+        baseWorldY={0}
       />
-      <div className="game-overlay">
-        <h1 className="game-title">Dust Runner: Wasteland Saga</h1>
-      </div>
     </div>
   );
 };

@@ -26,6 +26,10 @@ const GameSketch = () => {
       p.keyPressed = () => {
         game.handleKey(p.key);
       };
+      
+      p.mousePressed = () => {
+        game.handleClick(p.mouseX, p.mouseY);
+      };
 
       p.windowResized = () => {
         p.resizeCanvas(p.windowWidth, p.windowHeight);

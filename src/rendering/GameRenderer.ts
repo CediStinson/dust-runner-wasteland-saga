@@ -8,18 +8,21 @@ export default class GameRenderer {
   hoverbike: any;
   worldX: number;
   worldY: number;
+  timeOfDay: number;
 
-  constructor(p: any, worldGenerator: any, player: any, hoverbike: any, worldX: number, worldY: number) {
+  constructor(p: any, worldGenerator: any, player: any, hoverbike: any, worldX: number, worldY: number, timeOfDay: number = 0.25) {
     this.p = p;
     this.worldGenerator = worldGenerator;
     this.player = player;
     this.hoverbike = hoverbike;
     this.worldX = worldX;
     this.worldY = worldY;
+    this.timeOfDay = timeOfDay;
   }
 
   render() {
     this.drawBackground();
+    this.applyDaytimeTint();
     this.drawObstacles();
     this.drawResources();
     
@@ -28,7 +31,6 @@ export default class GameRenderer {
     }
     
     this.player.display();
-    this.drawInstructions();
   }
 
   drawBackground() {
@@ -38,6 +40,56 @@ export default class GameRenderer {
     }
     if (this.worldGenerator.getGrassTexture(zoneKey)) {
       this.p.image(this.worldGenerator.getGrassTexture(zoneKey), 0, 0);
+    }
+  }
+  
+  applyDaytimeTint() {
+    // Apply color tint based on time of day
+    // 0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset, 1 = midnight
+    
+    // Clear any previous tint
+    this.p.noTint();
+    
+    if (this.timeOfDay < 0.25) {
+      // Midnight to sunrise: blue night tint getting lighter
+      const blendFactor = this.timeOfDay / 0.25; // 0 to 1
+      const r = this.p.lerp(50, 150, blendFactor);
+      const g = this.p.lerp(50, 120, blendFactor);
+      const b = this.p.lerp(80, 100, blendFactor);
+      const alpha = this.p.lerp(180, 30, blendFactor);
+      
+      this.p.fill(r, g, b, alpha);
+      this.p.rect(0, 0, this.p.width, this.p.height);
+    } else if (this.timeOfDay < 0.5) {
+      // Sunrise to noon: orangey sunrise to clear day
+      const blendFactor = (this.timeOfDay - 0.25) / 0.25; // 0 to 1
+      const r = this.p.lerp(255, 255, blendFactor);
+      const g = this.p.lerp(200, 255, blendFactor);
+      const b = this.p.lerp(150, 255, blendFactor);
+      const alpha = this.p.lerp(40, 0, blendFactor);
+      
+      this.p.fill(r, g, b, alpha);
+      this.p.rect(0, 0, this.p.width, this.p.height);
+    } else if (this.timeOfDay < 0.75) {
+      // Noon to sunset: clear day to orangey sunset
+      const blendFactor = (this.timeOfDay - 0.5) / 0.25; // 0 to 1
+      const r = this.p.lerp(255, 255, blendFactor);
+      const g = this.p.lerp(255, 150, blendFactor);
+      const b = this.p.lerp(255, 100, blendFactor);
+      const alpha = this.p.lerp(0, 50, blendFactor);
+      
+      this.p.fill(r, g, b, alpha);
+      this.p.rect(0, 0, this.p.width, this.p.height);
+    } else {
+      // Sunset to midnight: orangey sunset to blue night
+      const blendFactor = (this.timeOfDay - 0.75) / 0.25; // 0 to 1
+      const r = this.p.lerp(255, 50, blendFactor);
+      const g = this.p.lerp(150, 50, blendFactor);
+      const b = this.p.lerp(100, 80, blendFactor);
+      const alpha = this.p.lerp(50, 180, blendFactor);
+      
+      this.p.fill(r, g, b, alpha);
+      this.p.rect(0, 0, this.p.width, this.p.height);
     }
   }
 
@@ -52,6 +104,8 @@ export default class GameRenderer {
         this.drawBush(obs);
       } else if (obs.type === 'cactus') {
         this.drawCactus(obs);
+      } else if (obs.type === 'fuelPump') {
+        this.drawFuelPump(obs);
       }
     }
   }
@@ -215,6 +269,78 @@ export default class GameRenderer {
     this.p.fill(140, 130, 120);
     this.p.rect(14, 12, 8, 2);
     this.p.rect(18, 14, 6, 3);
+    
+    this.p.pop();
+  }
+  
+  drawFuelPump(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    // Ground stain (oil/fuel leak)
+    this.p.fill(20, 20, 20, 120);
+    for (let i = 0; i < 5; i++) {
+      const angle = this.p.random(this.p.TWO_PI);
+      const distance = this.p.random(10, 30);
+      const x = Math.cos(angle) * distance;
+      const y = Math.sin(angle) * distance;
+      const size = this.p.random(5, 15);
+      this.p.ellipse(x, y, size, size);
+    }
+    
+    // Shadow
+    this.p.fill(0, 0, 0, 50);
+    this.p.ellipse(5, 5, 30, 10);
+    
+    // Base platform
+    this.p.fill(80, 80, 80);
+    this.p.rect(-12, -15, 24, 30, 2);
+    
+    // Fuel pump body
+    this.p.fill(220, 50, 50);
+    this.p.rect(-10, -15, 20, 25, 1);
+    
+    // Pump details
+    this.p.fill(50, 50, 50);
+    this.p.rect(-8, -10, 16, 8);
+    
+    // Pump readings/display
+    this.p.fill(200, 200, 100);
+    this.p.rect(-6, -8, 12, 4);
+    
+    // Pump nozzle 
+    this.p.fill(50, 50, 50);
+    this.p.rect(5, 0, 10, 3);
+    this.p.rect(13, -5, 2, 10);
+    
+    // Top of pump
+    this.p.fill(200, 50, 50);
+    this.p.rect(-8, -18, 16, 3);
+    
+    // Fuel barrel next to the pump
+    this.p.fill(200, 50, 50);
+    this.p.ellipse(20, 0, 20, 20);
+    
+    // Barrel top
+    this.p.fill(150, 30, 30);
+    this.p.ellipse(20, 0, 15, 15);
+    
+    // Barrel details
+    this.p.stroke(100, 20, 20);
+    this.p.strokeWeight(1);
+    this.p.line(14, -4, 26, -4);
+    this.p.line(14, 0, 26, 0);
+    this.p.line(14, 4, 26, 4);
+    this.p.noStroke();
+    
+    // Hazard symbol on barrel
+    this.p.fill(0);
+    this.p.push();
+    this.p.translate(20, 0);
+    this.p.rotate(this.p.PI/4);
+    this.p.rect(-4, -1, 8, 2);
+    this.p.rect(-1, -4, 2, 8);
+    this.p.pop();
     
     this.p.pop();
   }
@@ -397,7 +523,7 @@ export default class GameRenderer {
         this.p.ellipse(2 * res.size, 0, 3 * res.size, 2 * res.size);
         
       } else if (res.type === 'copper') {
-        // Orange shiny copper ore
+        // Orange shiny copper ore - fixed to not move around
         
         // Shadow
         this.p.fill(80, 60, 40, 80);
@@ -405,37 +531,38 @@ export default class GameRenderer {
         
         // Base rock
         this.p.fill(100, 80, 60);
-        this.p.beginShape();
-        for (let point of res.shape) {
-          this.p.vertex(point.x, point.y);
-        }
-        this.p.endShape(this.p.CLOSE);
+        let radius = 10;
+        this.p.ellipse(0, 0, radius * 2, radius * 2);
         
-        // Copper veins/streaks
+        // Copper veins/streaks - use FIXED patterns
         this.p.fill(200, 100, 30); // Orange copper color
         
-        // Several random copper veins
-        for (let i = 0; i < 4; i++) {
-          let veinSize = this.p.random(3, 5);
-          let veinX = this.p.random(-5, 5);
-          let veinY = this.p.random(-5, 5);
-          this.p.beginShape();
-          for (let j = 0; j < 5; j++) {
-            let angle = j * this.p.TWO_PI / 5;
-            let radius = veinSize * (0.7 + this.p.noise(angle * 0.5) * 0.6);
-            let x = veinX + this.p.cos(angle) * radius;
-            let y = veinY + this.p.sin(angle) * radius;
-            this.p.vertex(x, y);
-          }
-          this.p.endShape(this.p.CLOSE);
+        // Use deterministic veins rather than random
+        const numVeins = 4;
+        for (let i = 0; i < numVeins; i++) {
+          // Deterministic angle for this vein based on resource position
+          const angle = i * (Math.PI * 2 / numVeins);
+          const veinX = Math.cos(angle) * radius * 0.6;
+          const veinY = Math.sin(angle) * radius * 0.6;
+          const veinSize = 3 + (i % 3);
+          
+          this.p.ellipse(veinX, veinY, veinSize, veinSize);
         }
         
-        // Copper shine/highlights
-        this.p.fill(240, 140, 50, 150); // Brighter orange for highlights
-        for (let i = 0; i < 3; i++) {
-          let shineX = this.p.random(-4, 4);
-          let shineY = this.p.random(-4, 4);
-          this.p.ellipse(shineX, shineY, this.p.random(1.5, 2.5), this.p.random(1.5, 2.5));
+        // Add a larger central vein
+        this.p.fill(220, 120, 40);
+        this.p.ellipse(0, 0, 5, 5);
+        
+        // Fixed highlights
+        this.p.fill(240, 140, 50, 150);
+        const numHighlights = 3;
+        for (let i = 0; i < numHighlights; i++) {
+          const highlightAngle = i * (Math.PI * 2 / numHighlights) + Math.PI / 6;
+          const highlightX = Math.cos(highlightAngle) * radius * 0.3;
+          const highlightY = Math.sin(highlightAngle) * radius * 0.3;
+          const highlightSize = 1.5 + (i % 2);
+          
+          this.p.ellipse(highlightX, highlightY, highlightSize, highlightSize);
         }
       }
       
@@ -443,26 +570,12 @@ export default class GameRenderer {
     }
   }
 
-  drawInstructions() {
-    this.p.fill(255);
-    this.p.textSize(16);
-    this.p.text("Use arrow keys to move.", 10, 30);
-    this.p.text("Press 'f' to mount/dismount hoverbike.", 10, 50);
-    this.p.text("Press 'r' to repair hoverbike with metal.", 10, 70);
-    this.p.text("Press 's' to upgrade speed with metal.", 10, 90);
-    this.p.text("Press 'd' to upgrade durability with metal.", 10, 110);
-    this.p.text("Press 'e' near copper ore to mine it.", 10, 130);
-    
-    // Display inventory
-    this.p.text("Metal: " + this.player.inventory.metal, 10, 170);
-    this.p.text("Copper: " + this.player.inventory.copper, 10, 190);
-    
-    // Display coordinates
-    this.p.text("Zone: " + this.worldX + "," + this.worldY, 10, 230);
-  }
-
   setWorldCoordinates(x: number, y: number) {
     this.worldX = x;
     this.worldY = y;
+  }
+  
+  setTimeOfDay(time: number) {
+    this.timeOfDay = time;
   }
 }
