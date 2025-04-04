@@ -21,6 +21,8 @@ interface GameUIProps {
 }
 
 const GameUI: React.FC<GameUIProps> = ({ 
+  resources = 0,
+  copper = 0,
   health = 100,
   maxHealth = 100,
   fuel = 100,
