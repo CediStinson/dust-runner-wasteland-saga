@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -23,7 +22,7 @@ export default class Hoverbike implements HoverbikeType {
   obstacles: Record<string, any[]>;
   player: any;
   previousAcceleration: number;
-  smokeParticles: Array<{x: number, y: number, opacity: number, size: number}>;
+  smokeParticles: Array<{x: number, y: number, worldX: number, worldY: number, opacity: number, size: number}>;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -58,6 +57,8 @@ export default class Hoverbike implements HoverbikeType {
       if (this.collisionCooldown > 0) {
         this.collisionCooldown--;
       }
+    } else {
+      this.updateSmokeParticles();
     }
   }
 
@@ -142,8 +143,10 @@ export default class Hoverbike implements HoverbikeType {
     // Update existing smoke particles
     for (let i = this.smokeParticles.length - 1; i >= 0; i--) {
       const particle = this.smokeParticles[i];
-      particle.opacity -= 2;
-      particle.size += 0.2;
+      
+      // Fade out more slowly for smoother effect
+      particle.opacity -= this.player.riding ? 1.5 : 3; // Fade faster when dismounting
+      particle.size += 0.15;
       
       if (particle.opacity <= 0) {
         this.smokeParticles.splice(i, 1);
@@ -157,16 +160,18 @@ export default class Hoverbike implements HoverbikeType {
     const smokeX = -offsetDistance * Math.cos(this.angle);
     const smokeY = -offsetDistance * Math.sin(this.angle);
     
-    // Add some randomness to the position
-    const jitter = 3;
+    // Add some subtle randomness to the position
+    const jitter = 2;
     const randomX = this.p.random(-jitter, jitter);
     const randomY = this.p.random(-jitter, jitter);
     
     this.smokeParticles.push({
       x: smokeX + randomX,
       y: smokeY + randomY,
-      opacity: 200,
-      size: this.p.random(3, 5)
+      worldX: this.worldX,
+      worldY: this.worldY,
+      opacity: 180,
+      size: this.p.random(3, 4)
     });
   }
 
@@ -288,11 +293,14 @@ export default class Hoverbike implements HoverbikeType {
       // Draw smoke particles (behind the hoverbike)
       this.p.noStroke(); // No outline for smoke
       for (const particle of this.smokeParticles) {
-        // Simple line-like smoke effect
-        const smokeGray = 150 + this.p.random(-30, 30);
-        this.p.fill(smokeGray, smokeGray, smokeGray, particle.opacity);
-        // Draw elongated particle (more like a line)
-        this.p.ellipse(particle.x, particle.y, particle.size * 1.5, particle.size * 0.8);
+        // Only draw particles in the current world cell
+        if (particle.worldX === this.worldX && particle.worldY === this.worldY) {
+          // Simple line-like smoke effect
+          const smokeGray = 150 + this.p.random(-20, 20); // Less randomness for smoother look
+          this.p.fill(smokeGray, smokeGray, smokeGray, particle.opacity);
+          // Draw elongated particle (more like a line)
+          this.p.ellipse(particle.x, particle.y, particle.size * 1.5, particle.size * 0.8);
+        }
       }
       
       // Main body - hoverbike with correct orientation (front facing forward, back in the rear)

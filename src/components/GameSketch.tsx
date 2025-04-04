@@ -21,6 +21,29 @@ const GameSketch = () => {
       p.draw = () => {
         game.update();
         game.render();
+        
+        // Emit game state updates including day/night cycle info
+        if (p.frameCount % 60 === 0) {  // Update UI every second
+          const event = new CustomEvent('gameStateUpdate', {
+            detail: {
+              resources: game.player?.inventory?.metal || 0,
+              copper: game.player?.inventory?.copper || 0,
+              health: game.hoverbike?.health || 0,
+              maxHealth: game.hoverbike?.maxHealth || 100,
+              fuel: game.hoverbike?.fuel || 0,
+              maxFuel: game.hoverbike?.maxFuel || 100,
+              playerHealth: game.player?.health || 100,
+              maxPlayerHealth: game.player?.maxHealth || 100,
+              worldX: game.player?.worldX || 0,
+              worldY: game.player?.worldY || 0,
+              baseWorldX: 0,
+              baseWorldY: 0,
+              dayTimeIcon: game.dayTimeIcon,
+              dayTimeAngle: game.dayTimeAngle
+            }
+          });
+          window.dispatchEvent(event);
+        }
       };
 
       p.keyPressed = () => {

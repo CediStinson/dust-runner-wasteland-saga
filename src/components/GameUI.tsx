@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Settings, Compass } from 'lucide-react';
+import { Settings, Compass, Sun, Moon } from 'lucide-react';
 import { Progress } from './ui/progress';
 
 interface GameUIProps {
@@ -16,11 +16,11 @@ interface GameUIProps {
   worldY?: number;
   baseWorldX?: number;
   baseWorldY?: number;
+  dayTimeIcon?: string;
+  dayTimeAngle?: number;
 }
 
 const GameUI: React.FC<GameUIProps> = ({ 
-  resources = 0, 
-  copper = 0,
   health = 100,
   maxHealth = 100,
   fuel = 100,
@@ -30,7 +30,9 @@ const GameUI: React.FC<GameUIProps> = ({
   worldX = 0,
   worldY = 0,
   baseWorldX = 0,
-  baseWorldY = 0
+  baseWorldY = 0,
+  dayTimeIcon = "sun",
+  dayTimeAngle = 0
 }) => {
   const [showControls, setShowControls] = useState(false);
 
@@ -57,8 +59,35 @@ const GameUI: React.FC<GameUIProps> = ({
             </button>
           </div>
           
-          {/* Compass */}
+          {/* Compass and Day/Night Indicator */}
           <div className="flex flex-col items-center">
+            {/* Day/Night Indicator */}
+            <div className="bg-black/50 p-3 rounded-full backdrop-blur-sm text-white border border-white/30 w-16 h-16 flex items-center justify-center relative mb-2">
+              <div className="absolute w-full h-full flex items-center justify-center">
+                <div className="w-1 h-1 bg-white rounded-full"></div>
+                <div className="absolute w-14 h-0.5 bg-white/30 rounded-full"></div>
+              </div>
+              
+              {/* Sun or Moon icon that rotates around the circle */}
+              <div 
+                className="absolute w-full h-full flex items-center justify-center"
+                style={{ transform: `rotate(${dayTimeAngle}rad)` }}
+              >
+                <div className="w-0.5 h-14 flex flex-col items-center">
+                  <div className="flex-1"></div>
+                  {dayTimeIcon === "sun" ? (
+                    <Sun className="text-yellow-400" size={16} />
+                  ) : (
+                    <Moon className="text-blue-200" size={16} />
+                  )}
+                </div>
+              </div>
+              
+              {/* Horizontal line */}
+              <div className="w-14 h-0.5 bg-white/30"></div>
+            </div>
+            
+            {/* Compass */}
             <div className="bg-black/50 p-3 rounded-full backdrop-blur-sm text-white border border-white/30 w-16 h-16 flex items-center justify-center relative">
               <div className="absolute w-full h-full flex items-center justify-center">
                 <div className="w-1 h-1 bg-white rounded-full"></div>
@@ -94,9 +123,7 @@ const GameUI: React.FC<GameUIProps> = ({
               <li className="text-gray-300">Arrow keys - Move character/control hoverbike</li>
               <li className="text-gray-300">F - Enter/exit hoverbike</li>
               <li className="text-gray-300">E - Collect metal/mine copper</li>
-              <li className="text-gray-300">R - Repair hoverbike with metal</li>
               <li className="text-gray-300">S - Upgrade hoverbike speed with metal</li>
-              <li className="text-gray-300">D - Upgrade hoverbike durability with metal</li>
             </ul>
             <button 
               onClick={() => setShowControls(false)}
@@ -144,7 +171,7 @@ const GameUI: React.FC<GameUIProps> = ({
               <div className="text-xs font-mono text-center mt-1">PLAYER</div>
             </div>
             
-            {/* Hoverbike health bar */}
+            {/* Hoverbike health bar - changed to gray */}
             <div className="bg-black/50 p-3 rounded-lg backdrop-blur-sm text-gray-200 border border-gray-500/30 w-40">
               <div className="w-full h-3 bg-gray-900/70 rounded-full overflow-hidden">
                 <div 

@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -19,6 +18,8 @@ export default class Game {
   dayLength: number; // In frames
   nightLength: number; // In frames
   gameStarted: boolean;
+  dayTimeIcon: string; // "sun" or "moon"
+  dayTimeAngle: number; // Position on the circle
 
   constructor(p: any) {
     this.p = p;
@@ -78,6 +79,72 @@ export default class Game {
     
     // Initialize UI values
     emitGameStateUpdate(this.player, this.hoverbike);
+    
+    // Add the fuel station at home base
+    this.addFuelStationAtHomeBase();
+    
+    // Add walking marks
+    this.addWalkingMarksAtHomeBase();
+  }
+
+  addFuelStationAtHomeBase() {
+    const homeAreaKey = "0,0";
+    let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
+    
+    // Add fuel pump if it doesn't exist
+    const hasFuelPump = homeObstacles.some(obs => obs.type === 'fuelPump');
+    
+    if (!hasFuelPump) {
+      // Add fuel barrel and pump
+      homeObstacles.push({
+        type: 'fuelPump',
+        x: this.p.width / 2 + 100,
+        y: this.p.height / 2 - 50,
+        size: 1.0,
+        hasFuelStain: true
+      });
+      
+      // Add barrel
+      homeObstacles.push({
+        type: 'fuelBarrel',
+        x: this.p.width / 2 + 120,
+        y: this.p.height / 2 - 50,
+        size: 1.0
+      });
+      
+      // Update the world generator's obstacles
+      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+    }
+  }
+  
+  addWalkingMarksAtHomeBase() {
+    const homeAreaKey = "0,0";
+    let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
+    
+    // Add walking marks
+    const hasWalkingMarks = homeObstacles.some(obs => obs.type === 'walkingMarks');
+    
+    if (!hasWalkingMarks) {
+      // Add multiple footprint sets in a pattern approaching the home base
+      for (let i = 0; i < 5; i++) {
+        const angle = this.p.random(0, Math.PI * 2);
+        const distance = this.p.random(60, 150);
+        const x = this.p.width / 2 + Math.cos(angle) * distance;
+        const y = this.p.height / 2 + Math.sin(angle) * distance;
+        
+        homeObstacles.push({
+          type: 'walkingMarks',
+          x: x,
+          y: y,
+          angle: this.p.random(0, Math.PI * 2),
+          size: this.p.random(0.7, 1.0),
+          opacity: this.p.random(150, 200)
+        });
+      }
+      
+      // Update the world generator's obstacles
+      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+    }
   }
 
   update() {
@@ -107,6 +174,17 @@ export default class Game {
     // Increment timeOfDay
     const increment = 1 / totalCycleLength;
     this.timeOfDay = (this.timeOfDay + increment) % 1;
+    
+    // Update time of day icon and angle
+    // Convert time to angle (0 = midnight, 0.5 = noon)
+    this.dayTimeAngle = this.timeOfDay * Math.PI * 2;
+    
+    // Determine if it's day or night
+    if (this.timeOfDay > 0.25 && this.timeOfDay < 0.75) {
+      this.dayTimeIcon = "sun";
+    } else {
+      this.dayTimeIcon = "moon";
+    }
   }
 
   render() {
