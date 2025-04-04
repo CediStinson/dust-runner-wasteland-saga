@@ -23,11 +23,6 @@ export default class Player implements PlayerType {
   resources: Record<string, any[]>;
   hoverbike: any;
   riding: boolean;
-  canDigCopper: boolean;
-  cactusDamageCooldown: number;
-  isSleeping: boolean;
-  sleepAnimationFrame: number;
-  tutorialTexts: { [key: string]: boolean };
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -49,19 +44,9 @@ export default class Player implements PlayerType {
     this.digTarget = null;
     this.health = 100;
     this.maxHealth = 100;
-    this.canDigCopper = false; // Player can't dig copper until they complete the first quest
-    this.cactusDamageCooldown = 0;
-    this.isSleeping = false;
-    this.sleepAnimationFrame = 0;
-    this.tutorialTexts = { copper: true, metal: true }; // Track which tutorial texts have been shown
   }
 
   update() {
-    if (this.isSleeping) {
-      this.updateSleeping();
-      return;
-    }
-    
     if (!this.riding) {
       if (this.digging) {
         this.updateDigging();
@@ -86,25 +71,7 @@ export default class Player implements PlayerType {
               let hitboxHeight = 28 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
               collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.5;
             } else if (obs.type === 'hut') {
-              // Check for hut entrance to trigger sleep
-              const frontAngle = this.p.PI / 2; // Front of hut is at bottom (PI/2 radians)
-              const dx = this.x - obs.x;
-              const dy = this.y - obs.y;
-              const distanceToHut = this.p.sqrt(dx * dx + dy * dy);
-              const angleToHut = this.p.atan2(dy, dx);
-              
-              // Check if player is in front of the hut entrance (within a certain angle)
-              const angleDiff = this.p.abs(this.p.abs(angleToHut) - frontAngle);
-              
-              // If night time, close to entrance, and in front of it
-              const isNight = this.p.game && (this.p.game.dayTimeIcon === "moon");
-              
-              if (isNight && distanceToHut < 35 && angleDiff < 0.5) {
-                this.startSleeping();
-                return;
-              }
-              
-              collisionRadius = 30; // Normal hut collision radius
+              collisionRadius = 30; // Hut collision radius
             } else if (obs.type === 'fuelPump') {
               collisionRadius = 25; // Fuel pump collision radius
             }
@@ -114,8 +81,24 @@ export default class Player implements PlayerType {
               willCollide = true;
               break;
             }
-          } else if (obs.type === 'tarp') {
-            // No collision with tarp - player can walk under it
+          } else if (obs.type === 'cactus') {
+            let dx = newX - obs.x;
+            let dy = newY - obs.y;
+            let hitboxWidth = 15 * obs.size;
+            let distance = this.p.sqrt(dx * dx + dy * dy);
+            
+            if (distance < hitboxWidth) {
+              willCollide = true;
+              // Damage player when colliding with cactus
+              if (this.p.frameCount % 30 === 0) { // Apply damage every 30 frames (0.5 seconds)
+                const oldHealth = this.health;
+                this.health = this.p.max(0, this.health - 1);
+                if (oldHealth !== this.health) {
+                  emitGameStateUpdate(this, this.hoverbike);
+                }
+              }
+              break;
+            }
           }
         }
         
@@ -128,32 +111,6 @@ export default class Player implements PlayerType {
           this.velY *= -0.5;
         }
         
-        // Check for collision with cactus - player can walk over them but takes damage
-        if (this.cactusDamageCooldown > 0) {
-          this.cactusDamageCooldown--;
-        } else {
-          for (let obs of currentObstacles) {
-            if (obs.type === 'cactus') {
-              let dx = this.x - obs.x;
-              let dy = this.y - obs.y;
-              let hitboxWidth = 15 * obs.size;
-              let distance = this.p.sqrt(dx * dx + dy * dy);
-              
-              if (distance < hitboxWidth) {
-                // Damage player when colliding with cactus
-                const oldHealth = this.health;
-                this.health = this.p.max(0, this.health - 5);
-                this.cactusDamageCooldown = 60; // 1 second cooldown at 60fps
-                
-                if (oldHealth !== this.health) {
-                  emitGameStateUpdate(this, this.hoverbike);
-                }
-                break;
-              }
-            }
-          }
-        }
-        
         this.checkForCollectableResources();
       }
     } else {
@@ -161,32 +118,8 @@ export default class Player implements PlayerType {
       this.y = this.hoverbike.y;
     }
   }
-  
-  updateSleeping() {
-    // Increment animation frame
-    this.sleepAnimationFrame++;
-    
-    if (this.sleepAnimationFrame > 300) { // After 5 seconds (at 60fps)
-      // End sleeping and set time to morning
-      this.isSleeping = false;
-      this.sleepAnimationFrame = 0;
-      
-      // Skip to morning - set game time to sunrise (0.25)
-      if (this.p.game) {
-        this.p.game.timeOfDay = 0.25; // Sunrise
-      }
-    }
-  }
-  
-  startSleeping() {
-    this.isSleeping = true;
-    this.sleepAnimationFrame = 0;
-  }
 
   handleInput() {
-    // Don't handle input when sleeping
-    if (this.isSleeping) return;
-    
     let moveX = 0, moveY = 0;
     if (this.p.keyIsDown(this.p.UP_ARROW)) moveY -= this.speed;
     if (this.p.keyIsDown(this.p.DOWN_ARROW)) moveY += this.speed;
@@ -215,12 +148,6 @@ export default class Player implements PlayerType {
   }
 
   display() {
-    // If sleeping, show z's coming from hut
-    if (this.isSleeping) {
-      this.displaySleepingAnimation();
-      return;
-    }
-    
     this.p.push();
     this.p.translate(this.x, this.y);
     this.p.rotate(this.angle + this.p.PI / 2);
@@ -301,42 +228,20 @@ export default class Player implements PlayerType {
     }
     
     this.p.pop();
-  }
-  
-  displaySleepingAnimation() {
-    // Find the hut
-    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-    let hut = currentObstacles.find(obs => obs.type === 'hut');
     
-    if (!hut) return;
-    
-    // Draw Z's floating up from the hut
-    this.p.push();
-    this.p.fill(255, 255, 255, 150);
-    this.p.textSize(16);
-    
-    const baseX = hut.x;
-    const baseY = hut.y - 20;
-    
-    for (let i = 0; i < 3; i++) {
-      const frame = (this.sleepAnimationFrame + i * 40) % 120;
-      if (frame < 120) {
-        const progress = frame / 120;
-        const x = baseX + this.p.cos(progress * this.p.PI * 2) * 10;
-        const y = baseY - progress * 30;
-        const alpha = this.p.map(progress, 0, 1, 255, 0);
-        const scale = this.p.map(progress, 0, 1, 0.5, 1.5);
-        
-        this.p.push();
-        this.p.translate(x, y);
-        this.p.scale(scale);
-        this.p.fill(255, 255, 255, alpha);
-        this.p.text("z", 0, 0);
-        this.p.pop();
-      }
+    // Draw player health bar above player
+    if (!this.riding) {
+      const barWidth = 20;
+      const barHeight = 3;
+      const healthPercent = this.health / this.maxHealth;
+      
+      this.p.push();
+      this.p.fill(0, 0, 0, 150);
+      this.p.rect(this.x - barWidth/2, this.y - 20, barWidth, barHeight);
+      this.p.fill(255, 50, 50);
+      this.p.rect(this.x - barWidth/2, this.y - 20, barWidth * healthPercent, barHeight);
+      this.p.pop();
     }
-    
-    this.p.pop();
   }
 
   checkForCollectableResources() {
@@ -354,71 +259,7 @@ export default class Player implements PlayerType {
         this.p.textAlign(this.p.CENTER);
         this.p.textSize(8);
         this.p.text("E", res.x, res.y - 13);
-        
-        // Tutorial text for metal
-        if (this.tutorialTexts.metal && this.inventory.metal === 0) {
-          this.p.textAlign(this.p.CENTER);
-          this.p.textSize(10);
-          this.p.fill(0, 0, 0, 180);
-          const textWidth = 170;
-          const textHeight = 30;
-          this.p.rect(res.x, res.y - 40, textWidth, textHeight, 5);
-          this.p.fill(255);
-          this.p.text("Press E to gather metal scraps and", res.x, res.y - 44);
-          this.p.text("other resources laying on the ground", res.x, res.y - 34);
-        }
         this.p.pop();
-      } else if (res.type === 'copper' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
-        // Draw indicator and tutorial for copper
-        this.p.push();
-        this.p.fill(255, 255, 100, 150);
-        this.p.ellipse(res.x, res.y - 15, 5, 5);
-        this.p.fill(255);
-        this.p.textAlign(this.p.CENTER);
-        this.p.textSize(8);
-        this.p.text("E", res.x, res.y - 13);
-        
-        // Tutorial text for copper
-        if (this.tutorialTexts.copper) {
-          this.p.textAlign(this.p.CENTER);
-          this.p.textSize(10);
-          this.p.fill(0, 0, 0, 180);
-          const textWidth = 140;
-          const textHeight = 20;
-          this.p.rect(res.x, res.y - 40, textWidth, textHeight, 5);
-          this.p.fill(255);
-          
-          if (!this.canDigCopper) {
-            this.p.text("Hmm, this is way too hard to dig up with your bare hands.", res.x, res.y - 34);
-          } else {
-            this.p.text("Press E to dig for rare metals", res.x, res.y - 34);
-          }
-        }
-        this.p.pop();
-      }
-    }
-    
-    // Check if we're near the hut for the repair quest
-    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-    for (let obs of currentObstacles) {
-      if (obs.type === 'hut') {
-        let dx = this.x - obs.x;
-        let dy = this.y - obs.y;
-        let distance = this.p.sqrt(dx * dx + dy * dy);
-        
-        // If near hut and have enough metal, show repair prompt
-        if (distance < 40 && this.inventory.metal >= 10 && !this.canDigCopper) {
-          this.p.push();
-          this.p.textAlign(this.p.CENTER);
-          this.p.textSize(10);
-          this.p.fill(0, 0, 0, 180);
-          const textWidth = 140;
-          const textHeight = 20;
-          this.p.rect(obs.x, obs.y - 50, textWidth, textHeight, 5);
-          this.p.fill(255);
-          this.p.text("Press E to repair the roof", obs.x, obs.y - 44);
-          this.p.pop();
-        }
       }
     }
   }
@@ -431,10 +272,6 @@ export default class Player implements PlayerType {
       let res = currentResources[i];
       if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
         this.inventory.metal++;
-        // Hide the tutorial text after collecting first metal
-        if (this.tutorialTexts.metal) {
-          this.tutorialTexts.metal = false;
-        }
         currentResources.splice(i, 1);
         // Send immediate update
         emitGameStateUpdate(this, this.hoverbike);
@@ -446,42 +283,7 @@ export default class Player implements PlayerType {
       for (let i = 0; i < currentResources.length; i++) {
         let res = currentResources[i];
         if (res.type === 'copper' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
-          // Only allow digging if player has completed the first quest
-          if (this.canDigCopper) {
-            this.startDigging(res);
-            // Hide the tutorial text after starting to dig
-            if (this.tutorialTexts.copper) {
-              this.tutorialTexts.copper = false;
-            }
-          }
-          break;
-        }
-      }
-    }
-    
-    // Check if near hut for roof repair (quest)
-    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-    for (let obs of currentObstacles) {
-      if (obs.type === 'hut') {
-        let dx = this.x - obs.x;
-        let dy = this.y - obs.y;
-        let distance = this.p.sqrt(dx * dx + dy * dy);
-        
-        // If near hut and have enough metal, complete the quest
-        if (distance < 40 && this.inventory.metal >= 10 && !this.canDigCopper) {
-          // Complete the quest
-          this.inventory.metal -= 10; // Use 10 metal for repair
-          this.canDigCopper = true; // Can now dig for copper
-          
-          // Update game state
-          emitGameStateUpdate(this, this.hoverbike);
-          
-          // Dispatch quest completed event
-          const questEvent = new CustomEvent('questCompleted', {
-            detail: { type: 'roofRepair' }
-          });
-          window.dispatchEvent(questEvent);
-          
+          this.startDigging(res);
           break;
         }
       }
@@ -489,9 +291,6 @@ export default class Player implements PlayerType {
   }
   
   startDigging(target: any) {
-    // Only allow digging if the player has found pickaxe
-    if (!this.canDigCopper) return;
-    
     this.digging = true;
     this.digTimer = 0;
     this.digTarget = target;
@@ -554,9 +353,5 @@ export default class Player implements PlayerType {
   setWorldCoordinates(x: number, y: number) {
     this.worldX = x;
     this.worldY = y;
-  }
-  
-  setCanDigCopper(value: boolean) {
-    this.canDigCopper = value;
   }
 }

@@ -25,8 +25,6 @@ export default class Hoverbike implements HoverbikeType {
   previousAcceleration: number;
   smokeParticles: Array<{x: number, y: number, worldX: number, worldY: number, opacity: number, size: number, age: number}>;
   isRiding: boolean;
-  refuelRate: number;
-  refuelCooldown: number;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -50,8 +48,6 @@ export default class Hoverbike implements HoverbikeType {
     this.previousAcceleration = 0;
     this.smokeParticles = [];
     this.isRiding = false;
-    this.refuelRate = 0.2; // Rate of fuel refill per frame when near station
-    this.refuelCooldown = 0; // Cooldown between refuel ticks
   }
 
   update() {
@@ -60,6 +56,7 @@ export default class Hoverbike implements HoverbikeType {
       this.handleControls();
       this.applyMovement();
       this.checkCollisions();
+      this.checkFuelRefill();
       this.updateSmokeParticles();
       
       if (this.collisionCooldown > 0) {
@@ -71,9 +68,6 @@ export default class Hoverbike implements HoverbikeType {
         this.isRiding = false;
       }
       this.updateSmokeParticles();
-      
-      // Check for fuel refill only when player is not riding
-      this.checkFuelRefill();
     }
   }
 
@@ -94,7 +88,7 @@ export default class Hoverbike implements HoverbikeType {
       }
       
       // Generate smoke particles when accelerating - more consistent rate for smoother effect
-      if (this.p.frameCount % 3 === 0) {
+      if (this.p.frameCount % 4 === 0) {
         this.addSmokeParticle();
       }
     } else if (this.p.keyIsDown(this.p.DOWN_ARROW)) {
@@ -182,7 +176,7 @@ export default class Hoverbike implements HoverbikeType {
     const smokeY = -offsetDistance * Math.sin(this.angle);
     
     // Add minimal randomness to the position for a smoother trail
-    const jitter = 2.5;
+    const jitter = 1.5;
     const randomX = this.p.random(-jitter, jitter);
     const randomY = this.p.random(-jitter, jitter);
     
@@ -191,24 +185,10 @@ export default class Hoverbike implements HoverbikeType {
       y: smokeY + randomY,
       worldX: this.worldX,
       worldY: this.worldY,
-      opacity: 170, // Higher starting opacity
-      size: this.p.random(3, 4.5),
+      opacity: 150, // Start with lower opacity for subtler effect
+      size: this.p.random(3, 4),
       age: 0
     });
-    
-    // Add a second particle for a denser effect
-    if (this.p.random() < 0.7) {
-      const offsetJitter = 4;
-      this.smokeParticles.push({
-        x: smokeX + this.p.random(-offsetJitter, offsetJitter),
-        y: smokeY + this.p.random(-offsetJitter, offsetJitter),
-        worldX: this.worldX,
-        worldY: this.worldY,
-        opacity: 150,
-        size: this.p.random(2.5, 4),
-        age: 0
-      });
-    }
   }
 
   applyMovement() {
@@ -309,13 +289,7 @@ export default class Hoverbike implements HoverbikeType {
   
   checkFuelRefill() {
     // Only check for refill if we have fuel less than max
-    // and player is not riding the hoverbike
-    if (this.fuel >= this.maxFuel || this.player.riding) return;
-    
-    if (this.refuelCooldown > 0) {
-      this.refuelCooldown--;
-      return;
-    }
+    if (this.fuel >= this.maxFuel) return;
     
     let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
     for (let obs of currentObstacles) {
@@ -327,26 +301,8 @@ export default class Hoverbike implements HoverbikeType {
         // If close to fuel pump, refill fuel at a reasonable rate
         if (distance < 40 && this.fuel < this.maxFuel) {
           const oldFuel = this.fuel;
-          this.fuel = Math.min(this.maxFuel, this.fuel + this.refuelRate);
-          
-          // Add fuel refill particles/effect
-          if (this.p.frameCount % 15 === 0) {
-            // Add visual fuel effect
-            const fuelParticle = {
-              x: this.x + this.p.random(-5, 5),
-              y: this.y + this.p.random(-5, 5),
-              worldX: this.worldX,
-              worldY: this.worldY,
-              opacity: 100,
-              size: 2,
-              age: 0
-            };
-            // We could add a specific fuel particle array if needed
-          }
-          
-          // Update UI less frequently
+          this.fuel = Math.min(this.maxFuel, this.fuel + 0.5);
           if (oldFuel !== this.fuel && this.p.frameCount % 10 === 0) {
-            this.refuelCooldown = 3; // Small cooldown between refuels
             emitGameStateUpdate(this.player, this);
           }
         }
@@ -365,16 +321,11 @@ export default class Hoverbike implements HoverbikeType {
       for (const particle of this.smokeParticles) {
         // Only draw particles in the current world cell
         if (particle.worldX === this.worldX && particle.worldY === this.worldY) {
-          // More advanced smoke effect with depth
-          const smokeGray = 180 - particle.age; // Gets darker as it ages
+          // Simple line-like smoke effect - more consistent coloring
+          const smokeGray = 150 + this.p.map(particle.age, 0, 50, 0, 30); // Smoother color transition
           this.p.fill(smokeGray, smokeGray, smokeGray, particle.opacity);
-          
-          // Draw larger, more diffuse particles
-          this.p.ellipse(particle.x, particle.y, particle.size * 2.2, particle.size * 1.2);
-          
-          // Inner part of smoke
-          this.p.fill(smokeGray + 20, smokeGray + 20, smokeGray + 20, particle.opacity * 0.7);
-          this.p.ellipse(particle.x, particle.y, particle.size * 1, particle.size * 0.6);
+          // Draw elongated particle (more like a line)
+          this.p.ellipse(particle.x, particle.y, particle.size * 1.5, particle.size * 0.8);
         }
       }
       

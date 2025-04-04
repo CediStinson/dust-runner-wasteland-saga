@@ -1,9 +1,9 @@
+
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
 import WorldGenerator from '../world/WorldGenerator';
 import GameRenderer from '../rendering/GameRenderer';
-import HomeBaseUtilities from '../world/generators/HomeBaseUtilities';
 import { emitGameStateUpdate } from '../utils/gameUtils';
 
 export default class Game {
@@ -21,13 +21,6 @@ export default class Game {
   gameStarted: boolean;
   dayTimeIcon: string; // "sun" or "moon"
   dayTimeAngle: number; // Position on the circle
-  questCompleted: boolean;
-  questActive: boolean;
-  questMetalRequired: number;
-  tutorialData: {
-    firstCopperSeen: boolean;
-    firstMetalSeen: boolean;
-  };
 
   constructor(p: any) {
     this.p = p;
@@ -40,13 +33,6 @@ export default class Game {
     this.gameStarted = false;
     this.dayTimeIcon = "sun"; // Start with the sun
     this.dayTimeAngle = this.timeOfDay * Math.PI * 2; // Calculate initial angle
-    this.questCompleted = false;
-    this.questActive = true;
-    this.questMetalRequired = 10;
-    this.tutorialData = {
-      firstCopperSeen: false,
-      firstMetalSeen: false
-    };
     
     this.worldGenerator = new WorldGenerator(p);
     
@@ -70,8 +56,8 @@ export default class Game {
     
     this.hoverbike = new Hoverbike(
       p, 
-      p.width / 2 - 60, // Move hoverbike to be under the tarp
-      p.height / 2 - 40, 
+      p.width / 2, 
+      p.height / 2, 
       this.worldX, 
       this.worldY, 
       this.worldGenerator.getObstacles(),
@@ -92,7 +78,7 @@ export default class Game {
     );
     
     // Generate the initial area
-    this.worldGenerator.generateArea(0, 0);
+    this.worldGenerator.generateNewArea(0, 0);
     
     // Initialize UI values
     emitGameStateUpdate(this.player, this.hoverbike);
@@ -102,29 +88,6 @@ export default class Game {
     
     // Add walking marks
     this.addWalkingMarksAtHomeBase();
-    
-    // Add the protective tarp
-    this.addTarpAtHomeBase();
-    
-    // Setup quest completion listener
-    window.addEventListener('questCompleted', this.handleQuestCompleted.bind(this));
-  }
-
-  handleQuestCompleted(event: any) {
-    if (event.detail.type === 'roofRepair') {
-      this.questCompleted = true;
-      
-      // Update UI
-      const gameStateEvent = new CustomEvent('gameStateUpdate', {
-        detail: {
-          questCompleted: true
-        }
-      });
-      window.dispatchEvent(gameStateEvent);
-      
-      // Enable copper digging for player
-      this.player.setCanDigCopper(true);
-    }
   }
 
   addFuelStationAtHomeBase() {
@@ -135,22 +98,39 @@ export default class Game {
     const hasFuelPump = homeObstacles.some(obs => obs.type === 'fuelPump');
     
     if (!hasFuelPump) {
-      homeObstacles = HomeBaseUtilities.addFuelStationToArea(this.p, homeObstacles);
+      // Add fuel stains first (so they render underneath)
+      // Create multiple fixed stains with different seed angles
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 100,
+        y: this.p.height / 2 - 45, // Slightly offset from the pump
+        seedAngle: 0.5,
+        size: 1.2
+      });
       
-      // Update the world generator's obstacles
-      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
-    }
-  }
-  
-  addTarpAtHomeBase() {
-    const homeAreaKey = "0,0";
-    let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
-    
-    // Add tarp if it doesn't exist
-    const hasTarp = homeObstacles.some(obs => obs.type === 'tarp');
-    
-    if (!hasTarp) {
-      homeObstacles = HomeBaseUtilities.addTarpToArea(this.p, homeObstacles);
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 110,
+        y: this.p.height / 2 - 40,
+        seedAngle: 2.1,
+        size: 0.9
+      });
+      
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 95,
+        y: this.p.height / 2 - 55,
+        seedAngle: 4.2,
+        size: 1.0
+      });
+      
+      // Add fuel pump without stains now (stains are separate objects)
+      homeObstacles.push({
+        type: 'fuelPump',
+        x: this.p.width / 2 + 100,
+        y: this.p.height / 2 - 50,
+        size: 1.0,
+      });
       
       // Update the world generator's obstacles
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
@@ -165,7 +145,22 @@ export default class Game {
     const hasWalkingMarks = homeObstacles.some(obs => obs.type === 'walkingMarks');
     
     if (!hasWalkingMarks) {
-      homeObstacles = HomeBaseUtilities.addWalkingMarksToArea(this.p, homeObstacles);
+      // Add multiple footprint sets in a pattern approaching the home base
+      // Use fixed positions for stability
+      const walkingMarkPositions = [
+        { x: this.p.width / 2 - 80, y: this.p.height / 2 + 60, angle: 0.8, size: 0.9, opacity: 170 },
+        { x: this.p.width / 2 + 45, y: this.p.height / 2 + 75, angle: 5.5, size: 0.8, opacity: 150 },
+        { x: this.p.width / 2 - 30, y: this.p.height / 2 - 65, angle: 2.2, size: 1.0, opacity: 190 },
+        { x: this.p.width / 2 + 80, y: this.p.height / 2 - 15, angle: 3.7, size: 0.7, opacity: 160 },
+        { x: this.p.width / 2 - 60, y: this.p.height / 2 - 25, angle: 1.3, size: 0.85, opacity: 180 }
+      ];
+      
+      for (const position of walkingMarkPositions) {
+        homeObstacles.push({
+          type: 'walkingMarks',
+          ...position
+        });
+      }
       
       // Update the world generator's obstacles
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
@@ -190,44 +185,15 @@ export default class Game {
     
     // Update renderer with time of day
     this.renderer.setTimeOfDay(this.timeOfDay);
-    
-    // Emit game state updates including quest status
-    if (this.p.frameCount % 60 === 0) {  // Update UI every second
-      const event = new CustomEvent('gameStateUpdate', {
-        detail: {
-          resources: this.player?.inventory?.metal || 0,
-          copper: this.player?.inventory?.copper || 0,
-          health: this.hoverbike?.health || 0,
-          maxHealth: this.hoverbike?.maxHealth || 100,
-          fuel: this.hoverbike?.fuel || 0,
-          maxFuel: this.hoverbike?.maxFuel || 100,
-          playerHealth: this.player?.health || 100,
-          maxPlayerHealth: this.player?.maxHealth || 100,
-          worldX: this.player?.worldX || 0,
-          worldY: this.player?.worldY || 0,
-          baseWorldX: 0,
-          baseWorldY: 0,
-          dayTimeIcon: this.dayTimeIcon,
-          dayTimeAngle: this.dayTimeAngle,
-          gameStarted: this.gameStarted,
-          questActive: this.questActive,
-          questCompleted: this.questCompleted,
-          questMetalRequired: this.questMetalRequired
-        }
-      });
-      window.dispatchEvent(event);
-    }
   }
 
   updateTimeOfDay() {
     // Calculate total day-night cycle length
     const totalCycleLength = this.dayLength + this.nightLength;
     
-    // Fast-forward if player is sleeping
-    const timeIncrement = this.player.isSleeping ? 0.01 : (1 / totalCycleLength);
-    
     // Increment timeOfDay
-    this.timeOfDay = (this.timeOfDay + timeIncrement) % 1;
+    const increment = 1 / totalCycleLength;
+    this.timeOfDay = (this.timeOfDay + increment) % 1;
     
     // Update time of day icon and angle
     // Convert time to angle (0 = midnight, 0.5 = noon)
@@ -317,31 +283,6 @@ export default class Game {
     this.p.textSize(24);
     this.p.text("START GAME", this.p.width/2, btnY + 32);
     
-    // Draw login button 
-    const loginBtnWidth = 200;
-    const loginBtnHeight = 40;
-    const loginBtnX = this.p.width/2 - loginBtnWidth/2;
-    const loginBtnY = btnY + btnHeight + 20;
-    
-    const loginMouseOver = this.p.mouseX > loginBtnX && this.p.mouseX < loginBtnX + loginBtnWidth && 
-                           this.p.mouseY > loginBtnY && this.p.mouseY < loginBtnY + loginBtnHeight;
-                      
-    if (loginMouseOver) {
-      this.p.fill(150, 150, 200);
-      if (this.p.mouseIsPressed) {
-        // Trigger login modal through event
-        const loginEvent = new CustomEvent('showLoginModal');
-        window.dispatchEvent(loginEvent);
-      }
-    } else {
-      this.p.fill(120, 120, 170);
-    }
-    
-    this.p.rect(loginBtnX, loginBtnY, loginBtnWidth, loginBtnHeight, 5);
-    this.p.fill(255);
-    this.p.textSize(18);
-    this.p.text("SIGN IN / REGISTER", this.p.width/2, loginBtnY + 26);
-    
     // Draw subtitle text
     this.p.fill(200, 180, 150);
     this.p.textSize(16);
@@ -360,7 +301,7 @@ export default class Game {
       }
       
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
-      this.worldGenerator.generateArea(this.worldX, this.worldY);
+      this.worldGenerator.generateNewArea(this.worldX, this.worldY);
     } else if (this.player.x < 0) {
       this.worldX--;
       this.player.x = this.p.width;
@@ -372,7 +313,7 @@ export default class Game {
       }
       
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
-      this.worldGenerator.generateArea(this.worldX, this.worldY);
+      this.worldGenerator.generateNewArea(this.worldX, this.worldY);
     }
     
     if (this.player.y > this.p.height) {
@@ -386,7 +327,7 @@ export default class Game {
       }
       
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
-      this.worldGenerator.generateArea(this.worldX, this.worldY);
+      this.worldGenerator.generateNewArea(this.worldX, this.worldY);
     } else if (this.player.y < 0) {
       this.worldY--;
       this.player.y = this.p.height;
@@ -398,7 +339,7 @@ export default class Game {
       }
       
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
-      this.worldGenerator.generateArea(this.worldX, this.worldY);
+      this.worldGenerator.generateNewArea(this.worldX, this.worldY);
     }
   }
 
@@ -444,7 +385,7 @@ export default class Game {
 
   resize() {
     this.worldGenerator.clearTextures();
-    this.worldGenerator.generateArea(this.worldX, this.worldY);
+    this.worldGenerator.generateNewArea(this.worldX, this.worldY);
   }
   
   handleClick(mouseX: number, mouseY: number) {
@@ -459,18 +400,6 @@ export default class Game {
       if (mouseX > btnX && mouseX < btnX + btnWidth && 
           mouseY > btnY && mouseY < btnY + btnHeight) {
         this.gameStarted = true;
-      }
-      
-      // Check if login button is clicked
-      const loginBtnWidth = 200;
-      const loginBtnHeight = 40;
-      const loginBtnX = this.p.width/2 - loginBtnWidth/2;
-      const loginBtnY = btnY + btnHeight + 20;
-      
-      if (mouseX > loginBtnX && mouseX < loginBtnX + loginBtnWidth && 
-          mouseY > loginBtnY && mouseY < loginBtnY + loginBtnHeight) {
-        const loginEvent = new CustomEvent('showLoginModal');
-        window.dispatchEvent(loginEvent);
       }
     }
   }
