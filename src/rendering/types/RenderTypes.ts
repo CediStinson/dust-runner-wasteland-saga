@@ -18,6 +18,7 @@ export interface ShapeSegment {
   points: ShapePoint[];
 }
 
+// Improve type safety by making this a discriminated union
 export type Shape = ShapePoint[] | ShapeSegment[];
 
 export interface ObstacleObject extends WorldObject {

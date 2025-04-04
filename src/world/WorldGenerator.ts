@@ -29,7 +29,7 @@ export default class WorldGenerator {
       this.generateGrassTexture(zoneKey);
       
       // Seed the random number generator for consistent generation
-      const seed = zoneKey.hashCode();
+      const seed = this.hashCode(zoneKey);
       this.p.randomSeed(seed);
       this.p.noiseSeed(seed);
       
@@ -54,7 +54,7 @@ export default class WorldGenerator {
     
     if (!this.resources[zoneKey]) {
       // Seed the random number generator for resources
-      const resourceSeed = (zoneKey + "resources").hashCode();
+      const resourceSeed = this.hashCode(zoneKey + "resources");
       this.p.randomSeed(resourceSeed);
       this.p.noiseSeed(resourceSeed);
       
@@ -71,6 +71,17 @@ export default class WorldGenerator {
     }
   }
   
+  // Simple string hash function
+  hashCode(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+  }
+  
   addHomeStructures(zoneKey: string) {
     // Add hut at the center of the area
     const centerX = this.p.width / 2;
@@ -82,6 +93,58 @@ export default class WorldGenerator {
       y: centerY,
       size: 1.0
     });
+    
+    // Add fuel pump to the right of hut
+    this.obstacles[zoneKey].push({
+      type: 'fuelPump',
+      x: centerX + 80,
+      y: centerY - 20,
+      size: 1.0,
+      rotation: 0
+    });
+    
+    // Add fuel stain under the fuel pump
+    this.obstacles[zoneKey].push({
+      type: 'fuelStain',
+      x: centerX + 80,
+      y: centerY - 10,
+      size: 1.2,
+      opacity: 80,
+      seedAngle: 2.5
+    });
+    
+    // Add tarp to the left of the hut
+    this.obstacles[zoneKey].push({
+      type: 'tarp',
+      x: centerX - 100,
+      y: centerY - 30,
+      size: 1.0,
+      width: 80,
+      height: 60,
+      rotation: 0.1,
+      holePositions: [
+        { x: 0.2, y: 0.3, size: 10 },
+        { x: 0.7, y: 0.6, size: 15 },
+        { x: 0.5, y: 0.2, size: 8 }
+      ]
+    });
+    
+    // Add walking marks around the base
+    for (let i = 0; i < 5; i++) {
+      const angle = i * (Math.PI * 2 / 5);
+      const distance = 150;
+      const x = centerX + Math.cos(angle) * distance;
+      const y = centerY + Math.sin(angle) * distance;
+      
+      this.obstacles[zoneKey].push({
+        type: 'walkingMarks',
+        x: x,
+        y: y,
+        size: 0.8 + Math.random() * 0.4,
+        angle: angle + Math.PI/2,
+        opacity: 40 + Math.random() * 40
+      });
+    }
   }
 
   generateSandTexture(zoneKey: string) {
@@ -117,6 +180,9 @@ export default class WorldGenerator {
     const width = this.p.width;
     const height = this.p.height;
     const texture = this.p.createGraphics(width, height);
+    
+    // Always use clear to start with transparency
+    texture.clear();
     
     // Randomize whether this zone has grass
     const hasGrass = this.p.random() < 0.3;
@@ -220,11 +286,11 @@ export default class WorldGenerator {
   }
 
   generateCacti(zoneKey: string, x: number, y: number) {
-    // Increased number of cacti
+    // Reasonable number of cacti
     const isHome = (x === 0 && y === 0);
     const numCacti = isHome ? 
       this.p.floor(this.p.random(2, 4)) : // Fewer cacti at home
-      this.p.floor(this.p.random(6, 12)); // More cacti elsewhere (increased)
+      this.p.floor(this.p.random(4, 8)); // More cacti elsewhere
       
     for (let i = 0; i < numCacti; i++) {
       const cactusX = this.p.random(this.p.width);
@@ -244,10 +310,10 @@ export default class WorldGenerator {
       const bodyPoints = [];
       const bodyHeight = this.p.random(15, 25) * size;
       
-      bodyPoints.push({ x: -3 * size, y: 0 });
-      bodyPoints.push({ x: 3 * size, y: 0 });
-      bodyPoints.push({ x: 3 * size, y: -bodyHeight });
-      bodyPoints.push({ x: -3 * size, y: -bodyHeight });
+      bodyPoints.push({ x: -3, y: 0 });
+      bodyPoints.push({ x: 3, y: 0 });
+      bodyPoints.push({ x: 3, y: -bodyHeight });
+      bodyPoints.push({ x: -3, y: -bodyHeight });
       
       cactusShape.push({
         type: 'body',
@@ -261,10 +327,10 @@ export default class WorldGenerator {
         const leftArmHeight = this.p.random(8, 15) * size;
         const leftArmY = -bodyHeight * this.p.random(0.3, 0.7);
         
-        leftArmPoints.push({ x: -3 * size, y: leftArmY });
-        leftArmPoints.push({ x: -3 * size, y: leftArmY - leftArmHeight });
-        leftArmPoints.push({ x: -9 * size, y: leftArmY - leftArmHeight });
-        leftArmPoints.push({ x: -9 * size, y: leftArmY });
+        leftArmPoints.push({ x: -3, y: leftArmY });
+        leftArmPoints.push({ x: -3, y: leftArmY - leftArmHeight });
+        leftArmPoints.push({ x: -9, y: leftArmY - leftArmHeight });
+        leftArmPoints.push({ x: -9, y: leftArmY });
         
         cactusShape.push({
           type: 'arm',
@@ -279,10 +345,10 @@ export default class WorldGenerator {
         const rightArmHeight = this.p.random(8, 15) * size;
         const rightArmY = -bodyHeight * this.p.random(0.3, 0.7);
         
-        rightArmPoints.push({ x: 3 * size, y: rightArmY });
-        rightArmPoints.push({ x: 3 * size, y: rightArmY - rightArmHeight });
-        rightArmPoints.push({ x: 9 * size, y: rightArmY - rightArmHeight });
-        rightArmPoints.push({ x: 9 * size, y: rightArmY });
+        rightArmPoints.push({ x: 3, y: rightArmY });
+        rightArmPoints.push({ x: 3, y: rightArmY - rightArmHeight });
+        rightArmPoints.push({ x: 9, y: rightArmY - rightArmHeight });
+        rightArmPoints.push({ x: 9, y: rightArmY });
         
         cactusShape.push({
           type: 'arm',
@@ -325,17 +391,17 @@ export default class WorldGenerator {
         y: metalY,
         size,
         rotation,
-        buried
+        buried,
+        collected: false
       });
     }
   }
 
   generateCopperOre(zoneKey: string, x: number, y: number) {
-    // Reduced probability for copper ore
     // Skip copper at home base
     if (x === 0 && y === 0) return;
     
-    // Lower chance of copper appearing (reduced from previous value)
+    // Lower chance of copper appearing
     if (this.p.random() < 0.4) {
       const copperX = this.p.random(this.p.width);
       const copperY = this.p.random(this.p.height);
@@ -345,7 +411,8 @@ export default class WorldGenerator {
         type: 'copper',
         x: copperX,
         y: copperY,
-        size
+        size,
+        collected: false
       });
     }
   }
@@ -366,7 +433,7 @@ export default class WorldGenerator {
     }
     
     // Check the tarp zone on the left side of the hut
-    const tarpX = centerX - 60;
+    const tarpX = centerX - 100;
     const tarpY = centerY - 30;
     const distanceFromTarp = this.p.dist(x, y, tarpX, tarpY);
     if (distanceFromTarp < 45) {
@@ -374,8 +441,8 @@ export default class WorldGenerator {
     }
     
     // Check the fuel pump zone on the right side of the hut
-    const fuelPumpX = centerX + 40;
-    const fuelPumpY = centerY - 40;
+    const fuelPumpX = centerX + 80;
+    const fuelPumpY = centerY - 20;
     const distanceFromFuelPump = this.p.dist(x, y, fuelPumpX, fuelPumpY);
     if (distanceFromFuelPump < 40) {
       return true;
@@ -411,11 +478,15 @@ export default class WorldGenerator {
 
   clearTextures() {
     for (let key in this.sandTextures) {
-      this.sandTextures[key].remove();
+      if (this.sandTextures[key]) {
+        this.sandTextures[key].remove();
+      }
     }
     
     for (let key in this.grassTextures) {
-      this.grassTextures[key].remove();
+      if (this.grassTextures[key]) {
+        this.grassTextures[key].remove();
+      }
     }
     
     this.sandTextures = {};

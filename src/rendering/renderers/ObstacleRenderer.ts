@@ -69,10 +69,10 @@ export default class ObstacleRenderer {
 
     // More subtle shadow with fade-out effect
     this.p.fill(50, 40, 30, 40);  // Lower opacity for subtlety
-    let shadowOffsetX = 5 * obs.size;
-    let shadowOffsetY = 5 * obs.size;
-    let shadowWidth = 20 * obs.size * (obs.aspectRatio && obs.aspectRatio > 1 ? obs.aspectRatio : 1);
-    let shadowHeight = 20 * obs.size * (obs.aspectRatio && obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio as number) : 1);
+    let shadowOffsetX = 5;
+    let shadowOffsetY = 5;
+    let shadowWidth = 20 * (obs.aspectRatio && obs.aspectRatio > 1 ? obs.aspectRatio : 1);
+    let shadowHeight = 20 * (obs.aspectRatio && obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio as number) : 1);
     
     // Draw shadow with radial gradient for fade-out effect
     this.p.drawingContext.save();
@@ -93,7 +93,7 @@ export default class ObstacleRenderer {
       // Check if shape is an array of points or segments
       if (this.isShapePointArray(obs.shape)) {
         for (let point of obs.shape) {
-          this.p.vertex(point.x, point.y);
+          this.p.vertex(point.x * obs.size, point.y * obs.size);
         }
       }
       
@@ -106,7 +106,7 @@ export default class ObstacleRenderer {
         for (let point of obs.shape) {
           let offsetX = 2 * obs.size;
           let offsetY = 2 * obs.size;
-          this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+          this.p.vertex(point.x * 0.8 * obs.size + offsetX, point.y * 0.8 * obs.size + offsetY);
         }
       }
       
@@ -119,7 +119,7 @@ export default class ObstacleRenderer {
         for (let point of obs.shape) {
           let offsetX = -2 * obs.size;
           let offsetY = -2 * obs.size;
-          this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
+          this.p.vertex(point.x * 0.6 * obs.size + offsetX, point.y * 0.6 * obs.size + offsetY);
         }
       }
       
@@ -155,7 +155,7 @@ export default class ObstacleRenderer {
       
       if (this.isShapePointArray(obs.shape)) {
         for (let point of obs.shape) {
-          this.p.vertex(point.x, point.y);
+          this.p.vertex(point.x * obs.size, point.y * obs.size);
         }
       }
       
@@ -168,7 +168,7 @@ export default class ObstacleRenderer {
         for (let point of obs.shape) {
           let offsetX = 1 * obs.size;
           let offsetY = -1 * obs.size;
-          this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+          this.p.vertex(point.x * 0.8 * obs.size + offsetX, point.y * 0.8 * obs.size + offsetY);
         }
       }
       
@@ -315,7 +315,7 @@ export default class ObstacleRenderer {
             this.p.fill(30, 80, 50);
             this.p.beginShape();
             for (let point of segment.points) {
-              this.p.vertex(point.x, point.y);
+              this.p.vertex(point.x * obs.size, point.y * obs.size);
             }
             this.p.endShape(this.p.CLOSE);
             
@@ -324,13 +324,13 @@ export default class ObstacleRenderer {
             this.p.beginShape();
             for (let i = 0; i < segment.points.length / 2; i++) {
               let point = segment.points[i];
-              this.p.vertex(point.x, point.y);
+              this.p.vertex(point.x * obs.size, point.y * obs.size);
             }
             for (let i = segment.points.length - 1; i >= segment.points.length / 2; i--) {
               let point = segment.points[i];
               const offsetX = 1;
               const offsetY = -1;
-              this.p.vertex(point.x * 0.9 + offsetX, point.y * 0.9 + offsetY);
+              this.p.vertex(point.x * 0.9 * obs.size + offsetX, point.y * 0.9 * obs.size + offsetY);
             }
             this.p.endShape(this.p.CLOSE);
             
@@ -350,7 +350,7 @@ export default class ObstacleRenderer {
               const startY = segment.points[0].y;
               
               for (let i = 0; i < 3; i++) {
-                const xPos = (isLeftArm ? segment.points[0].x - 3 : segment.points[0].x + 3);
+                const xPos = (isLeftArm ? segment.points[0].x - 3 : segment.points[0].x + 3) * obs.size;
                 const yPos = startY - i * 3 * obs.size;
                 this.p.line(xPos, yPos, xPos + spineDirection * 3, yPos - 1);
               }

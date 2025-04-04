@@ -37,6 +37,12 @@ export default class BackgroundRenderer {
     // Create a texture for the sand dunes
     const width = this.p.width;
     const height = this.p.height;
+    
+    // Remove previous texture if it exists to avoid memory leaks
+    if (this.sandDuneTexture) {
+      this.sandDuneTexture.remove();
+    }
+    
     this.sandDuneTexture = this.p.createGraphics(width, height);
     
     // Use a transparent background
@@ -86,9 +92,16 @@ export default class BackgroundRenderer {
   
   drawBackground() {
     let zoneKey = `${this.worldX},${this.worldY}`;
+    
+    // Clear the background first to avoid visual artifacts
+    this.p.background(220, 210, 180); // Base sand color
+    
+    // Draw sand texture if available
     if (this.worldGenerator.getSandTexture(zoneKey)) {
       this.p.image(this.worldGenerator.getSandTexture(zoneKey), 0, 0);
     }
+    
+    // Draw grass texture if available
     if (this.worldGenerator.getGrassTexture(zoneKey)) {
       this.p.image(this.worldGenerator.getGrassTexture(zoneKey), 0, 0);
     }
