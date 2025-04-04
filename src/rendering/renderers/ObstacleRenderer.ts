@@ -374,7 +374,7 @@ export default class ObstacleRenderer {
     // Darker, more subtle ground stain - fixed in place
     this.p.noStroke();
     const opacity = obs.opacity || 100;
-    this.p.fill(20, 20, 20, 40); // Even more subtle opacity
+    this.p.fill(20, 20, 20, opacity); // Make sure we use the provided opacity
     
     // Main oil puddle
     this.p.ellipse(0, 0, 16 * obs.size, 12 * obs.size);
@@ -382,7 +382,7 @@ export default class ObstacleRenderer {
     // Create several irregular oil patches with fixed shape
     // Use deterministic positions based on seedAngle
     const numPatches = 5;
-    if (obs.seedAngle) {
+    if (obs.seedAngle !== undefined) {
       for (let i = 0; i < numPatches; i++) {
         // Create fixed positions based on obs.seedAngle
         const angle = obs.seedAngle + i * (Math.PI * 2 / numPatches);
@@ -541,7 +541,8 @@ export default class ObstacleRenderer {
     this.p.noStroke();
     this.p.fill(120, 90, 60, 220); // Brown color with some transparency
     
-    if (obs.width && obs.height) {
+    // Check if width and height are defined before using them
+    if (obs.width !== undefined && obs.height !== undefined) {
       this.p.rect(0, 0, obs.width, obs.height, 8); // Rounded rectangle for the tarp
       
       // Add texture/wrinkles to the tarp
