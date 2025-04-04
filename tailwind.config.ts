@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,15 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+                // Wasteland theme colors
+                wasteland: {
+                    sand: '#e6c288',
+                    rock: '#a08060',
+                    metal: '#8a8a8a',
+                    rust: '#973f16',
+                    cactus: '#506d50'
+                }
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -84,11 +93,25 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+                'dust-float': {
+                    '0%': {
+                        transform: 'translateY(0) translateX(0)',
+                        opacity: '0.3'
+                    },
+                    '50%': {
+                        opacity: '0.7'
+                    },
+                    '100%': {
+                        transform: 'translateY(-20px) translateX(10px)',
+                        opacity: '0'
+                    }
+                }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+                'dust-float': 'dust-float 3s ease-in-out infinite'
 			}
 		}
 	},
