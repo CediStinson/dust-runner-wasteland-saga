@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -596,68 +595,4 @@ export default class GameRenderer {
         this.p.beginShape();
         this.p.vertex(-6 * res.size, -4 * res.size);
         this.p.vertex(-4 * res.size, -5 * res.size);
-        this.p.vertex(-2 * res.size, -4 * res.size);
-        this.p.endShape(this.p.CLOSE);
-        
-        // Rust patches
-        this.p.fill(130, 80, 60, 180);
-        this.p.ellipse(-3 * res.size, -1 * res.size, 4 * res.size, 2 * res.size);
-        this.p.ellipse(2 * res.size, 0, 3 * res.size, 2 * res.size);
-        
-      } else if (res.type === 'copper') {
-        // Orange shiny copper ore - fixed to not move around
-        
-        // Shadow
-        this.p.fill(80, 60, 40, 80);
-        this.p.ellipse(3, 3, 14, 6);
-        
-        // Base rock
-        this.p.fill(100, 80, 60);
-        let radius = 10;
-        this.p.ellipse(0, 0, radius * 2, radius * 2);
-        
-        // Copper veins/streaks - use FIXED patterns
-        this.p.fill(200, 100, 30); // Orange copper color
-        
-        // Use deterministic veins rather than random
-        const numVeins = 4;
-        for (let i = 0; i < numVeins; i++) {
-          // Deterministic angle for this vein based on resource position
-          const angle = i * (Math.PI * 2 / numVeins);
-          const veinX = Math.cos(angle) * radius * 0.6;
-          const veinY = Math.sin(angle) * radius * 0.6;
-          const veinSize = 3 + (i % 3);
-          
-          this.p.ellipse(veinX, veinY, veinSize, veinSize);
-        }
-        
-        // Add a larger central vein
-        this.p.fill(220, 120, 40);
-        this.p.ellipse(0, 0, 5, 5);
-        
-        // Fixed highlights
-        this.p.fill(240, 140, 50, 150);
-        const numHighlights = 3;
-        for (let i = 0; i < numHighlights; i++) {
-          const highlightAngle = i * (Math.PI * 2 / numHighlights) + Math.PI / 6;
-          const highlightX = Math.cos(highlightAngle) * radius * 0.3;
-          const highlightY = Math.sin(highlightAngle) * radius * 0.3;
-          const highlightSize = 1.5 + (i % 2);
-          
-          this.p.ellipse(highlightX, highlightY, highlightSize, highlightSize);
-        }
-      }
-      
-      this.p.pop();
-    }
-  }
-
-  setWorldCoordinates(x: number, y: number) {
-    this.worldX = x;
-    this.worldY = y;
-  }
-  
-  setTimeOfDay(time: number) {
-    this.timeOfDay = time;
-  }
-}
+        this.p.vertex(-2 * res.size, -4 *
