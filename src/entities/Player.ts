@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -22,11 +23,6 @@ export default class Player implements PlayerType {
   resources: Record<string, any[]>;
   hoverbike: any;
   riding: boolean;
-  firstMetalCollected: boolean;
-  firstCopperSeen: boolean;
-  hasPickaxe: boolean;
-  metalCollected: number;
-  roofRepaired: boolean;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -48,11 +44,6 @@ export default class Player implements PlayerType {
     this.digTarget = null;
     this.health = 100;
     this.maxHealth = 100;
-    this.firstMetalCollected = false;
-    this.firstCopperSeen = false;
-    this.hasPickaxe = false;
-    this.metalCollected = 0;
-    this.roofRepaired = false;
   }
 
   update() {
@@ -80,10 +71,6 @@ export default class Player implements PlayerType {
               let hitboxHeight = 28 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
               collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.5;
             } else if (obs.type === 'hut') {
-              if (this.isEnteringHutFromFront(obs, dx, dy)) {
-                this.enterHut(obs);
-                continue;
-              }
               collisionRadius = 30; // Hut collision radius
             } else if (obs.type === 'fuelPump') {
               collisionRadius = 25; // Fuel pump collision radius
@@ -101,13 +88,16 @@ export default class Player implements PlayerType {
             let distance = this.p.sqrt(dx * dx + dy * dy);
             
             if (distance < hitboxWidth) {
-              if (this.p.frameCount % 30 === 0) { 
+              willCollide = true;
+              // Damage player when colliding with cactus
+              if (this.p.frameCount % 30 === 0) { // Apply damage every 30 frames (0.5 seconds)
                 const oldHealth = this.health;
                 this.health = this.p.max(0, this.health - 1);
                 if (oldHealth !== this.health) {
                   emitGameStateUpdate(this, this.hoverbike);
                 }
               }
+              break;
             }
           }
         }
@@ -116,6 +106,7 @@ export default class Player implements PlayerType {
           this.x += this.velX;
           this.y += this.velY;
         } else {
+          // Stop movement if collision would occur
           this.velX *= -0.5;
           this.velY *= -0.5;
         }
@@ -125,20 +116,6 @@ export default class Player implements PlayerType {
     } else {
       this.x = this.hoverbike.x;
       this.y = this.hoverbike.y;
-    }
-  }
-
-  isEnteringHutFromFront(hut: any, dx: number, dy: number): boolean {
-    const distance = this.p.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx);
-    const isFromBottom = angle > Math.PI/4 && angle < 3*Math.PI/4;
-    
-    return distance < 25 && isFromBottom && dy > 0;
-  }
-
-  enterHut(hut: any) {
-    if (this.p.game) {
-      this.p.game.enterHut(this.x, this.y);
     }
   }
 
@@ -159,9 +136,9 @@ export default class Player implements PlayerType {
     this.velX += moveX * this.speed * 0.2;
     this.velY += moveY * this.speed * 0.2;
     
-    if (this.p.keyIsDown(69)) {
+    // Check for E key to collect metal or interact with copper
+    if (this.p.keyIsDown(69)) { // 'E' key
       this.collectResource();
-      this.repairHut();
     }
   }
 
@@ -176,23 +153,31 @@ export default class Player implements PlayerType {
     this.p.rotate(this.angle + this.p.PI / 2);
     
     if (this.riding) {
+      // Player riding hoverbike
+      // Body
       this.p.fill(120, 100, 80);
       this.p.ellipse(0, -4, 8, 7);
       
+      // Arms holding handlebars
       this.p.fill(150, 130, 110);
       this.p.ellipse(-6, -1, 4, 2);
       this.p.ellipse(6, -1, 4, 2);
       
+      // Head with helmet
       this.p.fill(80, 60, 40);
       this.p.ellipse(0, -8, 7, 6);
       
+      // Helmet visor
       this.p.fill(50, 50, 50);
       this.p.arc(0, -8, 6, 4, -this.p.PI * 0.8, this.p.PI * 0.8);
       
+      // Legs
       this.p.fill(120, 100, 80);
       this.p.rect(-3, 0, 2, 4, 1);
       this.p.rect(3, 0, 2, 4, 1);
     } else {
+      // Standing player
+      // Cloak
       this.p.fill(120, 100, 80);
       this.p.beginShape();
       this.p.vertex(-8, -10);
@@ -205,6 +190,7 @@ export default class Player implements PlayerType {
       this.p.vertex(8, -10);
       this.p.endShape(this.p.CLOSE);
       
+      // Cloak details
       this.p.fill(150, 130, 110);
       this.p.ellipse(-4, 2, 4, 3);
       this.p.ellipse(4, 2, 4, 3);
@@ -212,20 +198,24 @@ export default class Player implements PlayerType {
       this.p.ellipse(-6, 0, 3, 2);
       this.p.ellipse(6, 0, 3, 2);
       
+      // Head
       this.p.fill(80, 60, 40);
       this.p.ellipse(0, -6, 8, 6);
       this.p.fill(60, 40, 20);
       this.p.ellipse(0, -5, 6, 4);
       
+      // Face
       this.p.fill(200, 180, 150);
       this.p.ellipse(0, -5, 4, 2);
       this.p.fill(50, 50, 50);
       this.p.ellipse(-1, -5, 2, 1);
       this.p.ellipse(1, -5, 2, 1);
       
+      // Shadow
       this.p.fill(80, 60, 40, 100);
       this.p.ellipse(0, 6, 12, 4);
       
+      // Show digging animation if active
       if (this.digging) {
         this.p.fill(120, 100, 80);
         this.p.ellipse(6, 0, 4, 4);
@@ -234,39 +224,34 @@ export default class Player implements PlayerType {
         this.p.line(6, 0, 12, this.p.sin(this.p.frameCount * 0.3) * 3);
         this.p.noStroke();
         this.displayDigProgress();
-        
-        if (this.hasPickaxe) {
-          this.drawPickaxe();
-        }
       }
     }
     
     this.p.pop();
-  }
-
-  drawPickaxe() {
-    this.p.stroke(120, 100, 60);
-    this.p.strokeWeight(2);
-    this.p.line(8, 0, 14, -5);
     
-    this.p.fill(150, 150, 150);
-    this.p.noStroke();
-    this.p.beginShape();
-    this.p.vertex(14, -5);
-    this.p.vertex(15, -8);
-    this.p.vertex(18, -7);
-    this.p.vertex(16, -4);
-    this.p.endShape(this.p.CLOSE);
-    
-    this.p.stroke(80, 60, 40);
-    this.p.strokeWeight(1);
+    // Draw player health bar above player
+    if (!this.riding) {
+      const barWidth = 20;
+      const barHeight = 3;
+      const healthPercent = this.health / this.maxHealth;
+      
+      this.p.push();
+      this.p.fill(0, 0, 0, 150);
+      this.p.rect(this.x - barWidth/2, this.y - 20, barWidth, barHeight);
+      this.p.fill(255, 50, 50);
+      this.p.rect(this.x - barWidth/2, this.y - 20, barWidth * healthPercent, barHeight);
+      this.p.pop();
+    }
   }
 
   checkForCollectableResources() {
+    // Only check for nearby resources
     let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
     
+    // Visual indicator for resources within collection range
     for (let res of currentResources) {
       if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
+        // Draw a small indicator above the resource
         this.p.push();
         this.p.fill(255, 255, 100, 150);
         this.p.ellipse(res.x, res.y - 15, 5, 5);
@@ -274,39 +259,6 @@ export default class Player implements PlayerType {
         this.p.textAlign(this.p.CENTER);
         this.p.textSize(8);
         this.p.text("E", res.x, res.y - 13);
-        
-        if (!this.firstMetalCollected) {
-          this.p.textSize(10);
-          this.p.fill(255, 255, 200);
-          this.p.text("Press E to gather metal scraps and", res.x, res.y - 30);
-          this.p.text("other resources laying on the ground.", res.x, res.y - 20);
-        }
-        
-        this.p.pop();
-      } else if (res.type === 'copper' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
-        this.p.push();
-        this.p.fill(255, 255, 100, 150);
-        this.p.ellipse(res.x, res.y - 15, 5, 5);
-        this.p.fill(255);
-        this.p.textAlign(this.p.CENTER);
-        this.p.textSize(8);
-        this.p.text("E", res.x, res.y - 13);
-        
-        if (!this.firstCopperSeen) {
-          this.firstCopperSeen = true;
-          
-          if (!this.hasPickaxe) {
-            this.p.textSize(10);
-            this.p.fill(255, 255, 200);
-            this.p.text("Hmm, this is way too hard to dig up", res.x, res.y - 30);
-            this.p.text("with your bare hands.", res.x, res.y - 20);
-          } else {
-            this.p.textSize(10);
-            this.p.fill(255, 255, 200);
-            this.p.text("Press E to dig for rare metals", res.x, res.y - 25);
-          }
-        }
-        
         this.p.pop();
       }
     }
@@ -315,49 +267,24 @@ export default class Player implements PlayerType {
   collectResource() {
     let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
     
+    // Check for metal to collect
     for (let i = currentResources.length - 1; i >= 0; i--) {
       let res = currentResources[i];
       if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
         this.inventory.metal++;
-        this.metalCollected++;
-        if (!this.firstMetalCollected) {
-          this.firstMetalCollected = true;
-        }
         currentResources.splice(i, 1);
+        // Send immediate update
         emitGameStateUpdate(this, this.hoverbike);
       }
     }
     
+    // Check for copper ore to mine
     if (!this.digging) {
       for (let i = 0; i < currentResources.length; i++) {
         let res = currentResources[i];
         if (res.type === 'copper' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
-          if (this.hasPickaxe) {
-            this.startDigging(res);
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  repairHut() {
-    if (this.worldX === 0 && this.worldY === 0 && !this.roofRepaired) {
-      const currentObstacles = this.obstacles["0,0"] || [];
-      for (let obs of currentObstacles) {
-        if (obs.type === 'hut' && this.p.dist(this.x, this.y, obs.x, obs.y) < 40) {
-          if (this.metalCollected >= 10) {
-            this.roofRepaired = true;
-            this.hasPickaxe = true;
-            const event = new CustomEvent('questCompleted', {
-              detail: {
-                message: "On top of the roof you just repaired you found your grandpa's old pickaxe. You are now able to dig for rare metals. Awesome!",
-                questType: "roofRepair"
-              }
-            });
-            window.dispatchEvent(event);
-            break;
-          }
+          this.startDigging(res);
+          break;
         }
       }
     }
@@ -375,12 +302,16 @@ export default class Player implements PlayerType {
     
     this.digTimer++;
     
+    // 8 seconds (60fps * 8 = 480 frames)
     if (this.digTimer >= 480) {
+      // Mining complete
       this.digging = false;
       
+      // Add 1-3 copper to inventory
       let copperAmount = this.p.floor(this.p.random(1, 4));
       this.inventory.copper += copperAmount;
       
+      // Remove the ore from resources
       let currentResources = this.resources[`${this.worldX},${this.worldY}`];
       if (currentResources) {
         let index = currentResources.indexOf(this.digTarget);
@@ -393,6 +324,7 @@ export default class Player implements PlayerType {
       emitGameStateUpdate(this, this.hoverbike);
     }
     
+    // Cancel digging if player moves or is too far from target
     if (this.p.keyIsDown(this.p.UP_ARROW) || this.p.keyIsDown(this.p.DOWN_ARROW) || 
         this.p.keyIsDown(this.p.LEFT_ARROW) || this.p.keyIsDown(this.p.RIGHT_ARROW) ||
         !this.digTarget || this.p.dist(this.x, this.y, this.digTarget.x, this.digTarget.y) > 30) {
@@ -404,8 +336,9 @@ export default class Player implements PlayerType {
   displayDigProgress() {
     let progressWidth = 30;
     let progressHeight = 4;
-    let progress = this.digTimer / 480;
+    let progress = this.digTimer / 480; // 480 frames for 8 seconds
     
+    // Draw progress bar above player
     this.p.fill(0, 0, 0, 150);
     this.p.rect(-progressWidth/2, -20, progressWidth, progressHeight, 2);
     

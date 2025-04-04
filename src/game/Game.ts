@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -20,13 +21,6 @@ export default class Game {
   gameStarted: boolean;
   dayTimeIcon: string; // "sun" or "moon"
   dayTimeAngle: number; // Position on the circle
-  tutorialShown: boolean;
-  fuelTutorialShown: boolean;
-  isSleeping: boolean;
-  sleepPosition: { x: number, y: number };
-  sleepZParticles: Array<{ x: number, y: number, opacity: number, size: number }>;
-  sleepAnimationTime: number;
-  hasLeftHomeArea: boolean;
 
   constructor(p: any) {
     this.p = p;
@@ -39,13 +33,6 @@ export default class Game {
     this.gameStarted = false;
     this.dayTimeIcon = "sun"; // Start with the sun
     this.dayTimeAngle = this.timeOfDay * Math.PI * 2; // Calculate initial angle
-    this.tutorialShown = false;
-    this.fuelTutorialShown = false;
-    this.isSleeping = false;
-    this.sleepPosition = { x: 0, y: 0 };
-    this.sleepZParticles = [];
-    this.sleepAnimationTime = 0;
-    this.hasLeftHomeArea = false;
     
     this.worldGenerator = new WorldGenerator(p);
     
@@ -101,9 +88,6 @@ export default class Game {
     
     // Add walking marks
     this.addWalkingMarksAtHomeBase();
-    
-    // Add home base elements: paths, tarp, etc.
-    this.addHomeBaseImprovements();
   }
 
   addFuelStationAtHomeBase() {
@@ -114,45 +98,38 @@ export default class Game {
     const hasFuelPump = homeObstacles.some(obs => obs.type === 'fuelPump');
     
     if (!hasFuelPump) {
-      // Position fuel pump closer to the hut
-      const fuelPumpX = this.p.width / 2 - 25; // Closer to hut
-      const fuelPumpY = this.p.height / 2 + 25; // Closer to hut
-      
       // Add fuel stains first (so they render underneath)
+      // Create multiple fixed stains with different seed angles
       homeObstacles.push({
         type: 'fuelStain',
-        x: fuelPumpX,
-        y: fuelPumpY - 5,
+        x: this.p.width / 2 + 100,
+        y: this.p.height / 2 - 45, // Slightly offset from the pump
         seedAngle: 0.5,
-        size: 1.2,
-        homeArea: true
+        size: 1.2
       });
       
       homeObstacles.push({
         type: 'fuelStain',
-        x: fuelPumpX + 10,
-        y: fuelPumpY,
+        x: this.p.width / 2 + 110,
+        y: this.p.height / 2 - 40,
         seedAngle: 2.1,
-        size: 0.9,
-        homeArea: true
+        size: 0.9
       });
       
       homeObstacles.push({
         type: 'fuelStain',
-        x: fuelPumpX - 5,
-        y: fuelPumpY - 15,
+        x: this.p.width / 2 + 95,
+        y: this.p.height / 2 - 55,
         seedAngle: 4.2,
-        size: 1.0,
-        homeArea: true
+        size: 1.0
       });
       
-      // Add fuel pump with rotated angle (135 degrees clockwise)
+      // Add fuel pump without stains now (stains are separate objects)
       homeObstacles.push({
         type: 'fuelPump',
-        x: fuelPumpX,
-        y: fuelPumpY,
+        x: this.p.width / 2 + 100,
+        y: this.p.height / 2 - 50,
         size: 1.0,
-        rotation: 2.35 // ~135 degrees in radians
       });
       
       // Update the world generator's obstacles
@@ -171,11 +148,11 @@ export default class Game {
       // Add multiple footprint sets in a pattern approaching the home base
       // Use fixed positions for stability
       const walkingMarkPositions = [
-        { x: this.p.width / 2 - 80, y: this.p.height / 2 + 60, angle: 0.8, size: 0.9, opacity: 170, homeArea: true },
-        { x: this.p.width / 2 + 45, y: this.p.height / 2 + 75, angle: 5.5, size: 0.8, opacity: 150, homeArea: true },
-        { x: this.p.width / 2 - 30, y: this.p.height / 2 - 65, angle: 2.2, size: 1.0, opacity: 190, homeArea: true },
-        { x: this.p.width / 2 + 80, y: this.p.height / 2 - 15, angle: 3.7, size: 0.7, opacity: 160, homeArea: true },
-        { x: this.p.width / 2 - 60, y: this.p.height / 2 - 25, angle: 1.3, size: 0.85, opacity: 180, homeArea: true }
+        { x: this.p.width / 2 - 80, y: this.p.height / 2 + 60, angle: 0.8, size: 0.9, opacity: 170 },
+        { x: this.p.width / 2 + 45, y: this.p.height / 2 + 75, angle: 5.5, size: 0.8, opacity: 150 },
+        { x: this.p.width / 2 - 30, y: this.p.height / 2 - 65, angle: 2.2, size: 1.0, opacity: 190 },
+        { x: this.p.width / 2 + 80, y: this.p.height / 2 - 15, angle: 3.7, size: 0.7, opacity: 160 },
+        { x: this.p.width / 2 - 60, y: this.p.height / 2 - 25, angle: 1.3, size: 0.85, opacity: 180 }
       ];
       
       for (const position of walkingMarkPositions) {
@@ -189,82 +166,9 @@ export default class Game {
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
     }
   }
-  
-  addHomeBaseImprovements() {
-    const homeAreaKey = "0,0";
-    let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
-    
-    // Add paths around fuel pump and hut if they don't exist
-    const hasPaths = homeObstacles.some(obs => obs.type === 'path');
-    
-    if (!hasPaths) {
-      // Find hut position
-      const hut = homeObstacles.find(obs => obs.type === 'hut');
-      const fuelPump = homeObstacles.find(obs => obs.type === 'fuelPump');
-      
-      if (hut && fuelPump) {
-        // Add circular path around hut
-        homeObstacles.push({
-          type: 'path',
-          x: hut.x,
-          y: hut.y,
-          radius: 60,
-          variation: 0.3,
-          opacity: 120,
-          homeArea: true
-        });
-        
-        // Add path connecting hut to fuel pump
-        homeObstacles.push({
-          type: 'path',
-          x: (hut.x + fuelPump.x) / 2,
-          y: (hut.y + fuelPump.y) / 2,
-          radius: 25,
-          variation: 0.5, 
-          opacity: 150,
-          homeArea: true
-        });
-        
-        // Add tarp to left side of hut
-        homeObstacles.push({
-          type: 'tarp',
-          x: hut.x - 45,  // Left of the hut
-          y: hut.y + 10,
-          width: 45,
-          height: 35,
-          rotation: 0.1,
-          homeArea: true
-        });
-      }
-      
-      // Add sand dune streaks across the map
-      for (let i = 0; i < 20; i++) {
-        homeObstacles.push({
-          type: 'sandDune',
-          x: this.p.random(this.p.width),
-          y: this.p.random(this.p.height),
-          length: this.p.random(70, 200),
-          angle: this.p.random(0, this.p.TWO_PI),
-          curvature: this.p.random(0.1, 0.5),
-          opacity: this.p.random(30, 60),
-          thickness: this.p.random(2, 6),
-          homeArea: true
-        });
-      }
-      
-      // Update the world generator's obstacles
-      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
-    }
-  }
 
   update() {
     if (!this.gameStarted) {
-      return;
-    }
-    
-    // If sleeping, process sleep animation
-    if (this.isSleeping) {
-      this.updateSleepAnimation();
       return;
     }
     
@@ -279,66 +183,8 @@ export default class Game {
     this.checkBorder();
     this.worldGenerator.updateWindmillAngle();
     
-    // Check if player leaves home area for the first time
-    if (this.worldX !== 0 || this.worldY !== 0) {
-      if (!this.hasLeftHomeArea) {
-        this.hasLeftHomeArea = true;
-        
-        // Dismiss tutorial when player leaves home area
-        const event = new CustomEvent('dismissTutorial', {
-          detail: {
-            type: 'fuel'
-          }
-        });
-        window.dispatchEvent(event);
-      }
-    }
-    
     // Update renderer with time of day
     this.renderer.setTimeOfDay(this.timeOfDay);
-  }
-
-  enterHut(playerX: number, playerY: number) {
-    if (!this.isSleeping) {
-      this.isSleeping = true;
-      this.sleepPosition = { x: playerX, y: playerY };
-      this.sleepAnimationTime = 0;
-      this.sleepZParticles = [];
-      
-      // Create "Z" particles
-      for (let i = 0; i < 5; i++) {
-        this.sleepZParticles.push({
-          x: 0,
-          y: -(i * 15),
-          opacity: 255,
-          size: 12 - i * 1.5
-        });
-      }
-    }
-  }
-  
-  updateSleepAnimation() {
-    this.sleepAnimationTime++;
-    
-    // Move Z particles up and fade
-    for (let z of this.sleepZParticles) {
-      z.y -= 0.5;
-      z.opacity = Math.max(0, z.opacity - 2);
-    }
-    
-    // Quickly advance time to morning
-    this.timeOfDay = (this.timeOfDay + 0.01) % 1;
-    
-    // End sleeping animation when reaching morning or after a certain time
-    if ((this.timeOfDay > 0.2 && this.timeOfDay < 0.3) || this.sleepAnimationTime > 180) {
-      this.isSleeping = false;
-      this.timeOfDay = 0.25; // Set to morning
-      this.dayTimeIcon = "sun";
-      this.dayTimeAngle = this.timeOfDay * Math.PI * 2;
-      
-      // Update renderer with time of day
-      this.renderer.setTimeOfDay(this.timeOfDay);
-    }
   }
 
   updateTimeOfDay() {
@@ -366,35 +212,7 @@ export default class Game {
       this.renderMainMenu();
     } else {
       this.renderer.render();
-      
-      // Render sleep animation if sleeping
-      if (this.isSleeping) {
-        this.renderSleepAnimation();
-      }
     }
-  }
-  
-  renderSleepAnimation() {
-    // Draw dark overlay
-    this.p.fill(0, 0, 0, 150);
-    this.p.rect(0, 0, this.p.width, this.p.height);
-    
-    // Draw Z particles above where player entered hut
-    this.p.push();
-    this.p.translate(this.sleepPosition.x, this.sleepPosition.y);
-    
-    for (let z of this.sleepZParticles) {
-      this.p.push();
-      this.p.translate(z.x, z.y);
-      this.p.fill(255, 255, 255, z.opacity);
-      this.p.textSize(z.size);
-      this.p.textAlign(this.p.CENTER);
-      this.p.textStyle(this.p.BOLD);
-      this.p.text("Z", 0, 0);
-      this.p.pop();
-    }
-    
-    this.p.pop();
   }
   
   renderMainMenu() {
@@ -561,6 +379,8 @@ export default class Game {
         emitGameStateUpdate(this.player, this.hoverbike);
       }
     }
+    
+    // Removed the 'd' key handler for durability upgrades
   }
 
   resize() {
@@ -569,7 +389,9 @@ export default class Game {
   }
   
   handleClick(mouseX: number, mouseY: number) {
+    // Handle clicks in main menu
     if (!this.gameStarted) {
+      // Check if start button is clicked
       const btnWidth = 200;
       const btnHeight = 50;
       const btnX = this.p.width/2 - btnWidth/2;
@@ -579,15 +401,6 @@ export default class Game {
           mouseY > btnY && mouseY < btnY + btnHeight) {
         this.gameStarted = true;
       }
-    }
-    
-    if (this.gameStarted && this.worldX === 0 && this.worldY === 0) {
-      const event = new CustomEvent('dismissTutorial', {
-        detail: {
-          type: 'fuel'
-        }
-      });
-      window.dispatchEvent(event);
     }
   }
 }

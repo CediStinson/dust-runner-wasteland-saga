@@ -16,8 +16,6 @@ const GameSketch = () => {
         p.createCanvas(p.windowWidth, p.windowHeight);
         p.noSmooth();
         game = new Game(p);
-        // Store game reference in p for easier access from other components
-        p.game = game;
       };
 
       p.draw = () => {
@@ -31,7 +29,7 @@ const GameSketch = () => {
               resources: game.player?.inventory?.metal || 0,
               copper: game.player?.inventory?.copper || 0,
               health: game.hoverbike?.health || 0,
-              maxHealth: game.hoverbike?.maxHealth || 0,
+              maxHealth: game.hoverbike?.maxHealth || 100,
               fuel: game.hoverbike?.fuel || 0,
               maxFuel: game.hoverbike?.maxFuel || 100,
               playerHealth: game.player?.health || 100,
