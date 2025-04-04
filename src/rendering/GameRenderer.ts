@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -31,6 +30,12 @@ export default class GameRenderer {
 
   render() {
     this.drawBackground();
+    
+    // Draw fuel stains on the ground for home area
+    if (this.worldX === 0 && this.worldY === 0) {
+      this.drawBackgroundFuelStains();
+    }
+    
     this.applyDaytimeTint();
     this.drawObstacles();
     this.drawResources();
@@ -40,6 +45,54 @@ export default class GameRenderer {
     }
     
     this.player.display();
+  }
+
+  drawBackgroundFuelStains() {
+    // Draw permanent background fuel stains for the home base area
+    this.p.noStroke();
+    
+    // Large stain under the fuel pump area
+    this.p.fill(10, 10, 10, 30);
+    this.p.ellipse(this.p.width / 2 + 100, this.p.height / 2 - 40, 80, 60);
+    
+    // Darker center of the main stain
+    this.p.fill(0, 0, 0, 40);
+    this.p.ellipse(this.p.width / 2 + 100, this.p.height / 2 - 45, 50, 40);
+    
+    // Additional smaller stains with different opacities
+    const stainPositions = [
+      {x: this.p.width / 2 + 130, y: this.p.height / 2 - 30, size: 40, opacity: 25},
+      {x: this.p.width / 2 + 85, y: this.p.height / 2 - 60, size: 45, opacity: 20},
+      {x: this.p.width / 2 + 70, y: this.p.height / 2 - 35, size: 30, opacity: 35},
+      {x: this.p.width / 2 + 115, y: this.p.height / 2 - 15, size: 35, opacity: 30}
+    ];
+    
+    // Draw each additional stain
+    for (const stain of stainPositions) {
+      this.p.fill(5, 5, 5, stain.opacity);
+      this.p.ellipse(stain.x, stain.y, stain.size, stain.size * 0.7);
+      
+      // Add some darker spots within each stain for texture
+      this.p.fill(0, 0, 0, stain.opacity + 15);
+      this.p.ellipse(stain.x + 5, stain.y - 3, stain.size * 0.4, stain.size * 0.3);
+    }
+    
+    // Draw a couple of drip trails
+    this.p.fill(0, 0, 0, 25);
+    this.p.beginShape();
+    this.p.vertex(this.p.width / 2 + 110, this.p.height / 2 - 20);
+    this.p.vertex(this.p.width / 2 + 115, this.p.height / 2 - 20);
+    this.p.vertex(this.p.width / 2 + 120, this.p.height / 2);
+    this.p.vertex(this.p.width / 2 + 105, this.p.height / 2);
+    this.p.endShape(this.p.CLOSE);
+    
+    // Another drip trail
+    this.p.beginShape();
+    this.p.vertex(this.p.width / 2 + 85, this.p.height / 2 - 40);
+    this.p.vertex(this.p.width / 2 + 90, this.p.height / 2 - 40);
+    this.p.vertex(this.p.width / 2 + 80, this.p.height / 2 - 10);
+    this.p.vertex(this.p.width / 2 + 75, this.p.height / 2 - 10);
+    this.p.endShape(this.p.CLOSE);
   }
 
   drawBackground() {
