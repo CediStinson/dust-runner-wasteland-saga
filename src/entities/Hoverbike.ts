@@ -163,13 +163,6 @@ export default class Hoverbike implements HoverbikeType {
       particle.opacity -= fadeRate;
       particle.size += 0.12; // Slower growth for smoother effect
       
-      // When dismounted, make the smoke particles follow the hoverbike's position
-      // This ensures they don't freeze in place when dismounting
-      if (!this.isRiding) {
-        particle.x = particle.x * 0.95; // Gradually move towards hoverbike center
-        particle.y = particle.y * 0.95;
-      }
-      
       if (particle.opacity <= 0) {
         this.smokeParticles.splice(i, 1);
       }

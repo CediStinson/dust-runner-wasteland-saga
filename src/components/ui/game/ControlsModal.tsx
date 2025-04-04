@@ -19,9 +19,8 @@ const ControlsModal: React.FC<ControlsModalProps> = ({
         <ul className="space-y-2 text-left">
           <li className="text-gray-300">Arrow keys - Move character/control hoverbike</li>
           <li className="text-gray-300">F - Enter/exit hoverbike</li>
-          <li className="text-gray-300">E - Collect metal/mine copper/interact</li>
+          <li className="text-gray-300">E - Collect metal/mine copper</li>
           <li className="text-gray-300">S - Upgrade hoverbike speed with metal</li>
-          <li className="text-gray-300">R - Repair hoverbike with metal</li>
         </ul>
         <button 
           onClick={() => setShowControls(false)}
