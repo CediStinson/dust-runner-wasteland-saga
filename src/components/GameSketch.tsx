@@ -116,7 +116,7 @@ const GameSketch = () => {
         }
 
         collectResource() {
-          let currentResources = resources[\`$\{worldX},$\{worldY}\`] || [];
+          let currentResources = resources[`${worldX},${worldY}`] || [];
           for (let i = currentResources.length - 1; i >= 0; i--) {
             let res = currentResources[i];
             if (p.dist(this.x, this.y, res.x, res.y) < 20) {
@@ -181,7 +181,7 @@ const GameSketch = () => {
         checkCollisions() {
           if (this.collisionCooldown > 0) return; // Skip collision check if on cooldown
 
-          let currentObstacles = obstacles[\`$\{worldX},$\{worldY}\`] || [];
+          let currentObstacles = obstacles[`${worldX},${worldY}`] || [];
           for (let obs of currentObstacles) {
             if (obs.type === 'rock') {
               let dx = this.x - obs.x;
@@ -449,7 +449,7 @@ const GameSketch = () => {
 
       // World generation
       function generateNewArea(x, y) {
-        let zoneKey = \`$\{x},$\{y}\`;
+        let zoneKey = `${x},${y}`;
         // Only generate if the area hasn't been generated before
         if (!generatedAreas.has(zoneKey)) {
           if (!sandTextures[zoneKey]) {
@@ -538,11 +538,11 @@ const GameSketch = () => {
         for (let i = 0; i < 5; i++) {
           areaResources.push({ x: p.random(p.width), y: p.random(p.height), type: 'metal' });
         }
-        resources[\`$\{x},$\{y}\`] = areaResources;
+        resources[`${x},${y}`] = areaResources;
       }
 
       function handleObstacles() {
-        let currentObstacles = obstacles[\`$\{worldX},$\{worldY}\`] || [];
+        let currentObstacles = obstacles[`${worldX},${worldY}`] || [];
         for (let obs of currentObstacles) {
           if (obs.type === 'rock') {
             p.push();
@@ -802,7 +802,7 @@ const GameSketch = () => {
       }
 
       function handleResources() {
-        let currentResources = resources[\`$\{worldX},$\{worldY}\`] || [];
+        let currentResources = resources[`${worldX},${worldY}`] || [];
         for (let res of currentResources) {
           p.push();
           p.translate(res.x, res.y);
@@ -949,12 +949,12 @@ const GameSketch = () => {
         worldX = 0;
         worldY = 0;
         generateNewArea(0, 0); // Initial area generation
-        generatedAreas.add(\`$\{worldX},$\{worldY}\`); // Mark starting area as generated
+        generatedAreas.add(`${worldX},${worldY}`); // Mark starting area as generated
       };
 
       // Draw function
       p.draw = () => {
-        let zoneKey = \`$\{worldX},$\{worldY}\`;
+        let zoneKey = `${worldX},${worldY}`;
         // Draw sand texture
         if (sandTextures[zoneKey]) {
           p.image(sandTextures[zoneKey], 0, 0);
