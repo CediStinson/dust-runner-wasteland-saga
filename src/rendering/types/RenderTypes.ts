@@ -52,3 +52,9 @@ export interface RendererConfig {
 export interface TextureStore {
   [key: string]: p5.Graphics | null;
 }
+
+export interface RenderParams {
+  p: p5; 
+  worldX: number;
+  worldY: number;
+}
