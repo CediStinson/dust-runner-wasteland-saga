@@ -1,3 +1,168 @@
+import WorldGenerator from "../world/WorldGenerator";
+import Player from "../entities/Player";
+import Hoverbike from "../entities/Hoverbike";
+
+export default class GameRenderer {
+  p: any;
+  worldGenerator: WorldGenerator;
+  player: Player;
+  hoverbike: Hoverbike;
+  worldX: number;
+  worldY: number;
+  timeOfDay: number;
+
+  constructor(
+    p: any,
+    worldGenerator: WorldGenerator,
+    player: Player,
+    hoverbike: Hoverbike,
+    worldX: number,
+    worldY: number,
+    timeOfDay: number
+  ) {
+    this.p = p;
+    this.worldGenerator = worldGenerator;
+    this.player = player;
+    this.hoverbike = hoverbike;
+    this.worldX = worldX;
+    this.worldY = worldY;
+    this.timeOfDay = timeOfDay;
+  }
+
+  setTimeOfDay(timeOfDay: number) {
+    this.timeOfDay = timeOfDay;
+  }
+
+  setWorldCoordinates(worldX: number, worldY: number) {
+    this.worldX = worldX;
+    this.worldY = worldY;
+  }
+
+  render() {
+    this.p.background(20, 18, 24);
+    this.drawStars();
+    this.drawHorizon();
+    this.drawSunMoon();
+    this.drawWindmill();
+    this.drawGround();
+    this.drawObstacles();
+    this.drawResources();
+    
+    if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
+      this.hoverbike.render();
+    }
+    
+    this.player.render();
+  }
+
+  drawStars() {
+    this.p.fill(255, 255, 255);
+    for (let i = 0; i < 100; i++) {
+      const x = this.p.random(this.p.width);
+      const y = this.p.random(this.p.height / 2);
+      const size = this.p.random(1, 3);
+      this.p.ellipse(x, y, size, size);
+    }
+  }
+
+  drawHorizon() {
+    let horizonColor = this.p.lerpColor(
+      this.p.color(10, 10, 20),
+      this.p.color(80, 60, 40),
+      this.timeOfDay
+    );
+    this.p.background(horizonColor);
+  }
+
+  drawSunMoon() {
+    this.p.push();
+
+    // Calculate the angle based on the time of day
+    let angle = this.p.map(this.timeOfDay, 0, 1, 0, 360);
+
+    // Position the sun/moon
+    let sunMoonX = this.p.width / 2 + this.p.cos(this.p.radians(angle)) * (this.p.width / 2);
+    let sunMoonY = this.p.height / 2 + this.p.sin(this.p.radians(angle)) * (this.p.height / 3);
+
+    // Draw sun/moon
+    if (this.timeOfDay > 0.25 && this.timeOfDay < 0.75) {
+      // Draw sun
+      this.p.fill(255, 204, 0);
+      this.p.noStroke();
+      this.p.ellipse(sunMoonX, sunMoonY, 50, 50);
+    } else {
+      // Draw moon
+      this.p.fill(200);
+      this.p.noStroke();
+      this.p.ellipse(sunMoonX, sunMoonY, 40, 40);
+    }
+
+    this.p.pop();
+  }
+
+  drawWindmill() {
+    this.p.push();
+    this.p.translate(this.p.width * 0.15, this.p.height * 0.25);
+    this.p.fill(150);
+    this.p.stroke(100);
+    this.p.strokeWeight(2);
+    this.p.rect(-10, 0, 20, 100);
+
+    this.p.push();
+    this.p.rotate(this.worldGenerator.getWindmillAngle());
+    this.p.fill(100);
+    this.p.stroke(50);
+    this.p.strokeWeight(3);
+    this.p.rect(-5, -40, 10, 80);
+    this.p.rect(-40, -5, 80, 10);
+    this.p.pop();
+
+    this.p.pop();
+  }
+
+  drawGround() {
+    this.p.push();
+
+    // Sand color that changes slightly with time of day
+    let sandColor = this.p.lerpColor(
+      this.p.color(194, 178, 128),
+      this.p.color(150, 130, 80),
+      this.timeOfDay
+    );
+    this.p.background(sandColor);
+
+    // Draw faint sand lines
+    this.p.stroke(184, 168, 118, 50);
+    this.p.strokeWeight(1);
+    for (let i = 0; i < this.p.width; i += 20) {
+      let offset = this.p.sin(i * 0.05 + this.timeOfDay * this.p.TWO_PI) * 10;
+      this.p.line(i, this.p.height / 2 + offset, i, this.p.height);
+    }
+
+    this.p.pop();
+  }
+
+  drawObstacles() {
+    let currentObstacles = this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`] || [];
+
+    for (let obs of currentObstacles) {
+      if (obs.type === 'rock') {
+        this.drawRock(obs);
+      } else if (obs.type === 'bush') {
+        this.drawBush(obs);
+      } else if (obs.type === 'cactus') {
+        this.drawCactus(obs);
+      } else if (obs.type === 'hut') {
+        this.drawHut(obs);
+      } else if (obs.type === 'fuelPump') {
+        this.drawFuelPump(obs);
+      } else if (obs.type === 'walkingMarks') {
+        this.drawWalkingMarks(obs);
+      } else if (obs.type === 'fuelStain') {
+        this.drawFuelStain(obs);
+      }
+    }
+  }
 
   drawBackgroundFuelStains() {
     // Draw more subtle and darker background fuel stains for the home base area
@@ -444,3 +609,4 @@
     
     this.p.pop();
   }
+}
