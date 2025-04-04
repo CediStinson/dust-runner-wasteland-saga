@@ -1,3 +1,4 @@
+
 import WorldGenerator from "../world/WorldGenerator";
 import Player from "../entities/Player";
 import Hoverbike from "../entities/Hoverbike";
@@ -384,34 +385,8 @@ export default class GameRenderer {
     let shadowHeight = 15 * obs.size;
     this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
 
-    // Create a basic hut shape if obs.shape is missing or not an array
-    if (!obs.shape || !Array.isArray(obs.shape)) {
-      // Default size if not specified
-      const size = obs.size || 1;
-      
-      // Main hut body
-      this.p.fill(120, 100, 80);
-      this.p.stroke(80, 60, 40);
-      this.p.strokeWeight(0.8);
-      this.p.rect(-15 * size, -5 * size, 30 * size, 20 * size, 2 * size);
-      
-      // Hut roof
-      this.p.fill(100, 80, 60);
-      this.p.triangle(
-        -18 * size, -5 * size,
-        18 * size, -5 * size,
-        0, -15 * size
-      );
-      
-      // Door
-      this.p.fill(80, 60, 40);
-      this.p.rect(-5 * size, 5 * size, 10 * size, 10 * size);
-      
-      // Window
-      this.p.fill(160, 140, 100);
-      this.p.rect(8 * size, -2 * size, 5 * size, 5 * size);
-    } else {
-      // Use the provided shape data
+    // Check if obs.shape exists, is an array, and has elements
+    if (obs.shape && Array.isArray(obs.shape) && obs.shape.length > 0) {
       // Main hut shape with outline
       this.p.fill(120, 100, 80);
       this.p.stroke(80, 60, 40); // Added outline
@@ -441,6 +416,31 @@ export default class GameRenderer {
         this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
       }
       this.p.endShape(this.p.CLOSE);
+    } else {
+      // Default size if not specified
+      const size = obs.size || 1;
+      
+      // Main hut body
+      this.p.fill(120, 100, 80);
+      this.p.stroke(80, 60, 40);
+      this.p.strokeWeight(0.8);
+      this.p.rect(-15 * size, -5 * size, 30 * size, 20 * size, 2 * size);
+      
+      // Hut roof
+      this.p.fill(100, 80, 60);
+      this.p.triangle(
+        -18 * size, -5 * size,
+        18 * size, -5 * size,
+        0, -15 * size
+      );
+      
+      // Door
+      this.p.fill(80, 60, 40);
+      this.p.rect(-5 * size, 5 * size, 10 * size, 10 * size);
+      
+      // Window
+      this.p.fill(160, 140, 100);
+      this.p.rect(8 * size, -2 * size, 5 * size, 5 * size);
     }
 
     // Details (door)
