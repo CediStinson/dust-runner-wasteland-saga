@@ -4,6 +4,7 @@ import p5 from 'p5';
 import GameSketch from '../components/GameSketch';
 import GameUI from '../components/GameUI';
 import '../styles/game.css';
+import LoginModal from '../components/ui/game/LoginModal';
 
 const Index = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
@@ -19,39 +20,76 @@ const Index = () => {
   const [worldY, setWorldY] = useState(0);
   const [dayTimeIcon, setDayTimeIcon] = useState("sun");
   const [dayTimeAngle, setDayTimeAngle] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [questActive, setQuestActive] = useState(true);
+  const [questCompleted, setQuestCompleted] = useState(false);
+  const [questMetalRequired] = useState(10);
   
   // Subscribe to game state updates
   useEffect(() => {
     // Set up a message listener for game state updates
-    const handleGameStateUpdate = (event: CustomEvent) => {
+    const handleGameStateUpdate = (event: any) => {
       const { 
         resources, copper, health, maxHealth, fuel, maxFuel,
         playerHealth, maxPlayerHealth, worldX, worldY, baseWorldX, baseWorldY,
-        dayTimeIcon, dayTimeAngle
+        dayTimeIcon, dayTimeAngle, gameStarted, questActive, questCompleted, questMetalRequired
       } = event.detail;
       
-      setResources(resources);
-      setCopper(copper);
-      setHealth(health);
-      setMaxHealth(maxHealth);
-      setFuel(fuel);
-      setMaxFuel(maxFuel);
-      setPlayerHealth(playerHealth || 100);
-      setMaxPlayerHealth(maxPlayerHealth || 100);
-      setWorldX(worldX || 0);
-      setWorldY(worldY || 0);
+      setResources(typeof resources !== 'undefined' ? resources : 0);
+      setCopper(typeof copper !== 'undefined' ? copper : 0);
+      setHealth(typeof health !== 'undefined' ? health : 0);
+      setMaxHealth(typeof maxHealth !== 'undefined' ? maxHealth : 100);
+      setFuel(typeof fuel !== 'undefined' ? fuel : 0);
+      setMaxFuel(typeof maxFuel !== 'undefined' ? maxFuel : 100);
+      setPlayerHealth(typeof playerHealth !== 'undefined' ? playerHealth : 100);
+      setMaxPlayerHealth(typeof maxPlayerHealth !== 'undefined' ? maxPlayerHealth : 100);
+      setWorldX(typeof worldX !== 'undefined' ? worldX : 0);
+      setWorldY(typeof worldY !== 'undefined' ? worldY : 0);
       setDayTimeIcon(dayTimeIcon || "sun");
-      setDayTimeAngle(dayTimeAngle || 0);
+      setDayTimeAngle(typeof dayTimeAngle !== 'undefined' ? dayTimeAngle : 0);
+      setGameStarted(typeof gameStarted !== 'undefined' ? gameStarted : false);
+      
+      if (typeof questActive !== 'undefined') {
+        setQuestActive(questActive);
+      }
+      
+      if (typeof questCompleted !== 'undefined') {
+        setQuestCompleted(questCompleted);
+      }
     };
     
-    // Add event listener
-    window.addEventListener('gameStateUpdate' as any, handleGameStateUpdate);
+    // Handle showing login modal
+    const handleShowLoginModal = () => {
+      setShowLoginModal(true);
+    };
+    
+    // Add event listeners
+    window.addEventListener('gameStateUpdate', handleGameStateUpdate);
+    window.addEventListener('showLoginModal', handleShowLoginModal);
     
     // Clean up
     return () => {
-      window.removeEventListener('gameStateUpdate' as any, handleGameStateUpdate);
+      window.removeEventListener('gameStateUpdate', handleGameStateUpdate);
+      window.removeEventListener('showLoginModal', handleShowLoginModal);
     };
   }, []);
+  
+  const handleLoginClose = () => {
+    setShowLoginModal(false);
+  };
+
+  const handleLogin = (email: string, password: string) => {
+    console.log('Login with:', email, password);
+    // In a real app, this would authenticate with a backend
+    setShowLoginModal(false);
+  };
+
+  const handleRegister = (email: string, password: string) => {
+    console.log('Register with:', email, password);
+    // In a real app, this would register with a backend
+    setShowLoginModal(false);
+  };
   
   return (
     <div className="game-container" ref={gameContainerRef}>
@@ -71,6 +109,17 @@ const Index = () => {
         baseWorldY={0}
         dayTimeIcon={dayTimeIcon}
         dayTimeAngle={dayTimeAngle}
+        showHud={gameStarted}
+        questActive={questActive}
+        questCompleted={questCompleted}
+        questMetalRequired={questMetalRequired}
+        gameStarted={gameStarted}
+      />
+      <LoginModal 
+        show={showLoginModal} 
+        onClose={handleLoginClose} 
+        onLogin={handleLogin}
+        onRegister={handleRegister}
       />
     </div>
   );
