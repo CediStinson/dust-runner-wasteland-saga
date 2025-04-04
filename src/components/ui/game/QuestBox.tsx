@@ -1,62 +1,52 @@
 
 import React from 'react';
+import { CheckCircle } from 'lucide-react';
 
-interface QuestProps {
-  questData: {
-    title: string;
-    progress: number;
-    total: number;
-    completed: boolean;
-    showReward: boolean;
-    reward: string;
-  };
-  onDismissReward: () => void;
+interface QuestBoxProps {
+  completed: boolean;
+  progress: number;
+  maxProgress: number;
 }
 
-const QuestBox: React.FC<QuestProps> = ({ questData, onDismissReward }) => {
-  const { title, progress, total, completed, showReward, reward } = questData;
-  
+const QuestBox: React.FC<QuestBoxProps> = ({ completed, progress, maxProgress }) => {
   return (
-    <div className="pointer-events-auto max-w-md w-full">
-      {showReward ? (
-        // Show reward notification
-        <div className="bg-black/70 border border-yellow-500/70 p-4 rounded-lg text-white shadow-lg animate-fade-in">
-          <div className="flex justify-between items-start">
-            <div className="text-yellow-400 text-lg font-bold mb-2">Quest Completed!</div>
-            <button 
-              onClick={onDismissReward}
-              className="text-gray-400 hover:text-white"
-            >
-              ✕
-            </button>
-          </div>
-          <p className="text-gray-200 mb-3">{reward}</p>
-          <div className="mt-4 flex justify-end">
-            <button 
-              onClick={onDismissReward}
-              className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-1 rounded-md"
-            >
-              Awesome!
-            </button>
-          </div>
+    <div className="bg-black/70 p-3 rounded-lg border border-amber-500/50 backdrop-blur-md pointer-events-auto max-w-md w-full">
+      <div className="flex items-center gap-3">
+        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${completed ? 'bg-green-600' : 'bg-amber-600'}`}>
+          {completed ? (
+            <CheckCircle size={18} className="text-white" />
+          ) : (
+            <span className="text-white font-bold">!</span>
+          )}
         </div>
-      ) : (
-        // Show regular quest box
-        <div className={`bg-black/50 backdrop-blur-sm p-3 rounded-lg border ${completed ? 'border-green-500/50' : 'border-white/20'} shadow-lg transition-all`}>
-          <div className="text-white text-sm">{title}</div>
-          <div className="mt-2 flex items-center justify-between">
-            <div className="h-2 bg-gray-700 rounded-full flex-grow mr-3">
-              <div 
-                className={`h-2 rounded-full ${completed ? 'bg-green-500' : 'bg-blue-500'}`}
-                style={{ width: `${(progress / total) * 100}%` }}
-              ></div>
+        
+        <div className="flex-grow">
+          <h3 className="text-amber-200 font-semibold text-sm mb-1">
+            {completed ? "Roof Repaired!" : "Current Quest"}
+          </h3>
+          
+          <p className="text-white text-xs">
+            {completed 
+              ? "You've repaired your hut's roof and found a useful tool."
+              : "The last Sandstorm really damaged your roof. Collect 10 Metal scraps. Then press E next to your hut to repair it."}
+          </p>
+          
+          {!completed && (
+            <div className="mt-2 w-full">
+              <div className="flex justify-between items-center text-xs text-white/80 mb-1">
+                <span>Progress</span>
+                <span>{progress}/{maxProgress}</span>
+              </div>
+              <div className="w-full h-2 bg-amber-900/50 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-amber-500 transition-all duration-300 ease-out" 
+                  style={{ width: `${(progress / maxProgress) * 100}%` }}
+                ></div>
+              </div>
             </div>
-            <div className={`text-xs font-mono ${completed ? 'text-green-400' : 'text-white'}`}>
-              {progress}/{total}
-            </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

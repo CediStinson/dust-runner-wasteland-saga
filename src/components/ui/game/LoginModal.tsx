@@ -1,108 +1,124 @@
 
 import React, { useState } from 'react';
+import { X, Save, UserPlus, User } from 'lucide-react';
 
 interface LoginModalProps {
-  showLoginModal: boolean;
-  setShowLoginModal: (show: boolean) => void;
+  show: boolean;
+  onClose: () => void;
 }
 
-const LoginModal: React.FC<LoginModalProps> = ({ showLoginModal, setShowLoginModal }) => {
+const LoginModal: React.FC<LoginModalProps> = ({ show, onClose }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
-
+  const [message, setMessage] = useState('');
+  
+  if (!show) return null;
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
-      setErrorMessage('Please fill in all fields');
+      setMessage('Please fill all fields');
       return;
     }
-
-    // Simple email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setErrorMessage('Please enter a valid email address');
-      return;
-    }
-
-    // Simulate successful login/signup
-    alert(`Successfully ${isLogin ? 'logged in' : 'signed up'}!`);
-    setShowLoginModal(false);
+    
+    // Simulate saving game
+    setMessage('Game saved successfully!');
+    setTimeout(() => {
+      setMessage('');
+      onClose();
+    }, 2000);
   };
-
-  if (!showLoginModal) return null;
-
+  
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-30 backdrop-blur-sm">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md text-white border border-gray-700">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold">
-            {isLogin ? 'Login to Save Progress' : 'Create an Account'}
+    <div className="fixed inset-0 flex items-center justify-center z-40 pointer-events-auto">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/70" onClick={onClose}></div>
+      
+      {/* Modal */}
+      <div className="bg-gray-900 rounded-lg p-6 border border-amber-500/50 w-full max-w-md relative z-50">
+        <button 
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-400 hover:text-white"
+          aria-label="Close"
+        >
+          <X size={20} />
+        </button>
+        
+        <div className="text-center mb-6">
+          <div className="inline-block p-3 rounded-full bg-amber-600/20 mb-3">
+            <Save size={28} className="text-amber-500" />
+          </div>
+          <h2 className="text-xl font-bold text-white">
+            {isLogin ? 'Login to Save Game' : 'Register New Account'}
           </h2>
-          <button 
-            onClick={() => setShowLoginModal(false)}
-            className="text-gray-400 hover:text-white"
-          >
-            ✕
-          </button>
+          <p className="text-gray-400 text-sm mt-1">
+            {isLogin ? 'Sign in to save your progress' : 'Create an account to save your game'}
+          </p>
         </div>
         
-        {errorMessage && (
-          <div className="mb-4 p-2 bg-red-900/50 border border-red-800 rounded text-red-200 text-sm">
-            {errorMessage}
+        {message && (
+          <div className="mb-4 p-3 bg-green-600/20 border border-green-500/50 rounded text-green-400 text-center">
+            {message}
           </div>
         )}
         
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="email" className="block text-gray-300 mb-1">Email Address</label>
+            <label className="block text-gray-300 text-sm font-medium mb-2" htmlFor="email">
+              Email Address
+            </label>
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 bg-gray-700 rounded border border-gray-600 text-white"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-white"
               placeholder="your@email.com"
             />
           </div>
           
           <div className="mb-6">
-            <label htmlFor="password" className="block text-gray-300 mb-1">Password</label>
+            <label className="block text-gray-300 text-sm font-medium mb-2" htmlFor="password">
+              Password
+            </label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 bg-gray-700 rounded border border-gray-600 text-white"
-              placeholder="••••••••"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-white"
+              placeholder="********"
             />
           </div>
           
-          <div className="flex flex-col gap-3">
-            <button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded transition-colors"
-            >
-              {isLogin ? 'Login' : 'Sign Up'}
-            </button>
-            
-            <div className="text-center text-sm text-gray-400">
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setErrorMessage('');
-                }}
-                className="text-blue-400 hover:text-blue-300"
-              >
-                {isLogin ? 'Sign Up' : 'Login'}
-              </button>
-            </div>
-          </div>
+          <button
+            type="submit"
+            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center justify-center gap-2"
+          >
+            {isLogin ? (
+              <>
+                <User size={18} />
+                <span>Login & Save Game</span>
+              </>
+            ) : (
+              <>
+                <UserPlus size={18} />
+                <span>Register & Save Game</span>
+              </>
+            )}
+          </button>
         </form>
+        
+        <div className="mt-4 text-center">
+          <button
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-amber-400 hover:text-amber-300 text-sm"
+          >
+            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -19,9 +19,19 @@ const ControlsModal: React.FC<ControlsModalProps> = ({
         <ul className="space-y-2 text-left">
           <li className="text-gray-300">Arrow keys - Move character/control hoverbike</li>
           <li className="text-gray-300">F - Enter/exit hoverbike</li>
-          <li className="text-gray-300">E - Collect metal/mine copper</li>
-          <li className="text-gray-300">S - Upgrade hoverbike speed with metal</li>
+          <li className="text-gray-300">E - Collect metal/mine copper/repair hut</li>
+          <li className="text-gray-300">R - Repair hoverbike with 1 metal</li>
+          <li className="text-gray-300">S - Upgrade hoverbike speed (costs 5 metal)</li>
         </ul>
+        <div className="mt-4 pt-4 border-t border-white/10">
+          <h3 className="text-lg font-semibold text-amber-200 mb-2">Tips</h3>
+          <ul className="space-y-2 text-left">
+            <li className="text-gray-300">Complete quests to unlock new abilities</li>
+            <li className="text-gray-300">Refuel your hoverbike when parked at the fuel station</li>
+            <li className="text-gray-300">Enter your hut to sleep through the night</li>
+            <li className="text-gray-300">Be careful around cacti - they will damage you!</li>
+          </ul>
+        </div>
         <button 
           onClick={() => setShowControls(false)}
           className="mt-6 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors"

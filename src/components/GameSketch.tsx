@@ -16,6 +16,8 @@ const GameSketch = () => {
         p.createCanvas(p.windowWidth, p.windowHeight);
         p.noSmooth();
         game = new Game(p);
+        // Store game reference in p for easier access from other components
+        p.game = game;
       };
 
       p.draw = () => {
@@ -29,7 +31,7 @@ const GameSketch = () => {
               resources: game.player?.inventory?.metal || 0,
               copper: game.player?.inventory?.copper || 0,
               health: game.hoverbike?.health || 0,
-              maxHealth: game.hoverbike?.maxHealth || 100,
+              maxHealth: game.hoverbike?.maxHealth || 0,
               fuel: game.hoverbike?.fuel || 0,
               maxFuel: game.hoverbike?.maxFuel || 100,
               playerHealth: game.player?.health || 100,
@@ -58,18 +60,11 @@ const GameSketch = () => {
         p.resizeCanvas(p.windowWidth, p.windowHeight);
         game.resize();
       };
-      
-      // Listen for skip to morning event
-      window.addEventListener('skipToMorning', () => {
-        game.skipToMorning();
-      });
     };
 
     const myP5 = new p5(sketch, sketchRef.current);
 
     return () => {
-      // Clean up event listener
-      window.removeEventListener('skipToMorning', () => {});
       myP5.remove();
     };
   }, [sketchRef]);

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Save } from 'lucide-react';
+import { Settings, Save, X } from 'lucide-react';
 import DayNightIndicator from './ui/game/DayNightIndicator';
 import CompassIndicator from './ui/game/CompassIndicator';
 import ResourcesDisplay from './ui/game/ResourcesDisplay';
@@ -8,7 +8,6 @@ import StatusBars from './ui/game/StatusBars';
 import ControlsModal from './ui/game/ControlsModal';
 import QuestBox from './ui/game/QuestBox';
 import LoginModal from './ui/game/LoginModal';
-import FuelTip from './ui/game/FuelTip';
 
 interface GameUIProps {
   resources?: number;
@@ -45,71 +44,63 @@ const GameUI: React.FC<GameUIProps> = ({
 }) => {
   const [showControls, setShowControls] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showFuelTip, setShowFuelTip] = useState(true);
-  const [questData, setQuestData] = useState({
-    title: "The last Sandstorm really damaged your roof. Collect 10 Metal scraps. Then press E next to your hut to repair it.",
-    progress: 0,
-    total: 10,
-    completed: false,
-    showReward: false,
-    reward: "On top of the roof you just repaired you found your grandpa's old pickaxe. You are now able to dig for rare metals. Awesome!"
-  });
+  const [showFuelTutorial, setShowFuelTutorial] = useState(true);
+  const [questCompleted, setQuestCompleted] = useState(false);
+  const [questReward, setQuestReward] = useState("");
+  const [questProgress, setQuestProgress] = useState(0);
+  const [showQuestCompleteMessage, setShowQuestCompleteMessage] = useState(false);
 
-  // Update quest progress based on metal count
+  // Listen for quest completion events
   useEffect(() => {
-    if (!questData.completed) {
-      const newProgress = Math.min(resources, 10);
-      setQuestData(prev => ({ ...prev, progress: newProgress }));
-    }
-  }, [resources, questData.completed]);
-
-  // Listen for home area leave to hide the fuel tip
-  useEffect(() => {
-    if (worldX !== 0 || worldY !== 0) {
-      setShowFuelTip(false);
-    }
-  }, [worldX, worldY]);
-
-  // Listen for quest completion event
-  useEffect(() => {
-    const handleQuestComplete = (event: CustomEvent) => {
-      if (event.detail.questId === 'repairRoof') {
-        setQuestData(prev => ({ 
-          ...prev, 
-          completed: true,
-          showReward: true
-        }));
+    const handleQuestCompleted = (event: CustomEvent) => {
+      setQuestCompleted(true);
+      setQuestReward(event.detail.message);
+      setShowQuestCompleteMessage(true);
+    };
+    
+    const handleDismissTutorial = (event: CustomEvent) => {
+      if (event.detail.type === 'fuel') {
+        setShowFuelTutorial(false);
       }
     };
-
-    window.addEventListener('questComplete' as any, handleQuestComplete);
+    
+    window.addEventListener('questCompleted' as any, handleQuestCompleted);
+    window.addEventListener('dismissTutorial' as any, handleDismissTutorial);
     
     return () => {
-      window.removeEventListener('questComplete' as any, handleQuestComplete);
+      window.removeEventListener('questCompleted' as any, handleQuestCompleted);
+      window.removeEventListener('dismissTutorial' as any, handleDismissTutorial);
     };
   }, []);
-
-  const handleSave = () => {
-    // Save the game state
-    alert("Game progress saved successfully!");
+  
+  // Update quest progress
+  useEffect(() => {
+    // Set metal progress for the roof repair quest (max 10)
+    setQuestProgress(Math.min(resources, 10));
+  }, [resources]);
+  
+  const handleSaveGame = () => {
+    // Show login modal to save game
+    setShowLoginModal(true);
   };
-
+  
   return (
     <>
       <div className="absolute top-0 left-0 right-0 p-4 pointer-events-none">
         <div className="container mx-auto flex justify-between">
-          {/* Settings button */}
+          {/* Settings and save buttons */}
           <div className="pointer-events-auto flex gap-2">
             <button 
               onClick={() => setShowControls(!showControls)}
               className="bg-black/50 p-2 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
+              title="Game Controls"
             >
               <Settings size={24} />
             </button>
-            
             <button 
-              onClick={handleSave}
+              onClick={handleSaveGame}
               className="bg-black/50 p-2 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
+              title="Save Progress"
             >
               <Save size={24} />
             </button>
@@ -134,36 +125,66 @@ const GameUI: React.FC<GameUIProps> = ({
       {/* Controls modal */}
       <ControlsModal showControls={showControls} setShowControls={setShowControls} />
       
-      {/* Login modal */}
-      <LoginModal showLoginModal={showLoginModal} setShowLoginModal={setShowLoginModal} />
+      {/* Login modal for saving */}
+      <LoginModal show={showLoginModal} onClose={() => setShowLoginModal(false)} />
       
-      {/* Quest Box (in the middle bottom of screen) */}
-      <div className="absolute bottom-32 left-0 right-0 flex justify-center pointer-events-none">
-        <QuestBox
-          questData={questData}
-          onDismissReward={() => setQuestData(prev => ({ ...prev, showReward: false }))}
-        />
-      </div>
+      {/* Fuel Station Tutorial */}
+      {showFuelTutorial && worldX === 0 && worldY === 0 && (
+        <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 pointer-events-auto">
+          <div className="bg-black/70 p-4 rounded-lg border-2 border-red-500 max-w-md relative">
+            <button 
+              onClick={() => setShowFuelTutorial(false)}
+              className="absolute top-2 right-2 text-white/80 hover:text-white"
+              aria-label="Close"
+            >
+              <X size={16} />
+            </button>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold">!</span>
+              </div>
+              <div className="text-white text-sm">
+                <h3 className="font-bold text-base mb-1">Fuel Warning</h3>
+                <p>Be careful not to run out of gas and refill your hoverbike at the fuel station whenever you run low.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
-      {/* Fuel Tip */}
-      {showFuelTip && fuel < maxFuel * 0.7 && (
-        <FuelTip onDismiss={() => setShowFuelTip(false)} />
+      {/* Quest Complete Message */}
+      {showQuestCompleteMessage && (
+        <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 pointer-events-auto">
+          <div className="bg-black/80 p-6 rounded-lg border-2 border-yellow-500 max-w-md relative animate-fade-in">
+            <button 
+              onClick={() => setShowQuestCompleteMessage(false)}
+              className="absolute top-3 right-3 text-white/80 hover:text-white"
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
+            <div className="text-center">
+              <h3 className="font-bold text-lg text-yellow-400 mb-2">Quest Completed!</h3>
+              <p className="text-white text-sm">{questReward}</p>
+            </div>
+          </div>
+        </div>
       )}
       
       <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-none">
-        <div className="container mx-auto flex justify-between items-end">
-          {/* Resources */}
-          <ResourcesDisplay resources={resources} copper={copper} />
+        <div className="container mx-auto flex flex-col justify-between items-center gap-4">
+          {/* Quest Box in the middle bottom */}
+          <QuestBox 
+            completed={questCompleted}
+            progress={questProgress} 
+            maxProgress={10}
+          />
           
-          {/* Status Bars */}
-          <div className="flex flex-col items-end gap-3">
-            <div 
-              className="bg-black/30 backdrop-blur-sm py-1 px-3 rounded-lg text-white cursor-pointer pointer-events-auto"
-              onClick={() => setShowLoginModal(true)}
-            >
-              Login to save progress
-            </div>
+          <div className="flex justify-between items-end w-full">
+            {/* Resources */}
+            <ResourcesDisplay resources={resources} copper={copper} />
             
+            {/* Status Bars */}
             <StatusBars 
               playerHealth={playerHealth}
               maxPlayerHealth={maxPlayerHealth}
