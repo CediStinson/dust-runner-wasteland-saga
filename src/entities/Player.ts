@@ -22,9 +22,6 @@ export default class Player implements PlayerType {
   resources: Record<string, any[]>;
   hoverbike: any;
   riding: boolean;
-  canDig: boolean;
-  tutorialTexts: { id: string, shown: boolean }[];
-  cactusDamageCooldown: number;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -46,13 +43,6 @@ export default class Player implements PlayerType {
     this.digTarget = null;
     this.health = 100;
     this.maxHealth = 100;
-    this.canDig = false;
-    this.tutorialTexts = [
-      { id: 'metal', shown: true },
-      { id: 'copper', shown: true },
-      { id: 'fuel', shown: true },
-    ];
-    this.cactusDamageCooldown = 0;
   }
 
   update() {
@@ -67,10 +57,6 @@ export default class Player implements PlayerType {
         let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
         let newX = this.x + this.velX;
         let newY = this.y + this.velY;
-        
-        if (this.cactusDamageCooldown > 0) {
-          this.cactusDamageCooldown--;
-        }
         
         for (let obs of currentObstacles) {
           if (obs.type === 'rock' || obs.type === 'hut' || obs.type === 'fuelPump') {
@@ -99,13 +85,16 @@ export default class Player implements PlayerType {
             let hitboxWidth = 15 * obs.size;
             let distance = this.p.sqrt(dx * dx + dy * dy);
             
-            if (distance < hitboxWidth && this.cactusDamageCooldown === 0) {
-              const oldHealth = this.health;
-              this.health = this.p.max(0, this.health - 1);
-              if (oldHealth !== this.health) {
-                emitGameStateUpdate(this, this.hoverbike);
-                this.cactusDamageCooldown = 30; // Set damage cooldown
+            if (distance < hitboxWidth) {
+              willCollide = true;
+              if (this.p.frameCount % 30 === 0) {
+                const oldHealth = this.health;
+                this.health = this.p.max(0, this.health - 1);
+                if (oldHealth !== this.health) {
+                  emitGameStateUpdate(this, this.hoverbike);
+                }
               }
+              break;
             }
           }
         }
@@ -221,6 +210,19 @@ export default class Player implements PlayerType {
     }
     
     this.p.pop();
+    
+    if (!this.riding) {
+      const barWidth = 20;
+      const barHeight = 3;
+      const healthPercent = this.health / this.maxHealth;
+      
+      this.p.push();
+      this.p.fill(0, 0, 0, 150);
+      this.p.rect(this.x - barWidth/2, this.y - 20, barWidth, barHeight);
+      this.p.fill(255, 50, 50);
+      this.p.rect(this.x - barWidth/2, this.y - 20, barWidth * healthPercent, barHeight);
+      this.p.pop();
+    }
   }
 
   checkForCollectableResources() {
@@ -228,17 +230,6 @@ export default class Player implements PlayerType {
     
     for (let res of currentResources) {
       if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
-        if (this.tutorialTexts.find(t => t.id === 'metal')?.shown) {
-          this.p.push();
-          this.p.fill(0, 0, 0, 180);
-          this.p.rect(res.x - 85, res.y - 40, 170, 22, 5);
-          this.p.fill(255);
-          this.p.textAlign(this.p.CENTER);
-          this.p.textSize(10);
-          this.p.text("Press E to gather metal scraps", res.x, res.y - 25);
-          this.p.pop();
-        }
-        
         this.p.push();
         this.p.fill(255, 255, 100, 150);
         this.p.ellipse(res.x, res.y - 15, 5, 5);
@@ -247,36 +238,6 @@ export default class Player implements PlayerType {
         this.p.textSize(8);
         this.p.text("E", res.x, res.y - 13);
         this.p.pop();
-      }
-      
-      if (res.type === 'copper' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
-        if (this.tutorialTexts.find(t => t.id === 'copper')?.shown) {
-          this.p.push();
-          this.p.fill(0, 0, 0, 180);
-          this.p.rect(res.x - 85, res.y - 40, 170, 22, 5);
-          this.p.fill(255);
-          this.p.textAlign(this.p.CENTER);
-          this.p.textSize(10);
-          
-          if (this.canDig) {
-            this.p.text("Press E to dig for rare metals", res.x, res.y - 25);
-          } else {
-            this.p.text("Hmm, this is way too hard to dig up with your bare hands", res.x, res.y - 25);
-          }
-          
-          this.p.pop();
-        }
-        
-        if (this.canDig) {
-          this.p.push();
-          this.p.fill(255, 255, 100, 150);
-          this.p.ellipse(res.x, res.y - 15, 5, 5);
-          this.p.fill(255);
-          this.p.textAlign(this.p.CENTER);
-          this.p.textSize(8);
-          this.p.text("E", res.x, res.y - 13);
-          this.p.pop();
-        }
       }
     }
   }
@@ -289,36 +250,15 @@ export default class Player implements PlayerType {
       if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
         this.inventory.metal++;
         currentResources.splice(i, 1);
-        const metalTutorial = this.tutorialTexts.find(t => t.id === 'metal');
-        if (metalTutorial) metalTutorial.shown = false;
         emitGameStateUpdate(this, this.hoverbike);
-        
-        window.dispatchEvent(new CustomEvent('resourceCollected', {
-          detail: { type: 'metal', count: 1 }
-        }));
       }
     }
     
-    if (!this.digging && this.canDig) {
+    if (!this.digging) {
       for (let i = 0; i < currentResources.length; i++) {
         let res = currentResources[i];
         if (res.type === 'copper' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
           this.startDigging(res);
-          
-          const copperTutorial = this.tutorialTexts.find(t => t.id === 'copper');
-          if (copperTutorial) copperTutorial.shown = false;
-          break;
-        }
-      }
-    }
-    
-    if (this.worldX === 0 && this.worldY === 0) {
-      let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-      for (let obs of currentObstacles) {
-        if (obs.type === 'hut' && this.p.dist(this.x, this.y, obs.x, obs.y) < 50) {
-          window.dispatchEvent(new CustomEvent('tryCompleteRoofQuest', {
-            detail: { player: this }
-          }));
           break;
         }
       }
@@ -326,8 +266,6 @@ export default class Player implements PlayerType {
   }
   
   startDigging(target: any) {
-    if (!this.canDig) return;
-    
     this.digging = true;
     this.digTimer = 0;
     this.digTarget = target;
@@ -384,17 +322,6 @@ export default class Player implements PlayerType {
   setWorldCoordinates(x: number, y: number) {
     this.worldX = x;
     this.worldY = y;
-  }
-
-  enableDigging() {
-    this.canDig = true;
-  }
-
-  hideTutorialText(id: string) {
-    const tutorial = this.tutorialTexts.find(t => t.id === id);
-    if (tutorial) {
-      tutorial.shown = false;
-    }
   }
 
   render() {

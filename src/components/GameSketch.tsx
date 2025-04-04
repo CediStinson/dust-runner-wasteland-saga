@@ -5,7 +5,6 @@ import Game from '../game/Game';
 
 const GameSketch = () => {
   const sketchRef = useRef<HTMLDivElement>(null);
-  const gameRef = useRef<Game | null>(null);
   
   useEffect(() => {
     if (!sketchRef.current) return;
@@ -17,7 +16,6 @@ const GameSketch = () => {
         p.createCanvas(p.windowWidth, p.windowHeight);
         p.noSmooth();
         game = new Game(p);
-        gameRef.current = game;
       };
 
       p.draw = () => {
@@ -63,18 +61,8 @@ const GameSketch = () => {
     };
 
     const myP5 = new p5(sketch, sketchRef.current);
-    
-    // Event handler for save game requests
-    const handleSaveGame = () => {
-      if (gameRef.current) {
-        gameRef.current.saveGame();
-      }
-    };
-    
-    window.addEventListener('saveGame' as any, handleSaveGame);
 
     return () => {
-      window.removeEventListener('saveGame' as any, handleSaveGame);
       myP5.remove();
     };
   }, [sketchRef]);

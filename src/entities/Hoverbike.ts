@@ -22,10 +22,8 @@ export default class Hoverbike implements HoverbikeType {
   obstacles: Record<string, any[]>;
   player: any;
   previousAcceleration: number;
-  smokeParticles: Array<{x: number, y: number, worldX: number, worldY: number, opacity: number, size: number, age: number, originAngle: number}>;
+  smokeParticles: Array<{x: number, y: number, worldX: number, worldY: number, opacity: number, size: number, age: number}>;
   isRiding: boolean;
-  isFilling: boolean;
-  fillRate: number;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -49,8 +47,6 @@ export default class Hoverbike implements HoverbikeType {
     this.previousAcceleration = 0;
     this.smokeParticles = [];
     this.isRiding = false;
-    this.isFilling = false;
-    this.fillRate = 0.1;
   }
 
   update() {
@@ -59,7 +55,7 @@ export default class Hoverbike implements HoverbikeType {
       this.handleControls();
       this.applyMovement();
       this.checkCollisions();
-      this.isFilling = false;
+      this.checkFuelRefill();
       this.updateSmokeParticles();
       
       if (this.collisionCooldown > 0) {
@@ -70,7 +66,6 @@ export default class Hoverbike implements HoverbikeType {
         this.isRiding = false;
       }
       this.updateSmokeParticles();
-      this.checkFuelRefill();
     }
   }
 
@@ -157,9 +152,8 @@ export default class Hoverbike implements HoverbikeType {
   
   addSmokeParticle() {
     const offsetDistance = 20;
-    const exhaustAngle = this.angle + Math.PI;
-    const smokeX = offsetDistance * Math.cos(exhaustAngle);
-    const smokeY = offsetDistance * Math.sin(exhaustAngle);
+    const smokeX = -offsetDistance * Math.cos(this.angle);
+    const smokeY = -offsetDistance * Math.sin(this.angle);
     
     const jitter = 1.5;
     const randomX = this.p.random(-jitter, jitter);
@@ -172,8 +166,7 @@ export default class Hoverbike implements HoverbikeType {
       worldY: this.worldY,
       opacity: 150,
       size: this.p.random(3, 4),
-      age: 0,
-      originAngle: exhaustAngle
+      age: 0
     });
   }
 
@@ -273,10 +266,7 @@ export default class Hoverbike implements HoverbikeType {
   }
   
   checkFuelRefill() {
-    if (this.fuel >= this.maxFuel) {
-      this.isFilling = false;
-      return;
-    }
+    if (this.fuel >= this.maxFuel) return;
     
     let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
     for (let obs of currentObstacles) {
@@ -285,15 +275,12 @@ export default class Hoverbike implements HoverbikeType {
         let dy = this.y - obs.y;
         let distance = this.p.sqrt(dx * dx + dy * dy);
         
-        if (distance < 40 && this.fuel < this.maxFuel && !this.player.riding) {
-          this.isFilling = true;
+        if (distance < 40 && this.fuel < this.maxFuel) {
           const oldFuel = this.fuel;
-          this.fuel = Math.min(this.maxFuel, this.fuel + this.fillRate);
+          this.fuel = Math.min(this.maxFuel, this.fuel + 0.5);
           if (oldFuel !== this.fuel && this.p.frameCount % 10 === 0) {
             emitGameStateUpdate(this.player, this);
           }
-        } else {
-          this.isFilling = false;
         }
       }
     }
@@ -402,17 +389,6 @@ export default class Hoverbike implements HoverbikeType {
       this.p.noStroke();
       this.p.fill(50, 50, 60, 100);
       this.p.ellipse(0, 0, 25, 20);
-      
-      if (this.isFilling) {
-        this.p.push();
-        this.p.translate(-20, -20);
-        
-        const fillAnim = (this.p.frameCount % 60) / 60;
-        this.p.fill(255, 200, 100, 200);
-        this.p.ellipse(0, 0, 4 + fillAnim * 2, 4 + fillAnim * 2);
-        
-        this.p.pop();
-      }
       
       this.p.pop();
     }
