@@ -1,3 +1,4 @@
+
 import WorldGenerator from "../world/WorldGenerator";
 import Player from "../entities/Player";
 import Hoverbike from "../entities/Hoverbike";
@@ -53,6 +54,31 @@ export default class GameRenderer {
     }
     
     this.player.render();
+  }
+
+  drawBackgroundFuelStains() {
+    // Draw more subtle and darker background fuel stains for the home base area
+    this.p.noStroke();
+    
+    // Main stain under the fuel pump area (reduced size, darker black)
+    this.p.fill(0, 0, 0, 15); // Very dark but transparent
+    this.p.ellipse(this.p.width / 2 + 100, this.p.height / 2 - 40, 50, 35); // Smaller size
+    
+    // Darker center of the main stain (even darker)
+    this.p.fill(0, 0, 0, 25); // Slightly more opaque
+    this.p.ellipse(this.p.width / 2 + 100, this.p.height / 2 - 45, 30, 25); // Smaller size
+    
+    // Fewer additional smaller stains with lower opacities
+    const stainPositions = [
+      {x: this.p.width / 2 + 130, y: this.p.height / 2 - 30, size: 25, opacity: 10},
+      {x: this.p.width / 2 + 85, y: this.p.height / 2 - 60, size: 20, opacity: 8}
+    ];
+    
+    // Draw each additional stain
+    for (const stain of stainPositions) {
+      this.p.fill(0, 0, 0, stain.opacity); // Pure black with low opacity
+      this.p.ellipse(stain.x, stain.y, stain.size, stain.size * 0.7);
+    }
   }
 
   drawStars() {
@@ -161,31 +187,6 @@ export default class GameRenderer {
       } else if (obs.type === 'fuelStain') {
         this.drawFuelStain(obs);
       }
-    }
-  }
-
-  drawBackgroundFuelStains() {
-    // Draw more subtle and darker background fuel stains for the home base area
-    this.p.noStroke();
-    
-    // Main stain under the fuel pump area (reduced size, darker black)
-    this.p.fill(0, 0, 0, 15); // Very dark but transparent
-    this.p.ellipse(this.p.width / 2 + 100, this.p.height / 2 - 40, 50, 35); // Smaller size
-    
-    // Darker center of the main stain (even darker)
-    this.p.fill(0, 0, 0, 25); // Slightly more opaque
-    this.p.ellipse(this.p.width / 2 + 100, this.p.height / 2 - 45, 30, 25); // Smaller size
-    
-    // Fewer additional smaller stains with lower opacities
-    const stainPositions = [
-      {x: this.p.width / 2 + 130, y: this.p.height / 2 - 30, size: 25, opacity: 10},
-      {x: this.p.width / 2 + 85, y: this.p.height / 2 - 60, size: 20, opacity: 8}
-    ];
-    
-    // Draw each additional stain
-    for (const stain of stainPositions) {
-      this.p.fill(0, 0, 0, stain.opacity); // Pure black with low opacity
-      this.p.ellipse(stain.x, stain.y, stain.size, stain.size * 0.7);
     }
   }
 
