@@ -12,18 +12,25 @@ const Index = () => {
   const [health, setHealth] = useState(100);
   const [maxHealth, setMaxHealth] = useState(100);
   
-  // This would be updated from the game state in a real implementation
+  // Subscribe to game state updates instead of random values
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      // This is just for demonstration - in a real implementation,
-      // we would get these values from the game state
-      setResources(Math.floor(Math.random() * 20));
-      setCopper(Math.floor(Math.random() * 10));
-      setHealth(Math.max(20, Math.floor(Math.random() * 100)));
-      setMaxHealth(100);
-    }, 2000);
+    // Set up a message listener for game state updates
+    const handleGameStateUpdate = (event: CustomEvent) => {
+      const { resources, copper, health, maxHealth } = event.detail;
+      
+      setResources(resources);
+      setCopper(copper);
+      setHealth(health);
+      setMaxHealth(maxHealth);
+    };
     
-    return () => clearInterval(intervalId);
+    // Add event listener
+    window.addEventListener('gameStateUpdate' as any, handleGameStateUpdate);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('gameStateUpdate' as any, handleGameStateUpdate);
+    };
   }, []);
   
   return (

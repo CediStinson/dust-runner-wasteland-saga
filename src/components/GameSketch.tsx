@@ -244,6 +244,7 @@ const GameSketch = () => {
           this.digging = true;
           this.digTimer = 0;
           this.digTarget = target;
+          updateGameState();
         }
         
         updateDigging() {
@@ -270,6 +271,7 @@ const GameSketch = () => {
             }
             
             this.digTarget = null;
+            updateGameState();
           }
           
           // Cancel digging if player moves or is too far from target
@@ -373,7 +375,11 @@ const GameSketch = () => {
               let distance = p.sqrt(normalizedX * normalizedX + normalizedY * normalizedY);
 
               if (distance < 1) {
+                const oldHealth = this.health;
                 this.health = p.max(0, this.health - 10);
+                if (oldHealth !== this.health) {
+                  updateGameState();
+                }
                 this.velocityX = -this.velocityX * 0.5;
                 this.velocityY = -this.velocityY * 0.5;
                 this.collisionCooldown = 30;
@@ -392,7 +398,11 @@ const GameSketch = () => {
               let distance = p.sqrt(dx * dx + dy * dy);
 
               if (distance < hitboxWidth) {
+                const oldHealth = this.health;
                 this.health = p.max(0, this.health - 3);
+                if (oldHealth !== this.health) {
+                  updateGameState();
+                }
                 this.velocityX *= 0.8;
                 this.velocityY *= 0.8;
                 this.collisionCooldown = 20;
@@ -623,11 +633,13 @@ const GameSketch = () => {
           shape.push({ x, y });
         }
         
-        // Spawn near the rock
+        // Spawn near the rock with deterministic position
         let distance = p.random(25, 40) * nearbyRock.size;
         let angle = p.random(p.TWO_PI);
-        let oreX = nearbyRock.x + p.cos(angle) * distance;
-        let oreY = nearbyRock.y + p.sin(angle) * distance;
+        
+        // Use Math.sin/cos instead of p.sin/cos for deterministic results
+        let oreX = nearbyRock.x + Math.cos(angle) * distance;
+        let oreY = nearbyRock.y + Math.sin(angle) * distance;
         
         // Make sure it's within bounds
         oreX = p.constrain(oreX, 30, p.width - 30);
@@ -1340,6 +1352,18 @@ const GameSketch = () => {
         return hash;
       };
 
+      function updateGameState() {
+        const event = new CustomEvent('gameStateUpdate', {
+          detail: {
+            resources: player?.inventory?.metal || 0,
+            copper: player?.inventory?.copper || 0,
+            health: hoverbike?.health || 0,
+            maxHealth: hoverbike?.maxHealth || 100
+          }
+        });
+        window.dispatchEvent(event);
+      }
+
       p.setup = () => {
         p.createCanvas(p.windowWidth, p.windowHeight);
         p.noSmooth();
@@ -1387,6 +1411,7 @@ const GameSketch = () => {
           if (player.inventory.metal >= 1 && hoverbike.health < hoverbike.maxHealth) {
             player.inventory.metal--;
             hoverbike.health = p.min(hoverbike.health + 20, hoverbike.maxHealth);
+            updateGameState();
           }
         }
         if (p.key === 's' && !riding && p.dist(player.x, player.y, hoverbike.x, hoverbike.y) < 30 && 
@@ -1394,6 +1419,7 @@ const GameSketch = () => {
           if (player.inventory.metal >= 5) {
             player.inventory.metal -= 5;
             hoverbike.upgradeSpeed();
+            updateGameState();
           }
         }
         if (p.key === 'd' && !riding && p.dist(player.x, player.y, hoverbike.x, hoverbike.y) < 30 && 
@@ -1401,6 +1427,7 @@ const GameSketch = () => {
           if (player.inventory.metal >= 5) {
             player.inventory.metal -= 5;
             hoverbike.upgradeDurability();
+            updateGameState();
           }
         }
       };
