@@ -116,7 +116,7 @@ const GameUI: React.FC<GameUIProps> = ({
         </div>
       </div>
       
-      {/* Controls modal */}
+      {/* Controls modal - simplified controls list as requested */}
       {showControls && (
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
           <div className="bg-black/80 rounded-lg p-6 border border-white/20 backdrop-blur-md pointer-events-auto max-w-md w-full">

@@ -27,10 +27,12 @@ export default class Game {
     this.worldX = 0;
     this.worldY = 0;
     this.riding = false;
-    this.timeOfDay = 0; // 0 = midnight, 0.5 = noon, 1 = midnight again
+    this.timeOfDay = 0.25; // Start at sunrise
     this.dayLength = 60 * 60 * 15; // 15 minutes in frames (at 60fps)
     this.nightLength = 60 * 60 * 7.5; // 7.5 minutes in frames
     this.gameStarted = false;
+    this.dayTimeIcon = "sun"; // Start with the sun
+    this.dayTimeAngle = this.timeOfDay * Math.PI * 2; // Calculate initial angle
     
     this.worldGenerator = new WorldGenerator(p);
     
@@ -122,7 +124,7 @@ export default class Game {
         size: 1.0
       });
       
-      // Add fuel pump - without stains now
+      // Add fuel pump without stains now (stains are separate objects)
       homeObstacles.push({
         type: 'fuelPump',
         x: this.p.width / 2 + 100,
@@ -144,19 +146,19 @@ export default class Game {
     
     if (!hasWalkingMarks) {
       // Add multiple footprint sets in a pattern approaching the home base
-      for (let i = 0; i < 5; i++) {
-        const angle = this.p.random(0, Math.PI * 2);
-        const distance = this.p.random(60, 150);
-        const x = this.p.width / 2 + Math.cos(angle) * distance;
-        const y = this.p.height / 2 + Math.sin(angle) * distance;
-        
+      // Use fixed positions for stability
+      const walkingMarkPositions = [
+        { x: this.p.width / 2 - 80, y: this.p.height / 2 + 60, angle: 0.8, size: 0.9, opacity: 170 },
+        { x: this.p.width / 2 + 45, y: this.p.height / 2 + 75, angle: 5.5, size: 0.8, opacity: 150 },
+        { x: this.p.width / 2 - 30, y: this.p.height / 2 - 65, angle: 2.2, size: 1.0, opacity: 190 },
+        { x: this.p.width / 2 + 80, y: this.p.height / 2 - 15, angle: 3.7, size: 0.7, opacity: 160 },
+        { x: this.p.width / 2 - 60, y: this.p.height / 2 - 25, angle: 1.3, size: 0.85, opacity: 180 }
+      ];
+      
+      for (const position of walkingMarkPositions) {
         homeObstacles.push({
           type: 'walkingMarks',
-          x: x,
-          y: y,
-          angle: this.p.random(0, Math.PI * 2),
-          size: this.p.random(0.7, 1.0),
-          opacity: this.p.random(150, 200)
+          ...position
         });
       }
       
@@ -378,14 +380,7 @@ export default class Game {
       }
     }
     
-    if (key === 'd' && !this.riding && this.p.dist(this.player.x, this.player.y, this.hoverbike.x, this.hoverbike.y) < 30 && 
-        this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
-      if (this.player.inventory.metal >= 5) {
-        this.player.inventory.metal -= 5;
-        this.hoverbike.upgradeDurability();
-        emitGameStateUpdate(this.player, this.hoverbike);
-      }
-    }
+    // Removed the 'd' key handler for durability upgrades
   }
 
   resize() {
