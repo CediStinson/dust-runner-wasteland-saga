@@ -283,10 +283,10 @@ export default class Hoverbike implements HoverbikeType {
     if (this.worldX === this.player.worldX && this.worldY === this.player.worldY) {
       this.p.push();
       this.p.translate(this.x, this.y);
-      this.p.rotate(this.angle + this.p.PI/2); // Rotate by 90 degrees clockwise (PI/2)
+      this.p.rotate(this.angle); // Remove the PI/2 rotation so it faces the direction of travel
       
       // Draw smoke particles (behind the hoverbike)
-      this.p.noStroke(); // Make sure no outline for the smoke
+      this.p.noStroke(); // No outline for smoke
       for (const particle of this.smokeParticles) {
         // Simple line-like smoke effect
         const smokeGray = 150 + this.p.random(-30, 30);
@@ -295,29 +295,31 @@ export default class Hoverbike implements HoverbikeType {
         this.p.ellipse(particle.x, particle.y, particle.size * 1.5, particle.size * 0.8);
       }
       
-      // Main body - slimmer futuristic hoverbike (top view, rotated 90 degrees clockwise)
+      // Main body - hoverbike with correct orientation (front facing forward, back in the rear)
       // First layer - base chassis (gray metallic)
+      this.p.stroke(0); // Add black outlines back
+      this.p.strokeWeight(1);
       this.p.fill(130, 130, 140);
       this.p.beginShape();
-      this.p.vertex(20, 0);     // Front point (now right side)
-      this.p.vertex(16, 6);     // Front right (now bottom right)
-      this.p.vertex(0, 8);      // Mid right (now bottom)
-      this.p.vertex(-16, 6);    // Rear right (now bottom left)
-      this.p.vertex(-16, -6);   // Rear left (now top left)
-      this.p.vertex(0, -8);     // Mid left (now top)
-      this.p.vertex(16, -6);    // Front left (now top right)
+      this.p.vertex(20, 0);     // Front point
+      this.p.vertex(16, 6);     // Front right
+      this.p.vertex(0, 8);      // Mid right
+      this.p.vertex(-16, 6);    // Rear right
+      this.p.vertex(-16, -6);   // Rear left
+      this.p.vertex(0, -8);     // Mid left
+      this.p.vertex(16, -6);    // Front left
       this.p.endShape(this.p.CLOSE);
       
       // Central section (seat and controls)
       this.p.fill(80, 80, 90);
       this.p.beginShape();
-      this.p.vertex(14, 0);     // Front (now right)
-      this.p.vertex(10, 5);     // Front right (now bottom right)
-      this.p.vertex(-6, 6);     // Mid right (now bottom left)
-      this.p.vertex(-10, 4);    // Rear right (now bottom left)
-      this.p.vertex(-10, -4);   // Rear left (now top left)
-      this.p.vertex(-6, -6);    // Mid left (now top left)
-      this.p.vertex(10, -5);    // Front left (now top right)
+      this.p.vertex(14, 0);     // Front
+      this.p.vertex(10, 5);     // Front right
+      this.p.vertex(-6, 6);     // Mid right
+      this.p.vertex(-10, 4);    // Rear right
+      this.p.vertex(-10, -4);   // Rear left
+      this.p.vertex(-6, -6);    // Mid left
+      this.p.vertex(10, -5);    // Front left
       this.p.endShape(this.p.CLOSE);
       
       // Seat
@@ -329,18 +331,18 @@ export default class Hoverbike implements HoverbikeType {
       this.p.strokeWeight(2);
       this.p.line(8, -4, 6, -8);
       this.p.line(8, 4, 6, 8);
-      this.p.noStroke();
+      this.p.strokeWeight(1);
       
       // Handlebar grips
       this.p.fill(40, 40, 45);
       this.p.ellipse(6, -8, 4, 3);
       this.p.ellipse(6, 8, 4, 3);
       
-      // Front lights (now on right)
+      // Front lights
       this.p.fill(200, 200, 100);
       this.p.ellipse(18, 0, 6, 3);
       
-      // Jet engine at the back (now on left)
+      // Jet engine at the back
       this.p.fill(90, 90, 95);
       this.p.beginShape();
       this.p.vertex(-14, -6);  // Top edge of engine
@@ -354,12 +356,14 @@ export default class Hoverbike implements HoverbikeType {
       this.p.rect(-15, -4, 4, 8, 1);
       
       // Exhaust flame
+      this.p.noStroke();
       this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
       this.p.ellipse(-22, 0, 4, 8);
       this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
       this.p.ellipse(-24, 0, 3, 5);
       
       // Side panels with makeshift repairs
+      this.p.stroke(0);
       this.p.fill(100, 100, 110);
       this.p.beginShape();
       this.p.vertex(-5, -8);
@@ -389,9 +393,9 @@ export default class Hoverbike implements HoverbikeType {
       this.p.line(-8, -2, -14, -2);
       this.p.line(-8, 2, -14, 2);
       this.p.line(-8, 6, -14, 4);
-      this.p.noStroke();
       
       // Shadow
+      this.p.noStroke();
       this.p.fill(50, 50, 60, 100);
       this.p.ellipse(0, 0, 25, 20);
       
