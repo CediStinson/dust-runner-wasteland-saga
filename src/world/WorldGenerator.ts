@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class WorldGenerator {
@@ -97,7 +98,7 @@ export default class WorldGenerator {
       let size = this.p.random(0.5, 1.5);
       let rockProbability = 0.5;
       let bushProbability = 0.4;
-      let cactusProbability = 0.6; // Higher value (was likely around 0.3-0.4)
+      let cactusProbability = 0.7; // Increased probability for cacti (was 0.6)
 
       if (this.p.random() < rockProbability) {
         let shape = this.generateRockShape(x, y, size);
@@ -111,9 +112,56 @@ export default class WorldGenerator {
         obstacles.push({ type: 'cactus', x: x, y: y, size: size, shape: shape });
       }
     }
+    
+    // Add more cacti (2-3 more) to increase their presence
+    const extraCacti = 2 + Math.floor(this.p.random() * 2); // 2-3 extra cacti
+    for (let i = 0; i < extraCacti; i++) {
+      let x = this.p.random(50, this.p.width - 50);
+      let y = this.p.random(50, this.p.height - 50);
+      let size = this.p.random(0.8, 1.8); // slightly bigger cacti
+      let shape = this.generateCactusShape(x, y, size);
+      obstacles.push({ type: 'cactus', x: x, y: y, size: size, shape: shape });
+    }
 
     if (worldX === 0 && worldY === 0) {
       obstacles.push({ type: 'hut', x: this.p.width / 2, y: this.p.height / 2, size: 1.0 });
+      
+      // Add fuel pump and stain at home base
+      obstacles.push({ 
+        type: 'fuelPump', 
+        x: this.p.width / 2 + 80, 
+        y: this.p.height / 2 - 30, 
+        size: 1.0 
+      });
+      
+      // Add fuel stain under the pump
+      obstacles.push({ 
+        type: 'fuelStain', 
+        x: this.p.width / 2 + 80, 
+        y: this.p.height / 2 - 20, 
+        size: 1.5,
+        seedAngle: Math.PI * 0.3 // Fixed angle for consistent appearance
+      });
+      
+      // Add walking marks in front of the hut
+      obstacles.push({
+        type: 'walkingMarks',
+        x: this.p.width / 2,
+        y: this.p.height / 2 + 40,
+        size: 1.0,
+        angle: 0,
+        opacity: 120
+      });
+      
+      // Add another set of walking marks coming from different direction
+      obstacles.push({
+        type: 'walkingMarks',
+        x: this.p.width / 2 + 20,
+        y: this.p.height / 2 + 30,
+        size: 0.8,
+        angle: Math.PI * 0.25,
+        opacity: 100
+      });
     }
 
     this.obstacles[zoneKey] = obstacles;
@@ -123,19 +171,73 @@ export default class WorldGenerator {
     let zoneKey = `${worldX},${worldY}`;
     let resources = [];
 
-    for (let i = 0; i < 15; i++) {
-      let x = this.p.random(50, this.p.width - 50);
-      let y = this.p.random(50, this.p.height - 50);
-      let metalProbability = 0.7;
-      let copperProbability = 0.15; // Lower value (was likely around 0.3)
-
-      if (this.p.random() < metalProbability) {
-        let size = this.p.random(0.8, 1.5);
-        let rotation = this.p.random(this.p.TWO_PI);
-        let buried = this.p.random(0.3, 0.7);
-        resources.push({ type: 'metal', x: x, y: y, size: size, rotation: rotation, buried: buried });
-      } else if (this.p.random() < copperProbability) {
-        resources.push({ type: 'copper', x: x, y: y, size: 1.0 });
+    // If this is the home area (0,0), place fixed tutorial resources
+    if (worldX === 0 && worldY === 0) {
+      // Fixed metal spawn for tutorial
+      resources.push({ 
+        type: 'metal', 
+        x: this.p.width / 2 + 50, 
+        y: this.p.height / 2 + 50, 
+        size: 1.3, 
+        rotation: this.p.PI * 0.2, 
+        buried: 0.4,
+        tutorial: {
+          id: 'metal_tutorial',
+          text: 'Press E to gather metal scraps',
+          width: 160,
+          height: 20,
+          visible: true,
+          showCloseButton: true
+        }
+      });
+      
+      // Fixed copper spawn for tutorial
+      resources.push({ 
+        type: 'copper', 
+        x: this.p.width / 2 - 60, 
+        y: this.p.height / 2 + 40, 
+        size: 1.2,
+        tutorial: {
+          id: 'copper_tutorial',
+          text: 'Press E to dig for rare metals',
+          width: 160,
+          height: 20,
+          visible: true,
+          showCloseButton: true
+        }
+      });
+      
+      // Add fuel tutorial
+      resources.push({
+        type: 'fuel_tutorial',
+        x: this.p.width / 2 + 80,
+        y: this.p.height / 2 - 60,
+        tutorial: {
+          id: 'fuel_tutorial',
+          text: 'Be careful not to run out of gas - refill at the fuel station',
+          width: 280,
+          height: 30,
+          visible: true,
+          showCloseButton: true
+        }
+      });
+      
+    } else {
+      // Generate random resources for non-home areas
+      for (let i = 0; i < 15; i++) {
+        let x = this.p.random(50, this.p.width - 50);
+        let y = this.p.random(50, this.p.height - 50);
+        let metalProbability = 0.7;
+        let copperProbability = 0.1; // Decreased probability for copper (was 0.15)
+  
+        if (this.p.random() < metalProbability) {
+          let size = this.p.random(0.8, 1.5);
+          let rotation = this.p.random(this.p.TWO_PI);
+          let buried = this.p.random(0.3, 0.7);
+          resources.push({ type: 'metal', x: x, y: y, size: size, rotation: rotation, buried: buried });
+        } else if (this.p.random() < copperProbability) {
+          resources.push({ type: 'copper', x: x, y: y, size: 1.0 });
+        }
       }
     }
 
