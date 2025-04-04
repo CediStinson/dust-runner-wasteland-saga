@@ -38,6 +38,8 @@ interface HoverbikeType {
   velocityY: number;
   health: number;
   maxHealth: number;
+  fuel: number;
+  maxFuel: number;
   speed: number;
   speedLevel: number;
   durabilityLevel: number;
@@ -102,8 +104,62 @@ const GameSketch = () => {
             } else {
               this.handleInput();
               this.applyFriction();
-              this.x += this.velX;
-              this.y += this.velY;
+              
+              // Check collision with obstacles before moving
+              let willCollide = false;
+              let currentObstacles = obstacles[`${worldX},${worldY}`] || [];
+              let newX = this.x + this.velX;
+              let newY = this.y + this.velY;
+              
+              for (let obs of currentObstacles) {
+                if (obs.type === 'rock' || obs.type === 'hut') {
+                  let dx = newX - obs.x;
+                  let dy = newY - obs.y;
+                  
+                  let collisionRadius = 0;
+                  if (obs.type === 'rock') {
+                    let hitboxWidth = 28 * obs.size * (obs.aspectRatio > 1 ? obs.aspectRatio : 1);
+                    let hitboxHeight = 28 * obs.size * (obs.aspectRatio < 1 ? 1 / p.abs(obs.aspectRatio) : 1);
+                    collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.5;
+                  } else if (obs.type === 'hut') {
+                    collisionRadius = 30; // Hut collision radius
+                  }
+                  
+                  let distance = p.sqrt(dx * dx + dy * dy);
+                  if (distance < collisionRadius) {
+                    willCollide = true;
+                    break;
+                  }
+                } else if (obs.type === 'cactus') {
+                  let dx = newX - obs.x;
+                  let dy = newY - obs.y;
+                  let hitboxWidth = 15 * obs.size;
+                  let distance = p.sqrt(dx * dx + dy * dy);
+                  
+                  if (distance < hitboxWidth) {
+                    willCollide = true;
+                    // Damage player when colliding with cactus
+                    if (p.frameCount % 30 === 0) { // Apply damage every 30 frames (0.5 seconds)
+                      const oldHealth = hoverbike.health;
+                      hoverbike.health = p.max(0, hoverbike.health - 1);
+                      if (oldHealth !== hoverbike.health) {
+                        updateGameState();
+                      }
+                    }
+                    break;
+                  }
+                }
+              }
+              
+              if (!willCollide) {
+                this.x += this.velX;
+                this.y += this.velY;
+              } else {
+                // Stop movement if collision would occur
+                this.velX *= -0.5;
+                this.velY *= -0.5;
+              }
+              
               this.collectResource();
             }
           } else {
@@ -252,8 +308,8 @@ const GameSketch = () => {
           
           this.digTimer++;
           
-          // 5 seconds (60fps * 5 = 300 frames)
-          if (this.digTimer >= 300) {
+          // 8 seconds (60fps * 8 = 480 frames)
+          if (this.digTimer >= 480) {
             // Mining complete
             this.digging = false;
             
@@ -286,7 +342,7 @@ const GameSketch = () => {
         displayDigProgress() {
           let progressWidth = 30;
           let progressHeight = 4;
-          let progress = this.digTimer / 300; // 300 frames for 5 seconds
+          let progress = this.digTimer / 480; // 480 frames for 8 seconds
           
           // Draw progress bar above player
           p.fill(0, 0, 0, 150);
@@ -307,6 +363,8 @@ const GameSketch = () => {
         velocityY: number;
         health: number;
         maxHealth: number;
+        fuel: number;
+        maxFuel: number;
         speed: number;
         speedLevel: number;
         durabilityLevel: number;
@@ -322,6 +380,8 @@ const GameSketch = () => {
           this.velocityY = 0;
           this.health = 100;
           this.maxHealth = 100;
+          this.fuel = 100;
+          this.maxFuel = 100;
           this.speed = 2;
           this.speedLevel = 0;
           this.durabilityLevel = 0;
@@ -335,6 +395,15 @@ const GameSketch = () => {
             this.checkCollisions();
             if (this.collisionCooldown > 0) {
               this.collisionCooldown--;
+            }
+            
+            // Consume fuel while riding
+            if (p.frameCount % 60 === 0) { // Every second
+              const oldFuel = this.fuel;
+              this.fuel = Math.max(0, this.fuel - 0.5);
+              if (oldFuel !== this.fuel) {
+                updateGameState();
+              }
             }
           }
         }
@@ -356,8 +425,40 @@ const GameSketch = () => {
         }
 
         applyMovement() {
-          this.x += this.velocityX;
-          this.y += this.velocityY;
+          // Check for collisions with the hut before moving
+          let currentObstacles = obstacles[`${worldX},${worldY}`] || [];
+          let willCollide = false;
+          let newX = this.x + this.velocityX;
+          let newY = this.y + this.velocityY;
+          
+          for (let obs of currentObstacles) {
+            if (obs.type === 'hut' || obs.type === 'rock') {
+              let dx = newX - obs.x;
+              let dy = newY - obs.y;
+              
+              let collisionRadius = 0;
+              if (obs.type === 'rock') {
+                let hitboxWidth = 28 * obs.size * (obs.aspectRatio > 1 ? obs.aspectRatio : 1);
+                let hitboxHeight = 28 * obs.size * (obs.aspectRatio < 1 ? 1 / p.abs(obs.aspectRatio) : 1);
+                collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.5;
+              } else if (obs.type === 'hut') {
+                collisionRadius = 30; // Hut collision radius
+              }
+              
+              let distance = p.sqrt(dx * dx + dy * dy);
+              if (distance < collisionRadius) {
+                willCollide = true;
+                this.velocityX = -this.velocityX * 0.5;
+                this.velocityY = -this.velocityY * 0.5;
+                break;
+              }
+            }
+          }
+          
+          if (!willCollide) {
+            this.x += this.velocityX;
+            this.y += this.velocityY;
+          }
         }
 
         checkCollisions() {
@@ -423,102 +524,100 @@ const GameSketch = () => {
             p.translate(this.x, this.y);
             p.rotate(this.angle);
             
-            // Main body - futuristic makeshift hoverbike
+            // Main body - slimmer futuristic hoverbike rotated 90 degrees
             // First layer - base chassis (gray metallic)
             p.fill(130, 130, 140);
             p.beginShape();
-            p.vertex(-12, -18); // Front point
-            p.vertex(-15, -10); // Front left
-            p.vertex(-15, 8);   // Mid left
-            p.vertex(-8, 15);   // Rear left
-            p.vertex(8, 15);    // Rear right
-            p.vertex(15, 8);    // Mid right
-            p.vertex(15, -10);  // Front right
-            p.vertex(12, -18);  // Front point right
+            p.vertex(0, -20);     // Front point
+            p.vertex(-6, -16);    // Front left
+            p.vertex(-8, 0);      // Mid left
+            p.vertex(-6, 16);     // Rear left
+            p.vertex(6, 16);      // Rear right
+            p.vertex(8, 0);       // Mid right
+            p.vertex(6, -16);     // Front right
             p.endShape(p.CLOSE);
             
             // Central section (seat and controls)
             p.fill(80, 80, 90);
             p.beginShape();
-            p.vertex(-10, -12);  // Front
-            p.vertex(-12, -5);   // Front left
-            p.vertex(-12, 5);    // Mid left
-            p.vertex(-8, 8);     // Rear left
-            p.vertex(8, 8);      // Rear right
-            p.vertex(12, 5);     // Mid right
-            p.vertex(12, -5);    // Front right
-            p.vertex(10, -12);   // Front right
+            p.vertex(0, -14);    // Front
+            p.vertex(-5, -10);   // Front left
+            p.vertex(-6, 6);     // Mid left
+            p.vertex(-4, 10);    // Rear left
+            p.vertex(4, 10);     // Rear right
+            p.vertex(6, 6);      // Mid right
+            p.vertex(5, -10);    // Front right
             p.endShape(p.CLOSE);
             
             // Seat
             p.fill(60, 60, 65);
-            p.ellipse(0, 0, 14, 10);
+            p.ellipse(0, 0, 10, 14);
             
             // Handlebars
             p.stroke(70, 70, 75);
             p.strokeWeight(2);
-            p.line(-6, -8, -12, -5);
-            p.line(6, -8, 12, -5);
+            p.line(-4, -8, -8, -6);
+            p.line(4, -8, 8, -6);
             p.noStroke();
             
             // Handlebar grips
             p.fill(40, 40, 45);
-            p.ellipse(-12, -5, 4, 3);
-            p.ellipse(12, -5, 4, 3);
+            p.ellipse(-8, -6, 3, 4);
+            p.ellipse(8, -6, 3, 4);
             
             // Front lights
             p.fill(200, 200, 100);
-            p.ellipse(-10, -16, 6, 3);
+            p.ellipse(0, -18, 3, 6);
             
             // Jet engine at the back
             p.fill(90, 90, 95);
             p.beginShape();
-            p.vertex(-6, 15);  // Left edge of engine
-            p.vertex(6, 15);   // Right edge of engine
-            p.vertex(5, 22);   // Right exhaust
-            p.vertex(-5, 22);  // Left exhaust
+            p.vertex(-6, 14);  // Left edge of engine
+            p.vertex(6, 14);   // Right edge of engine
+            p.vertex(5, 20);   // Right exhaust
+            p.vertex(-5, 20);  // Left exhaust
             p.endShape(p.CLOSE);
             
             // Engine details
             p.fill(50, 50, 55);
-            p.rect(-4, 16, 8, 4, 1);
+            p.rect(-4, 15, 8, 4, 1);
             
             // Exhaust flame
             p.fill(255, 150, 50, 150 + p.sin(p.frameCount * 0.2) * 50);
-            p.ellipse(0, 23, 8, 4);
+            p.ellipse(0, 22, 8, 4);
             p.fill(255, 200, 100, 100 + p.sin(p.frameCount * 0.2) * 50);
             p.ellipse(0, 24, 5, 3);
             
             // Side panels with makeshift repairs
             p.fill(100, 100, 110);
             p.beginShape();
-            p.vertex(-15, -5);
-            p.vertex(-17, 0);
-            p.vertex(-15, 5);
+            p.vertex(-8, -5);
+            p.vertex(-10, 0);
+            p.vertex(-8, 5);
             p.endShape(p.CLOSE);
             
             p.beginShape();
-            p.vertex(15, -5);
-            p.vertex(17, 0);
-            p.vertex(15, 5);
+            p.vertex(8, -5);
+            p.vertex(10, 0);
+            p.vertex(8, 5);
             p.endShape(p.CLOSE);
             
             // Bolts and rivets
             p.fill(60, 60, 65);
-            p.ellipse(-15, -8, 2, 2);
-            p.ellipse(-15, 0, 2, 2);
-            p.ellipse(-15, 8, 2, 2);
-            p.ellipse(15, -8, 2, 2);
-            p.ellipse(15, 0, 2, 2);
-            p.ellipse(15, 8, 2, 2);
+            p.ellipse(-8, -8, 2, 2);
+            p.ellipse(-8, 0, 2, 2);
+            p.ellipse(-8, 8, 2, 2);
+            p.ellipse(8, -8, 2, 2);
+            p.ellipse(8, 0, 2, 2);
+            p.ellipse(8, 8, 2, 2);
             
             // Wires and hoses
             p.stroke(40, 40, 45);
             p.strokeWeight(1);
-            p.line(-10, 8, -8, 15);
-            p.line(-6, 8, -4, 15);
-            p.line(6, 8, 4, 15);
-            p.line(10, 8, 8, 15);
+            p.line(-6, 8, -4, 14);
+            p.line(-2, 8, -2, 14);
+            p.line(2, 8, 2, 14);
+            p.line(6, 8, 4, 14);
             p.noStroke();
             
             // Shadow
@@ -633,13 +732,17 @@ const GameSketch = () => {
           shape.push({ x, y });
         }
         
-        // Spawn near the rock with deterministic position
-        let distance = p.random(25, 40) * nearbyRock.size;
-        let angle = p.random(p.TWO_PI);
+        // Spawn at the edge of the rock with deterministic position
+        // Calculate rock radius
+        let rockRadius = 25 * nearbyRock.size * (nearbyRock.aspectRatio > 1 ? nearbyRock.aspectRatio : 1);
         
-        // Use Math.sin/cos instead of p.sin/cos for deterministic results
-        let oreX = nearbyRock.x + Math.cos(angle) * distance;
-        let oreY = nearbyRock.y + Math.sin(angle) * distance;
+        // Choose a fixed angle based on a hash of the rock position
+        let angleHash = (nearbyRock.x * 10000 + nearbyRock.y).toString().hashCode();
+        let angle = (angleHash % 628) / 100; // Maps to 0-6.28 (0-2π)
+        
+        // Place exactly at the edge of the rock
+        let oreX = nearbyRock.x + Math.cos(angle) * rockRadius;
+        let oreY = nearbyRock.y + Math.sin(angle) * rockRadius;
         
         // Make sure it's within bounds
         oreX = p.constrain(oreX, 30, p.width - 30);
@@ -881,110 +984,69 @@ const GameSketch = () => {
             p.push();
             p.translate(obs.x, obs.y);
 
-            // Enhanced detailed hut from top-down perspective
+            // Enhanced detailed desert hut from top-down perspective
             
             // Larger shadow
             p.fill(50, 40, 30, 80);
             p.ellipse(8, 8, 50, 40);
             
             // Base foundation - circular platform
-            p.fill(100, 90, 80);  // Sandy ground color
+            p.fill(180, 160, 130);  // Sandy ground color
             p.ellipse(0, 0, 55, 55);
             
-            // Main structure - rectangular building with angled walls
-            p.fill(210, 180, 140); // Sandstone walls
-            p.beginShape();
-            p.vertex(-20, -20);  // Top left
-            p.vertex(20, -20);   // Top right
-            p.vertex(24, -16);   // Top right corner
-            p.vertex(24, 16);    // Bottom right corner
-            p.vertex(20, 20);    // Bottom right
-            p.vertex(-20, 20);   // Bottom left
-            p.vertex(-24, 16);   // Bottom left corner
-            p.vertex(-24, -16);  // Top left corner
-            p.endShape(p.CLOSE);
+            // Main structure - circular adobe/mud hut
+            p.fill(210, 180, 140); // Sandstone/mud walls
+            p.ellipse(0, 0, 48, 48);
             
-            // Roof structure
-            p.fill(90, 70, 50); // Weathered wood
-            p.beginShape();
-            p.vertex(-24, -16);
-            p.vertex(-16, -24);
-            p.vertex(16, -24);
-            p.vertex(24, -16);
-            p.endShape(p.CLOSE);
+            // Inner structure
+            p.fill(190, 160, 120);
+            p.ellipse(0, 0, 40, 40);
             
-            // Roof details
-            p.stroke(70, 50, 30);
+            // Detail lines on the circular wall
+            p.stroke(170, 140, 110);
             p.strokeWeight(1);
-            p.line(-20, -20, 20, -20);
-            p.line(-18, -22, 18, -22);
-            p.line(0, -24, 0, -20);
+            for (let i = 0; i < 12; i++) {
+              let angle = i * p.TWO_PI / 12;
+              p.line(
+                Math.cos(angle) * 20, 
+                Math.sin(angle) * 20,
+                Math.cos(angle) * 24, 
+                Math.sin(angle) * 24
+              );
+            }
             p.noStroke();
             
-            // Windows and door
-            p.fill(40, 60, 70, 180); // Bluish window glass
-            p.rect(-16, -10, 8, 8, 1);
-            p.rect(8, -10, 8, 8, 1);
+            // Entrance (dark opening)
+            p.fill(60, 50, 40);
+            p.arc(0, 22, 12, 14, -p.PI * 0.8, -p.PI * 0.2);
             
-            p.fill(60, 40, 30); // Wooden door
-            p.rect(-5, 11, 10, 9);
+            // Conical roof
+            p.fill(180, 150, 100);
+            p.ellipse(0, 0, 44, 44);
+            p.fill(160, 130, 90);
+            p.ellipse(0, 0, 34, 34);
+            p.fill(140, 110, 80);
+            p.ellipse(0, 0, 24, 24);
+            p.fill(120, 90, 70);
+            p.ellipse(0, 0, 14, 14);
             
-            // Door handle
-            p.fill(180, 170, 150);
-            p.ellipse(-2, 15, 2, 2);
+            // Center pole/smoke hole
+            p.fill(80, 60, 50);
+            p.ellipse(0, 0, 6, 6);
             
-            // Window frames
-            p.noFill();
-            p.stroke(90, 70, 50);
-            p.strokeWeight(1);
-            p.rect(-16, -10, 8, 8, 1);
-            p.rect(8, -10, 8, 8, 1);
-            p.line(-16, -6, -8, -6);
-            p.line(-12, -10, -12, -2);
-            p.line(8, -6, 16, -6);
-            p.line(12, -10, 12, -2);
-            p.noStroke();
-            
-            // Metal patches and details
-            p.fill(120, 120, 120); // Metal color
-            p.beginShape();
-            p.vertex(-24, 0);
-            p.vertex(-20, -4);
-            p.vertex(-15, 0);
-            p.vertex(-20, 4);
-            p.endShape(p.CLOSE);
-            
-            p.beginShape();
-            p.vertex(15, -4);
-            p.vertex(20, 0);
-            p.vertex(15, 4);
-            p.vertex(10, 0);
-            p.endShape(p.CLOSE);
-            
-            // Rust details
-            p.fill(150, 80, 40);
-            p.ellipse(-20, 0, 3, 3);
-            p.ellipse(15, 0, 3, 3);
-            
-            // Chimney on side
-            p.fill(180, 150, 130);
-            p.rect(18, -10, 4, 14);
-            p.fill(60, 60, 60);
-            p.rect(17, -14, 6, 4);
-            
-            // Smoke from chimney
+            // Smoke from center
             p.noStroke();
             for (let i = 0; i < 3; i++) {
               let t = (p.frameCount * 0.01 + i * 0.3) % 1;
               let size = p.map(t, 0, 1, 3, 8);
               let alpha = p.map(t, 0, 1, 200, 0);
               p.fill(200, 200, 200, alpha);
-              p.ellipse(20, -16 - t * 15, size, size);
+              p.ellipse(0, 0 - t * 15, size, size);
             }
             
-            // Windmill on roof
+            // Windmill on side of hut
             p.push();
-            p.translate(0, -28);
+            p.translate(16, -10);
             p.rotate(windmillAngle);
             // Windmill blades
             p.fill(100, 80, 60);
@@ -993,8 +1055,8 @@ const GameSketch = () => {
               p.rotate(i * p.PI / 2);
               p.beginShape();
               p.vertex(0, 0);
-              p.vertex(2, -12);
-              p.vertex(-2, -12);
+              p.vertex(2, -10);
+              p.vertex(-2, -10);
               p.endShape(p.CLOSE);
               p.pop();
             }
@@ -1005,31 +1067,30 @@ const GameSketch = () => {
             
             // Satellite dish on roof
             p.fill(180, 180, 180);
-            p.ellipse(-12, -25, 8, 8);
+            p.ellipse(-12, -10, 8, 8);
             p.fill(150, 150, 150);
-            p.ellipse(-12, -25, 6, 6);
+            p.ellipse(-12, -10, 6, 6);
             p.stroke(120, 120, 120);
             p.strokeWeight(1);
-            p.line(-12, -25, -16, -28);
+            p.line(-12, -10, -16, -13);
             p.noStroke();
             
-            // Path from door
-            p.fill(190, 170, 140);
-            p.beginShape();
-            p.vertex(-8, 20);
-            p.vertex(8, 20);
-            p.vertex(12, 30);
-            p.vertex(-12, 30);
-            p.endShape(p.CLOSE);
+            // Small decorative elements around the hut
+            // Water jars
+            p.fill(160, 120, 100);
+            p.ellipse(-18, 10, 8, 8);
+            p.ellipse(-14, 16, 6, 6);
+            
+            // Cloth/tarp
+            p.fill(180, 180, 160);
+            p.rect(-22, -8, 10, 8, 2);
             
             // Small junk pile on side
-            p.fill(100, 90, 80);
-            p.ellipse(-25, 10, 15, 10);
             p.fill(130, 120, 110);
-            p.rect(-30, 8, 8, 2);
-            p.rect(-26, 10, 6, 3);
+            p.ellipse(18, 14, 15, 10);
             p.fill(140, 130, 120);
-            p.ellipse(-22, 7, 4, 3);
+            p.rect(14, 12, 8, 2);
+            p.rect(18, 14, 6, 3);
             
             p.pop();
           } else if (obs.type === 'bush') {
@@ -1291,55 +1352,18 @@ const GameSketch = () => {
         }
       }
 
-      function drawHealthBar() {
-        if (hoverbike.worldX === worldX && hoverbike.worldY === worldY) {
-          let barWidth = 40;
-          let barHeight = 5;
-          let healthRatio = hoverbike.health / hoverbike.maxHealth;
-          healthRatio = p.constrain(healthRatio, 0, 1);
-
-          p.fill(80, 0, 0);
-          p.beginShape();
-          p.vertex(hoverbike.x - barWidth / 2, hoverbike.y - 20);
-          p.vertex(hoverbike.x + barWidth / 2, hoverbike.y - 20);
-          p.vertex(hoverbike.x + barWidth / 2 + 2, hoverbike.y - 20 + barHeight);
-          p.vertex(hoverbike.x - barWidth / 2 - 2, hoverbike.y - 20 + barHeight);
-          p.endShape(p.CLOSE);
-
-          p.fill(100, 20, 20);
-          p.ellipse(hoverbike.x - barWidth / 2 + 5, hoverbike.y - 20 + barHeight / 2, 3, 3);
-          p.ellipse(hoverbike.x + barWidth / 2 - 5, hoverbike.y - 20 + barHeight / 2, 3, 3);
-
-          p.fill(0, 80, 0);
-          let healthWidth = barWidth * healthRatio;
-          p.beginShape();
-          p.vertex(hoverbike.x - barWidth / 2, hoverbike.y - 20);
-          p.vertex(hoverbike.x - barWidth / 2 + healthWidth, hoverbike.y - 20);
-          p.vertex(hoverbike.x - barWidth / 2 + healthWidth + 2, hoverbike.y - 20 + barHeight);
-          p.vertex(hoverbike.x - barWidth / 2 - 2, hoverbike.y - 20 + barHeight);
-          p.endShape(p.CLOSE);
-
-          p.fill(0, 100, 0);
-          p.ellipse(hoverbike.x - barWidth / 2 + healthWidth / 2, hoverbike.y - 20 + barHeight / 2, 4, 2);
-        }
-      }
-
-      function drawInstructions() {
-        p.fill(255);
-        p.textSize(16);
-        p.text("Use arrow keys to move.", 10, 30);
-        p.text("Press 'f' to mount/dismount hoverbike.", 10, 50);
-        p.text("Press 'r' to repair hoverbike with metal.", 10, 70);
-        p.text("Press 's' to upgrade speed with metal.", 10, 90);
-        p.text("Press 'd' to upgrade durability with metal.", 10, 110);
-        p.text("Press 'e' near copper ore to mine it.", 10, 130);
-        
-        // Display inventory
-        p.text("Metal: " + player.inventory.metal, 10, 170);
-        p.text("Copper: " + player.inventory.copper, 10, 190);
-        
-        // Display coordinates
-        p.text("Zone: " + worldX + "," + worldY, 10, 230);
+      function updateGameState() {
+        const event = new CustomEvent('gameStateUpdate', {
+          detail: {
+            resources: player?.inventory?.metal || 0,
+            copper: player?.inventory?.copper || 0,
+            health: hoverbike?.health || 0,
+            maxHealth: hoverbike?.maxHealth || 100,
+            fuel: hoverbike?.fuel || 0,
+            maxFuel: hoverbike?.maxFuel || 100
+          }
+        });
+        window.dispatchEvent(event);
       }
 
       String.prototype.hashCode = function() {
@@ -1352,18 +1376,6 @@ const GameSketch = () => {
         return hash;
       };
 
-      function updateGameState() {
-        const event = new CustomEvent('gameStateUpdate', {
-          detail: {
-            resources: player?.inventory?.metal || 0,
-            copper: player?.inventory?.copper || 0,
-            health: hoverbike?.health || 0,
-            maxHealth: hoverbike?.maxHealth || 100
-          }
-        });
-        window.dispatchEvent(event);
-      }
-
       p.setup = () => {
         p.createCanvas(p.windowWidth, p.windowHeight);
         p.noSmooth();
@@ -1373,6 +1385,7 @@ const GameSketch = () => {
         worldY = 0;
         generateNewArea(0, 0);
         generatedAreas.add(`${worldX},${worldY}`);
+        updateGameState(); // Initialize UI values
       };
 
       p.draw = () => {
@@ -1392,10 +1405,27 @@ const GameSketch = () => {
         player.update();
         player.display();
         checkBorder();
-        drawHealthBar();
         drawInstructions();
         windmillAngle += 0.05;
       };
+
+      function drawInstructions() {
+        p.fill(255);
+        p.textSize(16);
+        p.text("Use arrow keys to move.", 10, 30);
+        p.text("Press 'f' to mount/dismount hoverbike.", 10, 50);
+        p.text("Press 'r' to repair hoverbike with metal.", 10, 70);
+        p.text("Press 's' to upgrade speed with metal.", 10, 90);
+        p.text("Press 'd' to upgrade durability with metal.", 10, 110);
+        p.text("Press 'e' near copper ore to mine it.", 10, 130);
+        
+        // Display inventory
+        p.text("Metal: " + player.inventory.metal, 10, 170);
+        p.text("Copper: " + player.inventory.copper, 10, 190);
+        
+        // Display coordinates
+        p.text("Zone: " + worldX + "," + worldY, 10, 230);
+      }
 
       p.keyPressed = () => {
         if (p.key === 'f' || p.key === 'F') {

@@ -11,17 +11,21 @@ const Index = () => {
   const [copper, setCopper] = useState(0);
   const [health, setHealth] = useState(100);
   const [maxHealth, setMaxHealth] = useState(100);
+  const [fuel, setFuel] = useState(100);
+  const [maxFuel, setMaxFuel] = useState(100);
   
-  // Subscribe to game state updates instead of random values
+  // Subscribe to game state updates
   useEffect(() => {
     // Set up a message listener for game state updates
     const handleGameStateUpdate = (event: CustomEvent) => {
-      const { resources, copper, health, maxHealth } = event.detail;
+      const { resources, copper, health, maxHealth, fuel, maxFuel } = event.detail;
       
       setResources(resources);
       setCopper(copper);
       setHealth(health);
       setMaxHealth(maxHealth);
+      setFuel(fuel);
+      setMaxFuel(maxFuel);
     };
     
     // Add event listener
@@ -41,6 +45,8 @@ const Index = () => {
         copper={copper}
         health={health}
         maxHealth={maxHealth}
+        fuel={fuel}
+        maxFuel={maxFuel}
       />
       <div className="game-overlay">
         <h1 className="game-title">Dust Runner: Wasteland Saga</h1>
