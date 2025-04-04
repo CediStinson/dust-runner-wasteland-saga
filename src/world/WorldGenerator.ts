@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class WorldGenerator {
@@ -108,19 +107,11 @@ export default class WorldGenerator {
       shape.push({ x, y });
     }
     
-    // Spawn at the edge of the rock with deterministic position
-    // Calculate rock radius
     let rockRadius = 25 * nearbyRock.size * (nearbyRock.aspectRatio > 1 ? nearbyRock.aspectRatio : 1);
-    
-    // Choose a fixed angle based on a hash of the rock position
     let angleHash = (nearbyRock.x * 10000 + nearbyRock.y).toString().hashCode();
-    let angle = (angleHash % 628) / 100; // Maps to 0-6.28 (0-2π)
-    
-    // Place exactly at the edge of the rock
+    let angle = (angleHash % 628) / 100;
     let oreX = nearbyRock.x + Math.cos(angle) * rockRadius;
     let oreY = nearbyRock.y + Math.sin(angle) * rockRadius;
-    
-    // Make sure it's within bounds
     oreX = this.p.constrain(oreX, 30, this.p.width - 30);
     oreY = this.p.constrain(oreY, 30, this.p.height - 30);
     
@@ -130,6 +121,24 @@ export default class WorldGenerator {
       type: 'copper',
       shape: shape
     };
+  }
+
+  generateHutShape(size: number) {
+    let shape = [];
+    let baseWidth = 30 * size;
+    let baseHeight = 20 * size;
+    let cornerRounding = 3 * size;
+    
+    shape.push({ x: -baseWidth/2 + cornerRounding, y: baseHeight/2 });
+    shape.push({ x: -baseWidth/2, y: baseHeight/2 - cornerRounding });
+    shape.push({ x: -baseWidth/2, y: -baseHeight/2 + cornerRounding });
+    shape.push({ x: -baseWidth/2 + cornerRounding, y: -baseHeight/2 });
+    shape.push({ x: baseWidth/2 - cornerRounding, y: -baseHeight/2 });
+    shape.push({ x: baseWidth/2, y: -baseHeight/2 + cornerRounding });
+    shape.push({ x: baseWidth/2, y: baseHeight/2 - cornerRounding });
+    shape.push({ x: baseWidth/2 - cornerRounding, y: baseHeight/2 });
+    
+    return shape;
   }
 
   generateSandTexture(zoneKey: string) {
@@ -201,10 +210,15 @@ export default class WorldGenerator {
       }
       let areaObstacles = [];
       if (x === 0 && y === 0) {
-        // Home base with more details
-        areaObstacles.push({ x: this.p.width / 2, y: this.p.height / 2 - 100, type: 'hut' });
+        const hutSize = 1.0;
+        areaObstacles.push({ 
+          x: this.p.width / 2, 
+          y: this.p.height / 2 - 100, 
+          type: 'hut', 
+          size: hutSize,
+          shape: this.generateHutShape(hutSize)
+        });
         
-        // Rocks
         for (let i = 0; i < 5; i++) {
           let size = this.p.random(0.3, 2.0);
           let aspectRatio = this.p.random(0.5, 2.0);
@@ -282,7 +296,6 @@ export default class WorldGenerator {
   generateResources(x: number, y: number, areaObstacles: any[]) {
     let areaResources = [];
     
-    // Generate metal scraps (new appearance)
     for (let i = 0; i < 5; i++) {
       areaResources.push({ 
         x: this.p.random(this.p.width), 
@@ -290,14 +303,12 @@ export default class WorldGenerator {
         type: 'metal',
         rotation: this.p.random(this.p.TWO_PI),
         size: this.p.random(0.7, 1.3),
-        buried: this.p.random(0.3, 0.7)  // How deep it's buried
+        buried: this.p.random(0.3, 0.7)  
       });
     }
     
-    // Add copper ore near big rocks
     let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
     
-    // For each big rock, there's a 40% chance to spawn copper ore
     for (let rock of rocks) {
       if (this.p.random() < 0.4) {
         areaResources.push(this.generateCopperOre(`${x},${y}`, rock));
@@ -335,4 +346,16 @@ export default class WorldGenerator {
   updateWindmillAngle() {
     this.windmillAngle += 0.05;
   }
+}
+
+if (!String.prototype.hashCode) {
+  String.prototype.hashCode = function() {
+    let hash = 0;
+    for (let i = 0; i < this.length; i++) {
+      const char = this.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return hash;
+  };
 }

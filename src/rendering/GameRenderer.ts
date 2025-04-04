@@ -1,4 +1,3 @@
-
 import WorldGenerator from "../world/WorldGenerator";
 import Player from "../entities/Player";
 import Hoverbike from "../entities/Hoverbike";
@@ -50,10 +49,10 @@ export default class GameRenderer {
     this.drawResources();
     
     if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
-      this.hoverbike.render();
+      this.hoverbike.display();
     }
     
-    this.player.render();
+    this.player.display();
   }
 
   drawBackgroundFuelStains() {
@@ -190,7 +189,6 @@ export default class GameRenderer {
     }
   }
 
-  // Update drawing methods to add back outlines
   drawRock(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
@@ -207,31 +205,37 @@ export default class GameRenderer {
     this.p.fill(80, 70, 60);
     this.p.stroke(50, 40, 30); // Added outline
     this.p.strokeWeight(0.5);  // Thin outline
-    this.p.beginShape();
-    for (let point of obs.shape) {
-      this.p.vertex(point.x, point.y);
-    }
-    this.p.endShape(this.p.CLOSE);
+    
+    if (obs.shape && Array.isArray(obs.shape)) {
+      this.p.beginShape();
+      for (let point of obs.shape) {
+        this.p.vertex(point.x, point.y);
+      }
+      this.p.endShape(this.p.CLOSE);
 
-    // Inner shapes (no stroke)
-    this.p.noStroke();
-    this.p.fill(100, 90, 80);
-    this.p.beginShape();
-    for (let point of obs.shape) {
-      let offsetX = 2 * obs.size;
-      let offsetY = 2 * obs.size;
-      this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
-    }
-    this.p.endShape(this.p.CLOSE);
+      // Inner shapes (no stroke)
+      this.p.noStroke();
+      this.p.fill(100, 90, 80);
+      this.p.beginShape();
+      for (let point of obs.shape) {
+        let offsetX = 2 * obs.size;
+        let offsetY = 2 * obs.size;
+        this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+      }
+      this.p.endShape(this.p.CLOSE);
 
-    this.p.fill(120, 110, 100);
-    this.p.beginShape();
-    for (let point of obs.shape) {
-      let offsetX = -2 * obs.size;
-      let offsetY = -2 * obs.size;
-      this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
+      this.p.fill(120, 110, 100);
+      this.p.beginShape();
+      for (let point of obs.shape) {
+        let offsetX = -2 * obs.size;
+        let offsetY = -2 * obs.size;
+        this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
+      }
+      this.p.endShape(this.p.CLOSE);
+    } else {
+      // Fallback if shape is missing
+      this.p.ellipse(0, 0, 20 * obs.size, 15 * obs.size);
     }
-    this.p.endShape(this.p.CLOSE);
 
     // Details
     this.p.fill(60, 50, 40);
@@ -262,31 +266,37 @@ export default class GameRenderer {
     this.p.fill(50, 70, 30);
     this.p.stroke(30, 50, 20); // Added outline
     this.p.strokeWeight(0.6);  // Medium outline
-    this.p.beginShape();
-    for (let point of obs.shape) {
-      this.p.vertex(point.x, point.y);
-    }
-    this.p.endShape(this.p.CLOSE);
+    
+    if (obs.shape && Array.isArray(obs.shape)) {
+      this.p.beginShape();
+      for (let point of obs.shape) {
+        this.p.vertex(point.x, point.y);
+      }
+      this.p.endShape(this.p.CLOSE);
 
-    // Inner shapes
-    this.p.noStroke();
-    this.p.fill(70, 90, 50);
-    this.p.beginShape();
-    for (let point of obs.shape) {
-      let offsetX = 1 * obs.size;
-      let offsetY = 1 * obs.size;
-      this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
-    }
-    this.p.endShape(this.p.CLOSE);
+      // Inner shapes
+      this.p.noStroke();
+      this.p.fill(70, 90, 50);
+      this.p.beginShape();
+      for (let point of obs.shape) {
+        let offsetX = 1 * obs.size;
+        let offsetY = 1 * obs.size;
+        this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+      }
+      this.p.endShape(this.p.CLOSE);
 
-    this.p.fill(90, 110, 70);
-    this.p.beginShape();
-    for (let point of obs.shape) {
-      let offsetX = -1 * obs.size;
-      let offsetY = -1 * obs.size;
-      this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
+      this.p.fill(90, 110, 70);
+      this.p.beginShape();
+      for (let point of obs.shape) {
+        let offsetX = -1 * obs.size;
+        let offsetY = -1 * obs.size;
+        this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
+      }
+      this.p.endShape(this.p.CLOSE);
+    } else {
+      // Fallback if shape is missing
+      this.p.ellipse(0, 0, 15 * obs.size, 12 * obs.size);
     }
-    this.p.endShape(this.p.CLOSE);
 
     // Details
     this.p.fill(60, 80, 40);
@@ -315,31 +325,37 @@ export default class GameRenderer {
     this.p.fill(40, 60, 40);
     this.p.stroke(20, 40, 20); // Added outline
     this.p.strokeWeight(0.7);  // Medium outline
-    this.p.beginShape();
-    for (let point of obs.shape) {
-      this.p.vertex(point.x, point.y);
-    }
-    this.p.endShape(this.p.CLOSE);
+    
+    if (obs.shape && Array.isArray(obs.shape)) {
+      this.p.beginShape();
+      for (let point of obs.shape) {
+        this.p.vertex(point.x, point.y);
+      }
+      this.p.endShape(this.p.CLOSE);
 
-    // Inner shapes
-    this.p.noStroke();
-    this.p.fill(60, 80, 60);
-    this.p.beginShape();
-    for (let point of obs.shape) {
-      let offsetX = 0.5 * obs.size;
-      let offsetY = 0.5 * obs.size;
-      this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
-    }
-    this.p.endShape(this.p.CLOSE);
+      // Inner shapes
+      this.p.noStroke();
+      this.p.fill(60, 80, 60);
+      this.p.beginShape();
+      for (let point of obs.shape) {
+        let offsetX = 0.5 * obs.size;
+        let offsetY = 0.5 * obs.size;
+        this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+      }
+      this.p.endShape(this.p.CLOSE);
 
-    this.p.fill(80, 100, 80);
-    this.p.beginShape();
-    for (let point of obs.shape) {
-      let offsetX = -0.5 * obs.size;
-      let offsetY = -0.5 * obs.size;
-      this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
+      this.p.fill(80, 100, 80);
+      this.p.beginShape();
+      for (let point of obs.shape) {
+        let offsetX = -0.5 * obs.size;
+        let offsetY = -0.5 * obs.size;
+        this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
+      }
+      this.p.endShape(this.p.CLOSE);
+    } else {
+      // Fallback if shape is missing
+      this.p.rect(-5 * obs.size, -20 * obs.size, 10 * obs.size, 20 * obs.size);
     }
-    this.p.endShape(this.p.CLOSE);
 
     // Details (spikes)
     this.p.stroke(20, 40, 20); // Added outline for spikes
@@ -368,41 +384,71 @@ export default class GameRenderer {
     let shadowHeight = 15 * obs.size;
     this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
 
-    // Main hut shape with outline
-    this.p.fill(120, 100, 80);
-    this.p.stroke(80, 60, 40); // Added outline
-    this.p.strokeWeight(0.8);  // Medium outline
-    this.p.beginShape();
-    for (let point of obs.shape) {
-      this.p.vertex(point.x, point.y);
-    }
-    this.p.endShape(this.p.CLOSE);
+    // Create a basic hut shape if obs.shape is missing or not an array
+    if (!obs.shape || !Array.isArray(obs.shape)) {
+      // Default size if not specified
+      const size = obs.size || 1;
+      
+      // Main hut body
+      this.p.fill(120, 100, 80);
+      this.p.stroke(80, 60, 40);
+      this.p.strokeWeight(0.8);
+      this.p.rect(-15 * size, -5 * size, 30 * size, 20 * size, 2 * size);
+      
+      // Hut roof
+      this.p.fill(100, 80, 60);
+      this.p.triangle(
+        -18 * size, -5 * size,
+        18 * size, -5 * size,
+        0, -15 * size
+      );
+      
+      // Door
+      this.p.fill(80, 60, 40);
+      this.p.rect(-5 * size, 5 * size, 10 * size, 10 * size);
+      
+      // Window
+      this.p.fill(160, 140, 100);
+      this.p.rect(8 * size, -2 * size, 5 * size, 5 * size);
+    } else {
+      // Use the provided shape data
+      // Main hut shape with outline
+      this.p.fill(120, 100, 80);
+      this.p.stroke(80, 60, 40); // Added outline
+      this.p.strokeWeight(0.8);  // Medium outline
+      this.p.beginShape();
+      for (let point of obs.shape) {
+        this.p.vertex(point.x, point.y);
+      }
+      this.p.endShape(this.p.CLOSE);
 
-    // Inner shapes
-    this.p.noStroke();
-    this.p.fill(140, 120, 100);
-    this.p.beginShape();
-    for (let point of obs.shape) {
-      let offsetX = 1 * obs.size;
-      let offsetY = 1 * obs.size;
-      this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
-    }
-    this.p.endShape(this.p.CLOSE);
+      // Inner shapes
+      this.p.noStroke();
+      this.p.fill(140, 120, 100);
+      this.p.beginShape();
+      for (let point of obs.shape) {
+        let offsetX = 1 * obs.size;
+        let offsetY = 1 * obs.size;
+        this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+      }
+      this.p.endShape(this.p.CLOSE);
 
-    this.p.fill(160, 140, 120);
-    this.p.beginShape();
-    for (let point of obs.shape) {
-      let offsetX = -1 * obs.size;
-      let offsetY = -1 * obs.size;
-      this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
+      this.p.fill(160, 140, 120);
+      this.p.beginShape();
+      for (let point of obs.shape) {
+        let offsetX = -1 * obs.size;
+        let offsetY = -1 * obs.size;
+        this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
+      }
+      this.p.endShape(this.p.CLOSE);
     }
-    this.p.endShape(this.p.CLOSE);
 
     // Details (door)
     this.p.fill(80, 60, 40);
     this.p.stroke(50, 30, 10); // Added outline for door
     this.p.strokeWeight(1);    // Slightly thicker outline
-    this.p.rect(-8 * obs.size, 6 * obs.size, 16 * obs.size, 8 * obs.size);
+    const size = obs.size || 1;
+    this.p.rect(-8 * size, 6 * size, 16 * size, 8 * size);
     this.p.noStroke();
 
     this.p.pop();
@@ -529,6 +575,20 @@ export default class GameRenderer {
     this.p.push();
     this.p.translate(res.x, res.y);
     
+    // Generate points for metal scrap if they don't exist
+    if (!res.points) {
+      res.points = [];
+      const pointCount = 6; // Number of points for jagged metal shape
+      for (let i = 0; i < pointCount; i++) {
+        const angle = (i / pointCount) * this.p.TWO_PI;
+        const radius = 5 + Math.random() * 3;
+        res.points.push({
+          x: Math.cos(angle) * radius,
+          y: Math.sin(angle) * radius
+        });
+      }
+    }
+    
     // Shadow
     this.p.fill(40, 40, 40, 70);
     this.p.ellipse(2, 2, 15, 8);
@@ -563,6 +623,38 @@ export default class GameRenderer {
   drawCopperOre(res: any) {
     this.p.push();
     this.p.translate(res.x, res.y);
+    
+    // Generate points for copper ore if they don't exist
+    if (!res.points) {
+      res.points = [];
+      const pointCount = 8; // Number of points for copper ore shape
+      for (let i = 0; i < pointCount; i++) {
+        const angle = (i / pointCount) * this.p.TWO_PI;
+        const radius = 6 + Math.random() * 4;
+        res.points.push({
+          x: Math.cos(angle) * radius,
+          y: Math.sin(angle) * radius
+        });
+      }
+    }
+    
+    // Generate copper veins if they don't exist
+    if (!res.copperPoints) {
+      res.copperPoints = [];
+      const veinCount = 3;
+      for (let i = 0; i < veinCount; i++) {
+        const veinPoints = [];
+        const startAngle = Math.random() * this.p.TWO_PI;
+        const veinLength = 3 + Math.random() * 2;
+        for (let j = 0; j < veinLength; j++) {
+          veinPoints.push({
+            x: Math.cos(startAngle) * j * 2,
+            y: Math.sin(startAngle) * j * 2
+          });
+        }
+        res.copperPoints.push(veinPoints);
+      }
+    }
     
     // Shadow
     this.p.fill(40, 30, 20, 70);
