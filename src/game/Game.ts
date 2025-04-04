@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -95,21 +96,38 @@ export default class Game {
     const hasFuelPump = homeObstacles.some(obs => obs.type === 'fuelPump');
     
     if (!hasFuelPump) {
-      // Add fuel barrel and pump
+      // Add fuel stains first (so they render underneath)
+      // Create multiple fixed stains with different seed angles
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 100,
+        y: this.p.height / 2 - 45, // Slightly offset from the pump
+        seedAngle: 0.5,
+        size: 1.2
+      });
+      
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 110,
+        y: this.p.height / 2 - 40,
+        seedAngle: 2.1,
+        size: 0.9
+      });
+      
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 95,
+        y: this.p.height / 2 - 55,
+        seedAngle: 4.2,
+        size: 1.0
+      });
+      
+      // Add fuel pump - without stains now
       homeObstacles.push({
         type: 'fuelPump',
         x: this.p.width / 2 + 100,
         y: this.p.height / 2 - 50,
         size: 1.0,
-        hasFuelStain: true
-      });
-      
-      // Add barrel
-      homeObstacles.push({
-        type: 'fuelBarrel',
-        x: this.p.width / 2 + 120,
-        y: this.p.height / 2 - 50,
-        size: 1.0
       });
       
       // Update the world generator's obstacles

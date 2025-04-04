@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -106,6 +105,8 @@ export default class GameRenderer {
         this.drawCactus(obs);
       } else if (obs.type === 'fuelPump') {
         this.drawFuelPump(obs);
+      } else if (obs.type === 'fuelStain') {
+        this.drawFuelStain(obs);
       }
     }
   }
@@ -273,68 +274,85 @@ export default class GameRenderer {
     this.p.pop();
   }
   
+  drawFuelStain(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    // Darker, more subtle ground stain
+    this.p.fill(20, 20, 20, 50);
+    
+    // Create several irregular oil patches with fixed shape
+    for (let i = 0; i < 5; i++) {
+      // Use fixed angles and distances for deterministic pattern
+      const angle = obs.seedAngle + i * 1.2; // Use seed angle from obstacle
+      const distance = 5 + i * 4; // Fixed pattern
+      const x = Math.cos(angle) * distance;
+      const y = Math.sin(angle) * distance;
+      const size = 8 + (i % 3) * 3;
+      this.p.ellipse(x, y, size, size);
+    }
+    
+    this.p.pop();
+  }
+
   drawFuelPump(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
     
-    // Ground stain (oil/fuel leak)
-    this.p.fill(20, 20, 20, 120);
-    for (let i = 0; i < 5; i++) {
-      const angle = this.p.random(this.p.TWO_PI);
-      const distance = this.p.random(10, 30);
-      const x = Math.cos(angle) * distance;
-      const y = Math.sin(angle) * distance;
-      const size = this.p.random(5, 15);
-      this.p.ellipse(x, y, size, size);
-    }
+    // Don't draw oil stains here anymore - those are handled by separate objects
     
     // Shadow
-    this.p.fill(0, 0, 0, 50);
+    this.p.fill(0, 0, 0, 40);
     this.p.ellipse(5, 5, 30, 10);
     
     // Base platform
-    this.p.fill(80, 80, 80);
+    this.p.fill(60, 60, 60); // Darker gray
     this.p.rect(-12, -15, 24, 30, 2);
     
-    // Fuel pump body
-    this.p.fill(220, 50, 50);
+    // Fuel pump body - more weathered, rusty color
+    this.p.fill(140, 60, 50); // Rusty red color
     this.p.rect(-10, -15, 20, 25, 1);
     
-    // Pump details
-    this.p.fill(50, 50, 50);
+    // Rust streaks
+    this.p.fill(80, 40, 30, 120); // Dark rust color
+    this.p.rect(-10, -8, 3, 18, 0);
+    this.p.rect(0, -12, 5, 22, 0);
+    
+    // Pump details - worn metal
+    this.p.fill(40, 40, 40);
     this.p.rect(-8, -10, 16, 8);
     
-    // Pump readings/display
-    this.p.fill(200, 200, 100);
+    // Pump readings/display - faded
+    this.p.fill(180, 180, 100, 180); // More faded yellow
     this.p.rect(-6, -8, 12, 4);
     
-    // Pump nozzle 
-    this.p.fill(50, 50, 50);
+    // Pump nozzle - weathered metal
+    this.p.fill(70, 70, 70);
     this.p.rect(5, 0, 10, 3);
     this.p.rect(13, -5, 2, 10);
     
-    // Top of pump
-    this.p.fill(200, 50, 50);
+    // Top of pump - worn paint
+    this.p.fill(120, 50, 40); // Darker, more worn red
     this.p.rect(-8, -18, 16, 3);
     
-    // Fuel barrel next to the pump
-    this.p.fill(200, 50, 50);
+    // Fuel barrel next to the pump - rusty, worn
+    this.p.fill(130, 50, 40); // Rusty barrel color
     this.p.ellipse(20, 0, 20, 20);
     
-    // Barrel top
-    this.p.fill(150, 30, 30);
+    // Barrel top - worn metal
+    this.p.fill(100, 40, 30); // Darker rusty color
     this.p.ellipse(20, 0, 15, 15);
     
-    // Barrel details
-    this.p.stroke(100, 20, 20);
+    // Barrel details - rust streaks
+    this.p.stroke(80, 30, 20);
     this.p.strokeWeight(1);
     this.p.line(14, -4, 26, -4);
     this.p.line(14, 0, 26, 0);
     this.p.line(14, 4, 26, 4);
     this.p.noStroke();
     
-    // Hazard symbol on barrel
-    this.p.fill(0);
+    // Worn hazard symbol on barrel
+    this.p.fill(40, 40, 40);
     this.p.push();
     this.p.translate(20, 0);
     this.p.rotate(this.p.PI/4);
