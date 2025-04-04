@@ -32,14 +32,22 @@ export default class GameRenderer {
   render() {
     this.drawBackground();
     this.applyDaytimeTint();
+    this.drawSandDunes();
+    this.drawPaths();
     this.drawObstacles();
     this.drawResources();
+    
+    // Draw tarp shadows (behind hoverbike)
+    this.drawTarpShadows();
     
     if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
       this.hoverbike.display();
     }
     
     this.player.display();
+    
+    // Draw tarps over everything (after player and hoverbike)
+    this.drawTarps();
   }
 
   drawBackground() {
@@ -49,6 +57,89 @@ export default class GameRenderer {
     }
     if (this.worldGenerator.getGrassTexture(zoneKey)) {
       this.p.image(this.worldGenerator.getGrassTexture(zoneKey), 0, 0);
+    }
+  }
+
+  drawSandDunes() {
+    let currentObstacles = this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`] || [];
+    
+    // Only render dunes for the current area
+    for (let obs of currentObstacles) {
+      if (obs.type === 'sandDune') {
+        // Only draw in the correct area
+        if (obs.homeArea && (this.worldX !== 0 || this.worldY !== 0)) {
+          continue;
+        }
+        
+        this.p.push();
+        this.p.stroke(245, 240, 225, obs.opacity);
+        this.p.strokeWeight(obs.thickness);
+        this.p.noFill();
+        
+        // Draw curvy line for sand dune
+        this.p.beginShape();
+        const steps = Math.floor(obs.length / 10);
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const x = obs.x + Math.cos(obs.angle) * t * obs.length;
+          const y = obs.y + Math.sin(obs.angle) * t * obs.length;
+          
+          // Add some gentle curves
+          const curveX = Math.sin(t * Math.PI * 2 * obs.curvature) * 15;
+          const curveY = Math.cos(t * Math.PI * 3 * obs.curvature) * 10;
+          
+          this.p.vertex(x + curveX, y + curveY);
+        }
+        this.p.endShape();
+        this.p.pop();
+      }
+    }
+  }
+  
+  drawPaths() {
+    let currentObstacles = this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`] || [];
+    
+    // First, draw paths underneath everything
+    for (let obs of currentObstacles) {
+      if (obs.type === 'path') {
+        // Only draw in the correct area
+        if (obs.homeArea && (this.worldX !== 0 || this.worldY !== 0)) {
+          continue;
+        }
+        
+        this.p.push();
+        this.p.translate(obs.x, obs.y);
+        this.p.noStroke();
+        
+        // Draw a subtle, irregular path on the ground
+        const pathColor = 210; // Slightly lighter than sand
+        this.p.fill(pathColor, pathColor - 10, pathColor - 20, obs.opacity);
+        
+        // Draw irregular circle with noise for path
+        this.p.beginShape();
+        const steps = 24;
+        for (let i = 0; i < steps; i++) {
+          const angle = (i / steps) * this.p.TWO_PI;
+          const noise = this.p.map(this.p.noise(Math.cos(angle), Math.sin(angle)), 0, 1, 1 - obs.variation, 1 + obs.variation);
+          const x = Math.cos(angle) * obs.radius * noise;
+          const y = Math.sin(angle) * obs.radius * noise;
+          this.p.vertex(x, y);
+        }
+        this.p.endShape(this.p.CLOSE);
+        
+        // Add some details to the path - small dots and texture
+        for (let i = 0; i < 15; i++) {
+          const angle = this.p.random(0, this.p.TWO_PI);
+          const dist = this.p.random(0.4, 0.95) * obs.radius;
+          const x = Math.cos(angle) * dist;
+          const y = Math.sin(angle) * dist;
+          const size = this.p.random(1, 3);
+          this.p.fill(200, 195, 180, this.p.random(100, 150));
+          this.p.ellipse(x, y, size, size);
+        }
+        
+        this.p.pop();
+      }
     }
   }
   
@@ -105,6 +196,11 @@ export default class GameRenderer {
   drawObstacles() {
     let currentObstacles = this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`] || [];
     for (let obs of currentObstacles) {
+      // Only draw home area specific objects in home area
+      if (obs.homeArea && (this.worldX !== 0 || this.worldY !== 0)) {
+        continue;
+      }
+      
       if (obs.type === 'rock') {
         this.drawRock(obs);
       } else if (obs.type === 'hut') {
@@ -123,6 +219,92 @@ export default class GameRenderer {
     }
   }
   
+  drawTarpShadows() {
+    let currentObstacles = this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`] || [];
+    
+    // Draw shadows for tarps
+    for (let obs of currentObstacles) {
+      if (obs.type === 'tarp') {
+        // Only draw in the home area
+        if (obs.homeArea && (this.worldX !== 0 || this.worldY !== 0)) {
+          continue;
+        }
+        
+        // Draw shadow below the tarp
+        this.p.push();
+        this.p.translate(obs.x, obs.y);
+        this.p.rotate(obs.rotation || 0);
+        
+        this.p.fill(0, 0, 0, 40); // Soft shadow
+        this.p.rect(5, 5, obs.width, obs.height, 2);
+        
+        this.p.pop();
+      }
+    }
+  }
+  
+  drawTarps() {
+    let currentObstacles = this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`] || [];
+    
+    // Draw actual tarps on top of everything
+    for (let obs of currentObstacles) {
+      if (obs.type === 'tarp') {
+        // Only draw in the home area
+        if (obs.homeArea && (this.worldX !== 0 || this.worldY !== 0)) {
+          continue;
+        }
+        
+        this.p.push();
+        this.p.translate(obs.x, obs.y);
+        this.p.rotate(obs.rotation || 0);
+        
+        // Draw tarp poles
+        this.p.fill(120, 80, 60);
+        this.p.rect(0, 0, 3, obs.height + 10);
+        this.p.rect(obs.width, 0, 3, obs.height + 10);
+        
+        // Draw tarp - brown cloth
+        this.p.fill(130, 90, 65);
+        this.p.beginShape();
+        // Add a slight curve to the tarp
+        this.p.vertex(0, 0);
+        this.p.vertex(obs.width, 0);
+        this.p.vertex(obs.width, obs.height);
+        this.p.vertex(0, obs.height);
+        this.p.endShape(this.p.CLOSE);
+        
+        // Add tarp details - folds and texture
+        this.p.stroke(110, 75, 55, 100);
+        this.p.strokeWeight(1);
+        
+        // Horizontal folds
+        for (let i = 0; i < 4; i++) {
+          const y = (i + 1) * obs.height / 5;
+          this.p.line(0, y, obs.width, y + this.p.sin(i * 0.8) * 3);
+        }
+        
+        // Vertical supports
+        this.p.line(obs.width * 0.25, 0, obs.width * 0.2, obs.height);
+        this.p.line(obs.width * 0.75, 0, obs.width * 0.8, obs.height);
+        
+        // Center sag
+        this.p.stroke(110, 75, 55, 60);
+        this.p.noFill();
+        this.p.beginShape();
+        for (let i = 0; i <= 10; i++) {
+          const x = i * obs.width / 10;
+          const mid = obs.width / 2;
+          const dist = Math.abs(x - mid) / mid;
+          const sag = (1 - dist * dist) * 5;
+          this.p.vertex(x, sag);
+        }
+        this.p.endShape();
+        
+        this.p.pop();
+      }
+    }
+  }
+
   drawWalkingMarks(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
@@ -154,12 +336,24 @@ export default class GameRenderer {
     this.p.push();
     this.p.translate(obs.x, obs.y);
 
-    this.p.fill(50, 40, 30, 80);
+    // More subtle shadow
+    this.p.fill(50, 40, 30, 40); // Reduced opacity
     let shadowOffsetX = 5 * obs.size;
     let shadowOffsetY = 5 * obs.size;
     let shadowWidth = 20 * obs.size * (obs.aspectRatio > 1 ? obs.aspectRatio : 1);
     let shadowHeight = 20 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
-    this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
+    
+    // Gradient shadow effect with opacity falloff
+    for (let i = 0; i < 3; i++) {
+      const shrinkFactor = 1 - i * 0.2;
+      this.p.fill(50, 40, 30, 40 - i * 10);
+      this.p.ellipse(
+        shadowOffsetX, 
+        shadowOffsetY, 
+        shadowWidth * shrinkFactor, 
+        shadowHeight * shrinkFactor
+      );
+    }
 
     this.p.fill(80, 70, 60);
     this.p.beginShape();
@@ -310,10 +504,26 @@ export default class GameRenderer {
     this.p.rect(14, 12, 8, 2);
     this.p.rect(18, 14, 6, 3);
     
+    // Roof patch
+    if (this.player && this.player.roofRepaired) {
+      // Draw repaired roof section
+      this.p.fill(170, 140, 100);
+      this.p.arc(0, 0, 30, 30, -this.p.PI * 0.3, this.p.PI * 0.3);
+    } else {
+      // Draw damaged/hole in roof
+      this.p.fill(90, 70, 50);
+      this.p.arc(0, 0, 15, 15, -this.p.PI * 0.2, this.p.PI * 0.2);
+    }
+    
     this.p.pop();
   }
 
   drawFuelStain(obs: any) {
+    // Only draw fuel stains in home area
+    if (obs.homeArea && (this.worldX !== 0 || this.worldY !== 0)) {
+      return;
+    }
+    
     this.p.push();
     this.p.translate(obs.x, obs.y);
     
@@ -350,6 +560,11 @@ export default class GameRenderer {
   drawFuelPump(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
+    
+    // Apply rotation if specified (rotated 135 degrees for the home base)
+    if (obs.rotation) {
+      this.p.rotate(obs.rotation);
+    }
     
     // Shadow
     this.p.fill(0, 0, 0, 40);
@@ -506,6 +721,7 @@ export default class GameRenderer {
     }
     this.p.endShape(this.p.CLOSE);
 
+    // First draw the base shape
     for (let part of obs.shape) {
       this.p.fill(40, 80, 40);
       this.p.beginShape();
@@ -523,7 +739,10 @@ export default class GameRenderer {
         this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
       }
       this.p.endShape(this.p.CLOSE);
-
+    }
+    
+    // Now draw the prickly spines on top of the shape
+    for (let part of obs.shape) {
       this.p.fill(50, 90, 50);
       for (let i = 0; i < part.points.length - 1; i += 2) {
         let p1 = part.points[i];
@@ -532,6 +751,7 @@ export default class GameRenderer {
       }
     }
 
+    // Draw the spikes on top as separate layer
     this.p.fill(200, 200, 150);
     for (let part of obs.shape) {
       if (part.type === 'body') {
@@ -607,6 +827,44 @@ export default class GameRenderer {
         this.p.vertex(-4 * res.size, -5 * res.size);
         this.p.vertex(-2 * res.size, -4 * res.size);
         this.p.endShape(this.p.CLOSE);
+      } else if (res.type === 'copper') {
+        // Rotate to random angle
+        this.p.rotate(res.rotation);
+        
+        // Draw copper ore vein
+        let buriedDepth = res.buried; // How deep the vein is embedded
+        
+        // Shadow under the vein
+        this.p.fill(80, 80, 80, 100);
+        this.p.ellipse(2, 2, 16 * res.size, 6 * res.size);
+        
+        // Base rock layer - buried part
+        this.p.fill(100, 90, 80);
+        this.p.beginShape();
+        this.p.vertex(-10 * res.size, buriedDepth * 5 * res.size);
+        this.p.vertex(10 * res.size, buriedDepth * 4 * res.size);
+        this.p.vertex(8 * res.size, buriedDepth * 8 * res.size);
+        this.p.vertex(-8 * res.size, buriedDepth * 7 * res.size);
+        this.p.endShape(this.p.CLOSE);
+        
+        // Exposed rock part
+        this.p.fill(120, 110, 100);
+        this.p.ellipse(0, 0, 16 * res.size, 10 * res.size);
+        
+        // Copper streaks - add teal/green oxidized copper color
+        for (let i = 0; i < 5; i++) {
+          const angle = res.seedAngle * i + i * 1.2;
+          const x = Math.cos(angle) * 4 * res.size;
+          const y = Math.sin(angle) * 2 * res.size;
+          
+          // Bluish-green oxidized copper
+          this.p.fill(60, 130, 120);
+          this.p.ellipse(x, y, 3 * res.size, 2 * res.size);
+          
+          // Metallic copper spots inside
+          this.p.fill(180, 110, 70);
+          this.p.ellipse(x, y, 1.5 * res.size, 1 * res.size);
+        }
       }
       
       this.p.pop();

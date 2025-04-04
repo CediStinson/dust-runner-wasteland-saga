@@ -1,318 +1,40 @@
-
 import p5 from 'p5';
+import { StringType } from '../utils/gameUtils';
 
 export default class WorldGenerator {
   p: any;
-  generatedAreas: Set<string>;
-  obstacles: Record<string, any[]>;
-  resources: Record<string, any[]>;
-  sandTextures: Record<string, any>;
-  grassTextures: Record<string, any>;
+  sandTexture: { [key: string]: any };
+  grassTexture: { [key: string]: any };
+  obstacles: { [key: string]: any[] };
+  resources: { [key: string]: any[] };
   windmillAngle: number;
 
   constructor(p: any) {
     this.p = p;
-    this.generatedAreas = new Set<string>();
+    this.sandTexture = {};
+    this.grassTexture = {};
     this.obstacles = {};
     this.resources = {};
-    this.sandTextures = {};
-    this.grassTextures = {};
     this.windmillAngle = 0;
   }
 
-  generateRockShape(size: number, aspectRatio: number) {
-    let shape = [];
-    let numPoints = this.p.floor(this.p.random(8, 12));
-    let baseRadius = this.p.random(20, 30) * size;
-    let noiseScale = this.p.random(0.3, 0.7);
-    this.p.noiseSeed(this.p.random(1000));
-
-    for (let i = 0; i < numPoints; i++) {
-      let angle = this.p.map(i, 0, numPoints, 0, this.p.TWO_PI);
-      let radius = baseRadius + this.p.noise(angle * noiseScale) * 8 - 4;
-      let x = this.p.cos(angle) * radius * (aspectRatio > 1 ? aspectRatio : 1) + this.p.random(-3, 3);
-      let y = this.p.sin(angle) * radius * (aspectRatio < 1 ? 1 / this.p.abs(aspectRatio) : 1) + this.p.random(-3, 3);
-      shape.push({ x, y });
-    }
-    return shape;
-  }
-
-  generateBushShape(size: number) {
-    let shape = [];
-    let numPoints = this.p.floor(this.p.random(8, 12));
-    let baseRadius = this.p.random(10, 15) * size;
-    this.p.noiseSeed(this.p.random(1000));
-
-    for (let i = 0; i < numPoints; i++) {
-      let angle = this.p.map(i, 0, numPoints, 0, this.p.TWO_PI);
-      let radius = baseRadius + this.p.noise(angle * 0.5) * 8 - 4;
-      let x = this.p.cos(angle) * radius + this.p.random(-3, 3);
-      let y = this.p.sin(angle) * radius + this.p.random(-3, 3);
-      shape.push({ x, y });
-    }
-    return shape;
-  }
-
-  generateCactusShape(size: number, zoneKey: string, index: number) {
-    let shape = [];
-    this.p.noiseSeed(zoneKey.hashCode() + index);
-    let baseHeight = 25 * size;
-    let baseWidth = 6 * size;
-
-    let bodyPoints = [];
-    for (let i = 0; i < 8; i++) {
-      let t = i / 7;
-      let x = this.p.lerp(-baseWidth, baseWidth, t);
-      let y = this.p.lerp(0, -baseHeight, t);
-      x += this.p.noise(t * 2) * 1 - 0.5;
-      bodyPoints.push({ x, y });
-    }
-    shape.push({ type: 'body', points: bodyPoints });
-
-    let armHeight = baseHeight * 0.5;
-    let armWidth = baseWidth * 0.6;
-    let leftArmPoints = [];
-    for (let j = 0; j < 6; j++) {
-      let t = j / 5;
-      let x = this.p.lerp(-baseWidth, -baseWidth - armWidth, t);
-      let y = this.p.lerp(-baseHeight * 0.5, -baseHeight * 0.5 - armHeight, t);
-      x += this.p.noise(t * 2 + 10) * 0.5 - 0.25;
-      leftArmPoints.push({ x, y });
-    }
-    shape.push({ type: 'arm', points: leftArmPoints });
-
-    let rightArmPoints = [];
-    for (let j = 0; j < 6; j++) {
-      let t = j / 5;
-      let x = this.p.lerp(baseWidth, baseWidth + armWidth, t);
-      let y = this.p.lerp(-baseHeight * 0.5, -baseHeight * 0.5 - armHeight, t);
-      x += this.p.noise(t * 2 + 20) * 0.5 - 0.25;
-      rightArmPoints.push({ x, y });
-    }
-    shape.push({ type: 'arm', points: rightArmPoints });
-
-    return shape;
-  }
-
-  generateCopperOre(zoneKey: string, nearbyRock: any) {
-    let shape = [];
-    let numPoints = this.p.floor(this.p.random(6, 9));
-    let baseRadius = this.p.random(6, 10);
-    this.p.noiseSeed(zoneKey.hashCode() + nearbyRock.x + nearbyRock.y);
-    
-    for (let i = 0; i < numPoints; i++) {
-      let angle = this.p.map(i, 0, numPoints, 0, this.p.TWO_PI);
-      let radius = baseRadius + this.p.noise(angle * 0.5) * 3 - 1.5;
-      let x = this.p.cos(angle) * radius;
-      let y = this.p.sin(angle) * radius;
-      shape.push({ x, y });
-    }
-    
-    // Spawn at the edge of the rock with deterministic position
-    // Calculate rock radius
-    let rockRadius = 25 * nearbyRock.size * (nearbyRock.aspectRatio > 1 ? nearbyRock.aspectRatio : 1);
-    
-    // Choose a fixed angle based on a hash of the rock position
-    let angleHash = (nearbyRock.x * 10000 + nearbyRock.y).toString().hashCode();
-    let angle = (angleHash % 628) / 100; // Maps to 0-6.28 (0-2π)
-    
-    // Place exactly at the edge of the rock
-    let oreX = nearbyRock.x + Math.cos(angle) * rockRadius;
-    let oreY = nearbyRock.y + Math.sin(angle) * rockRadius;
-    
-    // Make sure it's within bounds
-    oreX = this.p.constrain(oreX, 30, this.p.width - 30);
-    oreY = this.p.constrain(oreY, 30, this.p.height - 30);
-    
-    return {
-      x: oreX,
-      y: oreY,
-      type: 'copper',
-      shape: shape
-    };
-  }
-
-  generateSandTexture(zoneKey: string) {
-    let texture = this.p.createGraphics(this.p.width, this.p.height);
-    texture.noSmooth();
-    texture.noStroke();
-    this.p.noiseSeed(zoneKey.hashCode());
-    for (let i = 0; i < this.p.width; i += 4) {
-      for (let j = 0; j < this.p.height; j += 4) {
-        let noiseVal = this.p.noise(i * 0.01, j * 0.01);
-        let r = this.p.map(noiseVal, 0, 1, 220, 255);
-        let g = this.p.map(noiseVal, 0, 1, 180, 200);
-        let b = this.p.map(noiseVal, 0, 1, 100, 120);
-        texture.fill(r, g, b);
-        texture.rect(i, j, 4, 4);
-        if (noiseVal > 0.6) {
-          texture.fill(r - 20, g - 20, b - 20);
-          texture.rect(i + 1, j + 1, 2, 2);
-        }
-      }
-    }
-    this.sandTextures[zoneKey] = texture;
-  }
-
-  generateBurntGrassTexture(zoneKey: string) {
-    let texture = this.p.createGraphics(this.p.width, this.p.height);
-    texture.noSmooth();
-    texture.noStroke();
-    this.p.noiseSeed(zoneKey.hashCode() + 1);
-    for (let i = 0; i < this.p.width; i += 4) {
-      for (let j = 0; j < this.p.height; j += 4) {
-        let noiseVal = this.p.noise(i * 0.02, j * 0.02);
-        if (noiseVal > 0.55) {
-          let density = this.p.map(noiseVal, 0.55, 1, 0, 0.8);
-          if (this.p.random() < density) {
-            let colorVariation = this.p.random(-8, 8);
-            let r = 180 + colorVariation;
-            let g = 150 + colorVariation;
-            let b = 80 + colorVariation;
-            texture.fill(r, g, b, 220);
-            let height = this.p.random(2, 5);
-            let lean = this.p.random(-0.3, 0.3);
-            texture.beginShape();
-            texture.vertex(i, j);
-            texture.vertex(i + lean, j - height);
-            texture.vertex(i + 0.7, j);
-            texture.endShape(this.p.CLOSE);
-            this.p.fill(r + 15, g + 15, b + 15, 220);
-            texture.beginShape();
-            texture.vertex(i, j);
-            texture.vertex(i + lean * 0.7, j - height * 0.7);
-            texture.vertex(i + 0.5, j);
-            texture.endShape(this.p.CLOSE);
-          }
-        }
-      }
-    }
-    this.grassTextures[zoneKey] = texture;
-  }
-
-  generateNewArea(x: number, y: number) {
-    let zoneKey = `${x},${y}`;
-    if (!this.generatedAreas.has(zoneKey)) {
-      if (!this.sandTextures[zoneKey]) {
-        this.generateSandTexture(zoneKey);
-      }
-      if (!this.grassTextures[zoneKey]) {
-        this.generateBurntGrassTexture(zoneKey);
-      }
-      let areaObstacles = [];
-      if (x === 0 && y === 0) {
-        // Home base with more details
-        areaObstacles.push({ x: this.p.width / 2, y: this.p.height / 2 - 100, type: 'hut' });
-        
-        // Rocks
-        for (let i = 0; i < 5; i++) {
-          let size = this.p.random(0.3, 2.0);
-          let aspectRatio = this.p.random(0.5, 2.0);
-          areaObstacles.push({ 
-            x: this.p.random(this.p.width), 
-            y: this.p.random(this.p.height), 
-            type: 'rock', 
-            shape: this.generateRockShape(size, aspectRatio),
-            size: size,
-            aspectRatio: aspectRatio
-          });
-        }
-        
-        for (let i = 0; i < 3; i++) {
-          let size = this.p.random(0.5, 1.0);
-          areaObstacles.push({ 
-            x: this.p.random(this.p.width), 
-            y: this.p.random(this.p.height), 
-            type: 'bush', 
-            shape: this.generateBushShape(size),
-            size: size
-          });
-        }
-        for (let i = 0; i < 2; i++) {
-          let size = this.p.random(0.5, 1.2);
-          areaObstacles.push({ 
-            x: this.p.random(this.p.width), 
-            y: this.p.random(this.p.height), 
-            type: 'cactus', 
-            shape: this.generateCactusShape(size, zoneKey, i),
-            size: size
-          });
-        }
-      } else {
-        for (let i = 0; i < 10; i++) {
-          let size = this.p.random(0.3, 2.0);
-          let aspectRatio = this.p.random(0.5, 2.0);
-          areaObstacles.push({ 
-            x: this.p.random(this.p.width), 
-            y: this.p.random(this.p.height), 
-            type: 'rock', 
-            shape: this.generateRockShape(size, aspectRatio),
-            size: size,
-            aspectRatio: aspectRatio
-          });
-        }
-        for (let i = 0; i < 5; i++) {
-          let size = this.p.random(0.5, 1.0);
-          areaObstacles.push({ 
-            x: this.p.random(this.p.width), 
-            y: this.p.random(this.p.height), 
-            type: 'bush', 
-            shape: this.generateBushShape(size),
-            size: size
-          });
-        }
-        for (let i = 0; i < 3; i++) {
-          let size = this.p.random(0.5, 1.2);
-          areaObstacles.push({ 
-            x: this.p.random(this.p.width), 
-            y: this.p.random(this.p.height), 
-            type: 'cactus', 
-            shape: this.generateCactusShape(size, zoneKey, i),
-            size: size
-          });
-        }
-      }
-      
-      this.obstacles[zoneKey] = areaObstacles;
-      this.generateResources(x, y, areaObstacles);
-      this.generatedAreas.add(zoneKey);
-    }
-  }
-
-  generateResources(x: number, y: number, areaObstacles: any[]) {
-    let areaResources = [];
-    
-    // Generate metal scraps (new appearance)
-    for (let i = 0; i < 5; i++) {
-      areaResources.push({ 
-        x: this.p.random(this.p.width), 
-        y: this.p.random(this.p.height), 
-        type: 'metal',
-        rotation: this.p.random(this.p.TWO_PI),
-        size: this.p.random(0.7, 1.3),
-        buried: this.p.random(0.3, 0.7)  // How deep it's buried
-      });
-    }
-    
-    // Add copper ore near big rocks
-    let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
-    
-    // For each big rock, there's a 40% chance to spawn copper ore
-    for (let rock of rocks) {
-      if (this.p.random() < 0.4) {
-        areaResources.push(this.generateCopperOre(`${x},${y}`, rock));
-      }
-    }
-    
-    this.resources[`${x},${y}`] = areaResources;
+  clearTextures() {
+    this.sandTexture = {};
+    this.grassTexture = {};
   }
 
   getSandTexture(zoneKey: string) {
-    return this.sandTextures[zoneKey];
+    if (!this.sandTexture[zoneKey]) {
+      this.sandTexture[zoneKey] = this.generateSandTexture();
+    }
+    return this.sandTexture[zoneKey];
   }
 
   getGrassTexture(zoneKey: string) {
-    return this.grassTextures[zoneKey];
+    if (!this.grassTexture[zoneKey]) {
+      this.grassTexture[zoneKey] = this.generateGrassTexture();
+    }
+    return this.grassTexture[zoneKey];
   }
 
   getObstacles() {
@@ -323,16 +45,224 @@ export default class WorldGenerator {
     return this.resources;
   }
 
-  clearTextures() {
-    this.sandTextures = {};
-    this.grassTextures = {};
+  updateWindmillAngle() {
+    this.windmillAngle += 0.005;
   }
 
   getWindmillAngle() {
     return this.windmillAngle;
   }
 
-  updateWindmillAngle() {
-    this.windmillAngle += 0.05;
+  generateSandTexture() {
+    let pg = this.p.createGraphics(this.p.width, this.p.height);
+    pg.background(194, 178, 128);
+
+    pg.loadPixels();
+    for (let i = 0; i < pg.pixels.length; i += 4) {
+      let rand = this.p.random(-50, 50);
+      pg.pixels[i] += rand;
+      pg.pixels[i + 1] += rand;
+      pg.pixels[i + 2] += rand;
+    }
+    pg.updatePixels();
+
+    return pg;
+  }
+
+  generateGrassTexture() {
+    let pg = this.p.createGraphics(this.p.width, this.p.height);
+    pg.background(100, 180, 90);
+
+    pg.loadPixels();
+    for (let i = 0; i < pg.pixels.length; i += 4) {
+      let rand = this.p.random(-50, 50);
+      pg.pixels[i] += rand;
+      pg.pixels[i + 1] += rand;
+      pg.pixels[i + 2] += rand;
+    }
+    pg.updatePixels();
+
+    return pg;
+  }
+
+  generateRockShape(size: number, aspectRatio: number, rotation: number) {
+    let shape = [];
+    let pointCount = this.p.floor(this.p.random(5, 10));
+    for (let i = 0; i < pointCount; i++) {
+      let angle = this.p.map(i, 0, pointCount, 0, this.p.TWO_PI);
+      let radius = this.p.random(10, 20) * size;
+      let x = Math.cos(angle) * radius * (aspectRatio > 1 ? aspectRatio : 1);
+      let y = Math.sin(angle) * radius * (aspectRatio < 1 ? 1 / this.p.abs(aspectRatio) : 1);
+      shape.push({ x: x, y: y });
+    }
+    return shape;
+  }
+
+  generateBushShape(size: number, rotation: number) {
+    let shape = [];
+    let pointCount = this.p.floor(this.p.random(5, 10));
+    for (let i = 0; i < pointCount; i++) {
+      let angle = this.p.map(i, 0, pointCount, 0, this.p.TWO_PI);
+      let radius = this.p.random(5, 10) * size;
+      let x = Math.cos(angle) * radius;
+      let y = Math.sin(angle) * radius;
+      shape.push({ x: x, y: y });
+    }
+    return shape;
+  }
+
+  generateCactusShape(x: number, y: number, size: number) {
+    let shape = [];
+    
+    // Main body
+    shape.push({
+      type: 'body',
+      points: this.generateCactusPart(x, y, size, 1.0)
+    });
+    
+    // Arms
+    if (this.p.random() > 0.5) {
+      shape.push({
+        type: 'arm',
+        points: this.generateCactusPart(x, y, size, 0.6)
+      });
+    }
+    if (this.p.random() > 0.5) {
+      shape.push({
+        type: 'arm',
+        points: this.generateCactusPart(x, y, size, 0.6)
+      });
+    }
+    
+    return shape;
+  }
+  
+  generateCactusPart(x: number, y: number, size: number, scale: number) {
+    let points = [];
+    let pointCount = this.p.floor(this.p.random(5, 8));
+    for (let i = 0; i < pointCount; i++) {
+      let angle = this.p.map(i, 0, pointCount, 0, this.p.TWO_PI);
+      let radius = this.p.random(8, 16) * size * scale;
+      let px = Math.cos(angle) * radius;
+      let py = Math.sin(angle) * radius;
+      points.push({ x: px, y: py });
+    }
+    return points;
+  }
+
+  generateArea(x: number, y: number) {
+    // Generate a seed based on area coordinates
+    let seed = `${x},${y}`.hashCode();
+    this.p.randomSeed(seed);
+    
+    const obstacles: any[] = [];
+    const resources: any[] = [];
+    
+    // Determine area type based on coordinates
+    const distanceFromCenter = Math.sqrt(x*x + y*y);
+    const isSpecialArea = distanceFromCenter < 1 || seed % 17 === 0;
+    
+    // Generate obstacles
+    const obstacleCount = isSpecialArea ? 
+      this.p.floor(this.p.random(15, 25)) : 
+      this.p.floor(this.p.random(8, 20));
+    
+    for (let i = 0; i < obstacleCount; i++) {
+      const obsX = this.p.random(50, this.p.width - 50);
+      const obsY = this.p.random(50, this.p.height - 50);
+      
+      const obsType = this.p.random();
+      
+      if (obsType < 0.5) { // Increased cactus probability from 0.3 to 0.5
+        // Create a cactus
+        const size = this.p.random(0.7, 1.3);
+        const shape = this.generateCactusShape(obsX, obsY, size);
+        obstacles.push({
+          type: 'cactus',
+          x: obsX,
+          y: obsY,
+          size,
+          shape
+        });
+      }
+      else if (obsType < 0.85) {
+        // Create a rock
+        const size = this.p.random(0.6, 1.4);
+        const aspectRatio = this.p.random(0.5, 1.5);
+        const rotation = this.p.random(0, this.p.TWO_PI);
+        const shape = this.generateRockShape(size, aspectRatio, rotation);
+        obstacles.push({
+          type: 'rock',
+          x: obsX,
+          y: obsY,
+          size,
+          aspectRatio,
+          rotation,
+          shape
+        });
+      }
+      else {
+        // Create a bush
+        const size = this.p.random(0.7, 1.2);
+        const rotation = this.p.random(0, this.p.TWO_PI);
+        const shape = this.generateBushShape(size, rotation);
+        obstacles.push({
+          type: 'bush',
+          x: obsX,
+          y: obsY,
+          size,
+          rotation,
+          shape
+        });
+      }
+    }
+    
+    // Special case for home area (0,0)
+    if (x === 0 && y === 0) {
+      // Add a hut near the center
+      obstacles.push({
+        type: 'hut',
+        x: this.p.width / 2,
+        y: this.p.height / 2,
+        size: 1
+      });
+    }
+    
+    // Generate resources
+    const resourceCount = this.p.floor(this.p.random(3, 8));
+    
+    for (let i = 0; i < resourceCount; i++) {
+      const resX = this.p.random(50, this.p.width - 50);
+      const resY = this.p.random(50, this.p.height - 50);
+      
+      const resType = this.p.random();
+      
+      // Decreased copper probability from 0.3 to 0.15
+      if (resType < 0.15 && Math.abs(x) + Math.abs(y) > 1) { // Don't generate copper at home area
+        // Add copper ore
+        resources.push({
+          type: 'copper',
+          x: resX,
+          y: resY,
+          size: this.p.random(0.9, 1.3),
+          buried: this.p.random(0.3, 0.6),
+          rotation: this.p.random(0, this.p.TWO_PI),
+          seedAngle: this.p.random(0, this.p.TWO_PI)
+        });
+      } else {
+        // Add metal scrap
+        resources.push({
+          type: 'metal',
+          x: resX,
+          y: resY,
+          size: this.p.random(0.8, 1.2),
+          buried: this.p.random(0.3, 0.7),
+          rotation: this.p.random(0, this.p.TWO_PI)
+        });
+      }
+    }
+    
+    this.obstacles[`${x},${y}`] = obstacles;
+    this.resources[`${x},${y}`] = resources;
   }
 }

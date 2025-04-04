@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -25,6 +24,7 @@ export default class Hoverbike implements HoverbikeType {
   previousAcceleration: number;
   smokeParticles: Array<{x: number, y: number, worldX: number, worldY: number, opacity: number, size: number, age: number}>;
   isRiding: boolean;
+  fuelRefillTimer: number;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -48,6 +48,7 @@ export default class Hoverbike implements HoverbikeType {
     this.previousAcceleration = 0;
     this.smokeParticles = [];
     this.isRiding = false;
+    this.fuelRefillTimer = 0;
   }
 
   update() {
@@ -56,7 +57,6 @@ export default class Hoverbike implements HoverbikeType {
       this.handleControls();
       this.applyMovement();
       this.checkCollisions();
-      this.checkFuelRefill();
       this.updateSmokeParticles();
       
       if (this.collisionCooldown > 0) {
@@ -68,6 +68,7 @@ export default class Hoverbike implements HoverbikeType {
         this.isRiding = false;
       }
       this.updateSmokeParticles();
+      this.checkFuelRefill(); // Only refill when player is NOT riding
     }
   }
 
@@ -288,8 +289,8 @@ export default class Hoverbike implements HoverbikeType {
   }
   
   checkFuelRefill() {
-    // Only check for refill if we have fuel less than max
-    if (this.fuel >= this.maxFuel) return;
+    // Only check for refill if we have fuel less than max and player is NOT riding
+    if (this.fuel >= this.maxFuel || this.player.riding) return;
     
     let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
     for (let obs of currentObstacles) {
@@ -298,16 +299,46 @@ export default class Hoverbike implements HoverbikeType {
         let dy = this.y - obs.y;
         let distance = this.p.sqrt(dx * dx + dy * dy);
         
-        // If close to fuel pump, refill fuel at a reasonable rate
+        // If close to fuel pump, refill fuel slowly over time
         if (distance < 40 && this.fuel < this.maxFuel) {
-          const oldFuel = this.fuel;
-          this.fuel = Math.min(this.maxFuel, this.fuel + 0.5);
-          if (oldFuel !== this.fuel && this.p.frameCount % 10 === 0) {
-            emitGameStateUpdate(this.player, this);
+          this.fuelRefillTimer++;
+          
+          // Every 15 frames (0.25 seconds) add a bit of fuel
+          if (this.fuelRefillTimer >= 15) {
+            const oldFuel = this.fuel;
+            this.fuel = Math.min(this.maxFuel, this.fuel + 0.5);
+            this.fuelRefillTimer = 0;
+            
+            if (oldFuel !== this.fuel) {
+              emitGameStateUpdate(this.player, this);
+              
+              // Add refueling visual effect - small bubble
+              if (this.p.random() > 0.5) {
+                this.addBubbleParticle();
+              }
+            }
           }
+        } else {
+          this.fuelRefillTimer = 0;
         }
       }
     }
+  }
+  
+  addBubbleParticle() {
+    // Add a bubble particle above the fuel tank to show refueling
+    const offsetX = -5 + this.p.random(-5, 5);
+    const offsetY = -5 + this.p.random(-2, 2);
+    
+    this.smokeParticles.push({
+      x: offsetX,
+      y: offsetY,
+      worldX: this.worldX,
+      worldY: this.worldY,
+      opacity: 200,
+      size: 2 + this.p.random(1),
+      age: 0
+    });
   }
 
   display() {
