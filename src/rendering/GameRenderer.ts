@@ -43,6 +43,9 @@ export default class GameRenderer {
   }
   
   applyDaytimeTint() {
+    // Apply color tint based on time of day
+    // 0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset, 1 = midnight
+    
     // Clear any previous tint
     this.p.noTint();
     
@@ -104,39 +107,8 @@ export default class GameRenderer {
         this.drawFuelPump(obs);
       } else if (obs.type === 'fuelStain') {
         this.drawFuelStain(obs);
-      } else if (obs.type === 'walkingMarks') {
-        this.drawWalkingMarks(obs);
-      } else if (obs.type === 'tutorialText') {
-        this.drawTutorialText(obs);
       }
     }
-  }
-
-  drawWalkingMarks(obs: any) {
-    this.p.push();
-    this.p.translate(obs.x, obs.y);
-    this.p.rotate(obs.angle);
-    
-    // Draw subtle walking marks/footprints
-    this.p.noStroke();
-    const opacity = obs.opacity || 100;
-    this.p.fill(190, 170, 140, opacity);
-    
-    // Draw a series of footprints
-    const spacing = 10;
-    const size = obs.size || 1;
-    
-    for (let i = 0; i < 5; i++) {
-      const xOffset = i * spacing * 2;
-      
-      // Left foot
-      this.p.ellipse(xOffset, -3, 4 * size, 7 * size);
-      
-      // Right foot
-      this.p.ellipse(xOffset + spacing, 3, 4 * size, 7 * size);
-    }
-    
-    this.p.pop();
   }
 
   drawRock(obs: any) {
@@ -191,28 +163,15 @@ export default class GameRenderer {
     this.p.push();
     this.p.translate(obs.x, obs.y);
 
-    // Shadow
+    // Enhanced detailed desert hut from top-down perspective
+    
+    // Larger shadow
     this.p.fill(50, 40, 30, 80);
     this.p.ellipse(8, 8, 50, 40);
     
     // Base foundation - circular platform
     this.p.fill(180, 160, 130);  // Sandy ground color
     this.p.ellipse(0, 0, 55, 55);
-    
-    // Subtle ground texture around home hut (if at home position)
-    if (this.worldX === 0 && this.worldY === 0) {
-      // Draw texture around home hut
-      for (let i = 0; i < 80; i++) {
-        const angle = this.p.random(this.p.TWO_PI);
-        const distance = this.p.random(30, 70);
-        const x = Math.cos(angle) * distance;
-        const y = Math.sin(angle) * distance;
-        
-        this.p.fill(170, 150, 120, this.p.random(30, 70));
-        const size = this.p.random(1, 4);
-        this.p.ellipse(x, y, size, size);
-      }
-    }
     
     // Main structure - circular adobe/mud hut
     this.p.fill(210, 180, 140); // Sandstone/mud walls
@@ -314,31 +273,23 @@ export default class GameRenderer {
     
     this.p.pop();
   }
-
+  
   drawFuelStain(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
     
-    // Darker fuel stain on ground
-    this.p.noStroke();
-    this.p.fill(20, 20, 20, 40);
+    // Darker, more subtle ground stain
+    this.p.fill(20, 20, 20, 50);
     
-    // Main oil puddle
-    this.p.ellipse(0, 0, 16 * obs.size, 12 * obs.size);
-    
-    // Create several irregular oil patches
+    // Create several irregular oil patches with fixed shape
     for (let i = 0; i < 5; i++) {
-      // Use consistent positions based on seedAngle if provided
-      const angle = obs.seedAngle ? obs.seedAngle + i * (Math.PI * 2 / 5) : this.p.random(this.p.TWO_PI);
-      const distance = 5 + i * 2.5;
+      // Use fixed angles and distances for deterministic pattern
+      const angle = obs.seedAngle + i * 1.2; // Use seed angle from obstacle
+      const distance = 5 + i * 4; // Fixed pattern
       const x = Math.cos(angle) * distance;
       const y = Math.sin(angle) * distance;
-      
-      const size = 3 + ((i * 29) % 5) * obs.size;
-      const alpha = 30 + (i * 5);
-      
-      this.p.fill(15, 15, 15, alpha);
-      this.p.ellipse(x, y, size, size * 0.8);
+      const size = 8 + (i % 3) * 3;
+      this.p.ellipse(x, y, size, size);
     }
     
     this.p.pop();
@@ -348,94 +299,59 @@ export default class GameRenderer {
     this.p.push();
     this.p.translate(obs.x, obs.y);
     
-    // Subtle ground texture around fuel pump (if at home position)
-    if (this.worldX === 0 && this.worldY === 0) {
-      for (let i = 0; i < 60; i++) {
-        const angle = this.p.random(this.p.TWO_PI);
-        const distance = this.p.random(20, 50);
-        const x = Math.cos(angle) * distance;
-        const y = Math.sin(angle) * distance;
-        
-        this.p.fill(160, 140, 110, this.p.random(20, 60));
-        const size = this.p.random(1, 3);
-        this.p.ellipse(x, y, size, size);
-      }
-    }
+    // Don't draw oil stains here anymore - those are handled by separate objects
     
     // Shadow
     this.p.fill(0, 0, 0, 40);
     this.p.ellipse(5, 5, 30, 10);
     
     // Base platform
-    this.p.fill(50, 50, 50);
+    this.p.fill(60, 60, 60); // Darker gray
     this.p.rect(-12, -15, 24, 30, 2);
     
-    // Fuel pump body
-    this.p.fill(110, 50, 40);
+    // Fuel pump body - more weathered, rusty color
+    this.p.fill(140, 60, 50); // Rusty red color
     this.p.rect(-10, -15, 20, 25, 1);
     
     // Rust streaks
-    this.p.fill(70, 35, 25, 180);
-    this.p.rect(-10, -8, 5, 18, 0);
-    this.p.rect(3, -12, 5, 22, 0);
+    this.p.fill(80, 40, 30, 120); // Dark rust color
+    this.p.rect(-10, -8, 3, 18, 0);
+    this.p.rect(0, -12, 5, 22, 0);
     
-    // Rust spots
-    this.p.fill(80, 40, 30, 150);
-    this.p.ellipse(-5, -10, 8, 5);
-    this.p.ellipse(2, 5, 6, 9);
-    
-    // Pump details
-    this.p.fill(35, 35, 35);
+    // Pump details - worn metal
+    this.p.fill(40, 40, 40);
     this.p.rect(-8, -10, 16, 8);
     
-    // Pump display
-    this.p.fill(150, 150, 80, 130);
+    // Pump readings/display - faded
+    this.p.fill(180, 180, 100, 180); // More faded yellow
     this.p.rect(-6, -8, 12, 4);
     
-    // Scratches on display
-    this.p.stroke(70, 70, 60, 100);
-    this.p.strokeWeight(1);
-    this.p.line(-5, -7, 0, -5);
-    this.p.line(2, -8, 5, -6);
-    this.p.noStroke();
-    
-    // Pump nozzle
-    this.p.fill(60, 60, 60);
+    // Pump nozzle - weathered metal
+    this.p.fill(70, 70, 70);
     this.p.rect(5, 0, 10, 3);
-    this.p.fill(50, 50, 50);
     this.p.rect(13, -5, 2, 10);
     
-    // Top of pump
-    this.p.fill(100, 45, 35);
+    // Top of pump - worn paint
+    this.p.fill(120, 50, 40); // Darker, more worn red
     this.p.rect(-8, -18, 16, 3);
     
-    // Chipped paint on top
-    this.p.fill(70, 35, 30);
-    this.p.rect(-6, -18, 3, 1);
-    this.p.rect(2, -18, 4, 2);
-    
-    // Fuel barrel
-    this.p.fill(100, 45, 35);
+    // Fuel barrel next to the pump - rusty, worn
+    this.p.fill(130, 50, 40); // Rusty barrel color
     this.p.ellipse(20, 0, 20, 20);
     
-    // Heavy rust on barrel
-    this.p.fill(70, 35, 30);
-    this.p.arc(20, 0, 20, 20, this.p.PI * 0.2, this.p.PI * 0.8);
-    
-    // Barrel top
-    this.p.fill(80, 35, 25);
+    // Barrel top - worn metal
+    this.p.fill(100, 40, 30); // Darker rusty color
     this.p.ellipse(20, 0, 15, 15);
     
-    // Barrel details
-    this.p.stroke(60, 25, 20);
+    // Barrel details - rust streaks
+    this.p.stroke(80, 30, 20);
     this.p.strokeWeight(1);
     this.p.line(14, -4, 26, -4);
     this.p.line(14, 0, 26, 0);
     this.p.line(14, 4, 26, 4);
-    this.p.line(20, -7, 20, 7);
     this.p.noStroke();
     
-    // Hazard symbol on barrel
+    // Worn hazard symbol on barrel
     this.p.fill(40, 40, 40);
     this.p.push();
     this.p.translate(20, 0);
@@ -570,34 +486,6 @@ export default class GameRenderer {
     this.p.pop();
   }
 
-  drawTutorialText(obs: any) {
-    if (!obs.visible) return;
-    
-    this.p.push();
-    this.p.translate(obs.x, obs.y);
-    
-    // Draw indicator above resource
-    this.p.fill(255, 255, 255, 200);
-    this.p.rect(-obs.width/2, -obs.height - 10, obs.width, obs.height, 5);
-    
-    // Draw text
-    this.p.fill(0);
-    this.p.textAlign(this.p.CENTER);
-    this.p.textSize(10);
-    this.p.text(obs.text, 0, -obs.height/2 - 5);
-    
-    // Draw close button
-    if (obs.showCloseButton) {
-      this.p.fill(255, 100, 100, 200);
-      this.p.ellipse(obs.width/2 - 10, -obs.height - 5, 10, 10);
-      this.p.fill(255);
-      this.p.textSize(8);
-      this.p.text("x", obs.width/2 - 10, -obs.height - 3);
-    }
-    
-    this.p.pop();
-  }
-
   drawResources() {
     let currentResources = this.worldGenerator.getResources()[`${this.worldX},${this.worldY}`] || [];
     for (let res of currentResources) {
@@ -608,7 +496,7 @@ export default class GameRenderer {
         // Rotate to random angle
         this.p.rotate(res.rotation);
         
-        // Half-buried metal scraps
+        // Half-buried metal scraps - lighter color, more square/sheet-like
         let buriedDepth = res.buried; // 0.3-0.7, higher = more buried
         
         // Shadow under the metal
@@ -616,4 +504,96 @@ export default class GameRenderer {
         this.p.ellipse(2, 2, 14 * res.size, 4 * res.size);
         
         // Base layer - buried part
-        this.p.fill(120, 120,
+        this.p.fill(120, 120, 120);
+        this.p.beginShape();
+        this.p.vertex(-8 * res.size, buriedDepth * 5 * res.size);
+        this.p.vertex(8 * res.size, buriedDepth * 4 * res.size);
+        this.p.vertex(7 * res.size, buriedDepth * 8 * res.size);
+        this.p.vertex(-7 * res.size, buriedDepth * 7 * res.size);
+        this.p.endShape(this.p.CLOSE);
+        
+        // Main metal sheet
+        this.p.fill(200, 200, 210);
+        this.p.rect(-6 * res.size, -4 * res.size, 12 * res.size, 8 * res.size, 1);
+        
+        // Exposed part - showing above ground
+        let exposedHeight = this.p.map(buriedDepth, 0.3, 0.7, 6, 3);
+        this.p.fill(220, 220, 225);
+        this.p.rect(-5 * res.size, -4 * res.size, 10 * res.size, exposedHeight * res.size, 1);
+        
+        // Add details - rivets, bends, tears
+        this.p.fill(180, 180, 185);
+        this.p.ellipse(-4 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
+        this.p.ellipse(0, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
+        this.p.ellipse(4 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
+        
+        // Bent/damaged corner
+        this.p.fill(190, 190, 195);
+        this.p.beginShape();
+        this.p.vertex(-6 * res.size, -4 * res.size);
+        this.p.vertex(-4 * res.size, -5 * res.size);
+        this.p.vertex(-2 * res.size, -4 * res.size);
+        this.p.endShape(this.p.CLOSE);
+        
+        // Rust patches
+        this.p.fill(130, 80, 60, 180);
+        this.p.ellipse(-3 * res.size, -1 * res.size, 4 * res.size, 2 * res.size);
+        this.p.ellipse(2 * res.size, 0, 3 * res.size, 2 * res.size);
+        
+      } else if (res.type === 'copper') {
+        // Orange shiny copper ore - fixed to not move around
+        
+        // Shadow
+        this.p.fill(80, 60, 40, 80);
+        this.p.ellipse(3, 3, 14, 6);
+        
+        // Base rock
+        this.p.fill(100, 80, 60);
+        let radius = 10;
+        this.p.ellipse(0, 0, radius * 2, radius * 2);
+        
+        // Copper veins/streaks - use FIXED patterns
+        this.p.fill(200, 100, 30); // Orange copper color
+        
+        // Use deterministic veins rather than random
+        const numVeins = 4;
+        for (let i = 0; i < numVeins; i++) {
+          // Deterministic angle for this vein based on resource position
+          const angle = i * (Math.PI * 2 / numVeins);
+          const veinX = Math.cos(angle) * radius * 0.6;
+          const veinY = Math.sin(angle) * radius * 0.6;
+          const veinSize = 3 + (i % 3);
+          
+          this.p.ellipse(veinX, veinY, veinSize, veinSize);
+        }
+        
+        // Add a larger central vein
+        this.p.fill(220, 120, 40);
+        this.p.ellipse(0, 0, 5, 5);
+        
+        // Fixed highlights
+        this.p.fill(240, 140, 50, 150);
+        const numHighlights = 3;
+        for (let i = 0; i < numHighlights; i++) {
+          const highlightAngle = i * (Math.PI * 2 / numHighlights) + Math.PI / 6;
+          const highlightX = Math.cos(highlightAngle) * radius * 0.3;
+          const highlightY = Math.sin(highlightAngle) * radius * 0.3;
+          const highlightSize = 1.5 + (i % 2);
+          
+          this.p.ellipse(highlightX, highlightY, highlightSize, highlightSize);
+        }
+      }
+      
+      this.p.pop();
+    }
+  }
+
+  setWorldCoordinates(x: number, y: number) {
+    this.worldX = x;
+    this.worldY = y;
+  }
+  
+  setTimeOfDay(time: number) {
+    this.timeOfDay = time;
+  }
+}
