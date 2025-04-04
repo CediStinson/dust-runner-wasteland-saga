@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class BackgroundRenderer {
@@ -93,8 +92,22 @@ export default class BackgroundRenderer {
   drawBackground() {
     let zoneKey = `${this.worldX},${this.worldY}`;
     
-    // Use a softer base color instead of potentially leaving black lines
-    this.p.background(220, 210, 180); // Base sand color with soft tone
+    // Use a soft, gradient-like background to eliminate hard lines
+    const baseColor = this.p.color(220, 210, 180);
+    const softVariation = 10;
+    
+    // Create a soft background with slight color variations
+    for (let y = 0; y < this.p.height; y++) {
+      const colorVariation = this.p.map(y, 0, this.p.height, -softVariation, softVariation);
+      const currentColor = this.p.color(
+        this.p.red(baseColor) + colorVariation,
+        this.p.green(baseColor) + colorVariation,
+        this.p.blue(baseColor) + colorVariation
+      );
+      
+      this.p.stroke(currentColor);
+      this.p.line(0, y, this.p.width, y);
+    }
     
     // Draw sand texture if available
     if (this.worldGenerator.getSandTexture(zoneKey)) {
