@@ -328,34 +328,32 @@ export default class GameRenderer {
     this.p.strokeWeight(0.7);  // Medium outline
     
     if (obs.shape && Array.isArray(obs.shape)) {
-      this.p.beginShape();
-      for (let point of obs.shape) {
-        this.p.vertex(point.x, point.y);
+      // Draw body first
+      const bodyPart = obs.shape.find((part: any) => part.type === 'body');
+      if (bodyPart && bodyPart.points) {
+        this.p.beginShape();
+        for (let point of bodyPart.points) {
+          this.p.vertex(point.x, point.y);
+        }
+        this.p.endShape(this.p.CLOSE);
+      } else {
+        // Fallback if body shape is missing
+        this.p.rect(-3 * obs.size, -25 * obs.size, 6 * obs.size, 25 * obs.size, 1);
       }
-      this.p.endShape(this.p.CLOSE);
 
-      // Inner shapes
-      this.p.noStroke();
-      this.p.fill(60, 80, 60);
-      this.p.beginShape();
-      for (let point of obs.shape) {
-        let offsetX = 0.5 * obs.size;
-        let offsetY = 0.5 * obs.size;
-        this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+      // Draw arms
+      for (let part of obs.shape) {
+        if (part.type === 'arm' && part.points) {
+          this.p.beginShape();
+          for (let point of part.points) {
+            this.p.vertex(point.x, point.y);
+          }
+          this.p.endShape(this.p.CLOSE);
+        }
       }
-      this.p.endShape(this.p.CLOSE);
-
-      this.p.fill(80, 100, 80);
-      this.p.beginShape();
-      for (let point of obs.shape) {
-        let offsetX = -0.5 * obs.size;
-        let offsetY = -0.5 * obs.size;
-        this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
-      }
-      this.p.endShape(this.p.CLOSE);
     } else {
       // Fallback if shape is missing
-      this.p.rect(-5 * obs.size, -20 * obs.size, 10 * obs.size, 20 * obs.size);
+      this.p.rect(-3 * obs.size, -25 * obs.size, 6 * obs.size, 25 * obs.size, 1);
     }
 
     // Details (spikes)
@@ -575,20 +573,6 @@ export default class GameRenderer {
     this.p.push();
     this.p.translate(res.x, res.y);
     
-    // Generate points for metal scrap if they don't exist
-    if (!res.points) {
-      res.points = [];
-      const pointCount = 6; // Number of points for jagged metal shape
-      for (let i = 0; i < pointCount; i++) {
-        const angle = (i / pointCount) * this.p.TWO_PI;
-        const radius = 5 + Math.random() * 3;
-        res.points.push({
-          x: Math.cos(angle) * radius,
-          y: Math.sin(angle) * radius
-        });
-      }
-    }
-    
     // Shadow
     this.p.fill(40, 40, 40, 70);
     this.p.ellipse(2, 2, 15, 8);
@@ -599,22 +583,41 @@ export default class GameRenderer {
     this.p.strokeWeight(0.7);
     
     // Draw random jagged metal shape
-    this.p.beginShape();
-    for (let i = 0; i < res.points.length; i++) {
-      this.p.vertex(res.points[i].x, res.points[i].y);
-    }
-    this.p.endShape(this.p.CLOSE);
-    
-    // Highlights on metal
-    this.p.noStroke();
-    this.p.fill(220, 220, 220);
-    
-    // Draw small highlights
-    for (let i = 0; i < 3; i++) {
-      let idx = i % res.points.length;
-      let x = res.points[idx].x * 0.3;
-      let y = res.points[idx].y * 0.3;
-      this.p.ellipse(x, y, 2, 2);
+    if (res.points && Array.isArray(res.points)) {
+      this.p.beginShape();
+      for (let i = 0; i < res.points.length; i++) {
+        this.p.vertex(res.points[i].x, res.points[i].y);
+      }
+      this.p.endShape(this.p.CLOSE);
+      
+      // Highlights on metal
+      this.p.noStroke();
+      this.p.fill(220, 220, 220);
+      
+      // Draw small highlights
+      for (let i = 0; i < 3; i++) {
+        let idx = i % res.points.length;
+        let x = res.points[idx].x * 0.3;
+        let y = res.points[idx].y * 0.3;
+        this.p.ellipse(x, y, 2, 2);
+      }
+    } else {
+      // Fallback shape if points are missing
+      this.p.beginShape();
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * this.p.TWO_PI;
+        const radius = 5 + Math.random() * 3;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        this.p.vertex(x, y);
+      }
+      this.p.endShape(this.p.CLOSE);
+      
+      // Add highlights
+      this.p.noStroke();
+      this.p.fill(220, 220, 220);
+      this.p.ellipse(-1, -1, 2, 2);
+      this.p.ellipse(2, 1, 1.5, 1.5);
     }
     
     this.p.pop();
@@ -623,38 +626,6 @@ export default class GameRenderer {
   drawCopperOre(res: any) {
     this.p.push();
     this.p.translate(res.x, res.y);
-    
-    // Generate points for copper ore if they don't exist
-    if (!res.points) {
-      res.points = [];
-      const pointCount = 8; // Number of points for copper ore shape
-      for (let i = 0; i < pointCount; i++) {
-        const angle = (i / pointCount) * this.p.TWO_PI;
-        const radius = 6 + Math.random() * 4;
-        res.points.push({
-          x: Math.cos(angle) * radius,
-          y: Math.sin(angle) * radius
-        });
-      }
-    }
-    
-    // Generate copper veins if they don't exist
-    if (!res.copperPoints) {
-      res.copperPoints = [];
-      const veinCount = 3;
-      for (let i = 0; i < veinCount; i++) {
-        const veinPoints = [];
-        const startAngle = Math.random() * this.p.TWO_PI;
-        const veinLength = 3 + Math.random() * 2;
-        for (let j = 0; j < veinLength; j++) {
-          veinPoints.push({
-            x: Math.cos(startAngle) * j * 2,
-            y: Math.sin(startAngle) * j * 2
-          });
-        }
-        res.copperPoints.push(veinPoints);
-      }
-    }
     
     // Shadow
     this.p.fill(40, 30, 20, 70);
@@ -666,38 +637,178 @@ export default class GameRenderer {
     this.p.strokeWeight(0.8);
     
     // Draw rock shape
-    this.p.beginShape();
-    for (let i = 0; i < res.points.length; i++) {
-      this.p.vertex(res.points[i].x, res.points[i].y);
-    }
-    this.p.endShape(this.p.CLOSE);
-    
-    // Copper veins with outline
-    this.p.fill(200, 120, 40);
-    this.p.stroke(160, 100, 30);
-    this.p.strokeWeight(0.5);
-    
-    // Draw copper veins
-    for (let i = 0; i < res.copperPoints.length; i++) {
-      let vein = res.copperPoints[i];
+    if (res.shape && Array.isArray(res.shape)) {
       this.p.beginShape();
-      for (let j = 0; j < vein.length; j++) {
-        this.p.vertex(vein[j].x, vein[j].y);
+      for (let i = 0; i < res.shape.length; i++) {
+        this.p.vertex(res.shape[i].x, res.shape[i].y);
       }
       this.p.endShape(this.p.CLOSE);
+      
+      // Copper veins with outline
+      this.p.fill(200, 120, 40);
+      this.p.stroke(160, 100, 30);
+      this.p.strokeWeight(0.5);
+      
+      // Generate copper veins if they don't exist
+      if (!res.copperPoints) {
+        res.copperPoints = [];
+        const veinCount = 3;
+        for (let i = 0; i < veinCount; i++) {
+          const veinPoints = [];
+          const startAngle = Math.random() * this.p.TWO_PI;
+          const veinLength = 3 + Math.random() * 2;
+          for (let j = 0; j < veinLength; j++) {
+            veinPoints.push({
+              x: Math.cos(startAngle) * j * 2,
+              y: Math.sin(startAngle) * j * 2
+            });
+          }
+          res.copperPoints.push(veinPoints);
+        }
+      }
+      
+      // Draw copper veins
+      for (let i = 0; i < res.copperPoints.length; i++) {
+        let vein = res.copperPoints[i];
+        this.p.beginShape();
+        for (let j = 0; j < vein.length; j++) {
+          this.p.vertex(vein[j].x, vein[j].y);
+        }
+        this.p.endShape(this.p.CLOSE);
+      }
+      
+      // Copper highlights
+      this.p.noStroke();
+      this.p.fill(240, 160, 60, 200);
+      
+      // Draw highlights
+      for (let i = 0; i < res.copperPoints.length; i++) {
+        let vein = res.copperPoints[i];
+        if (vein.length > 0) {
+          let centerIdx = Math.floor(vein.length / 2);
+          this.p.ellipse(vein[centerIdx].x, vein[centerIdx].y, 2, 2);
+        }
+      }
+    } else {
+      // Fallback if shape is missing
+      this.p.ellipse(0, 0, 12, 10);
+      
+      // Add simple copper veins
+      this.p.fill(200, 120, 40);
+      this.p.noStroke();
+      this.p.ellipse(-2, -1, 4, 3);
+      this.p.ellipse(3, 2, 3, 2);
+      
+      // Add highlights
+      this.p.fill(240, 160, 60);
+      this.p.ellipse(-2, -1, 1, 1);
+      this.p.ellipse(3, 2, 1, 1);
     }
     
-    // Copper highlights
+    this.p.pop();
+  }
+
+  // Add the remaining methods back
+  drawFuelPump(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+
+    // Shadow
+    this.p.fill(50, 40, 30, 70);
+    let shadowOffsetX = 3 * obs.size;
+    let shadowOffsetY = 5 * obs.size;
+    let shadowWidth = 15 * obs.size;
+    let shadowHeight = 8 * obs.size;
+    this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
+
+    // Main fuel pump shape with outline
+    this.p.fill(100, 100, 100);
+    this.p.stroke(60, 60, 60); // Added outline
+    this.p.strokeWeight(0.9);  // Medium outline
+    this.p.rect(-6 * obs.size, -10 * obs.size, 12 * obs.size, 20 * obs.size, 2 * obs.size);
+
+    // Inner details
     this.p.noStroke();
-    this.p.fill(240, 160, 60, 200);
+    this.p.fill(120, 120, 120);
+    this.p.rect(-4 * obs.size, -8 * obs.size, 8 * obs.size, 16 * obs.size, 2 * obs.size);
+
+    this.p.fill(80, 80, 80);
+    this.p.ellipse(0, -6 * obs.size, 6 * obs.size, 6 * obs.size);
+
+    // Nozzle and hose
+    this.p.fill(50, 50, 50);
+    this.p.stroke(30, 30, 30); // Added outline for nozzle
+    this.p.strokeWeight(1);    // Slightly thicker outline
+    this.p.rect(6 * obs.size, 2 * obs.size, 2 * obs.size, 6 * obs.size);
+    this.p.noStroke();
+
+    this.p.pop();
+  }
+
+  drawWalkingMarks(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    this.p.rotate(obs.angle);
     
-    // Draw highlights
-    for (let i = 0; i < res.copperPoints.length; i++) {
-      let vein = res.copperPoints[i];
-      if (vein.length > 0) {
-        let centerIdx = Math.floor(vein.length / 2);
-        this.p.ellipse(vein[centerIdx].x, vein[centerIdx].y, 2, 2);
-      }
+    // Draw subtle walking marks/footprints
+    const opacity = obs.opacity || 100;
+    
+    // Add very subtle outline to footprints
+    this.p.stroke(160, 140, 100, opacity * 0.5);
+    this.p.strokeWeight(0.3);
+    
+    this.p.fill(190, 170, 140, opacity);
+    
+    // Draw a series of footprints
+    const spacing = 10;
+    const size = obs.size || 1;
+    
+    for (let i = 0; i < 5; i++) {
+      const xOffset = i * spacing * 2;
+      
+      // Left foot
+      this.p.ellipse(xOffset, -3, 4 * size, 7 * size);
+      
+      // Right foot
+      this.p.ellipse(xOffset + spacing, 3, 4 * size, 7 * size);
+    }
+    
+    this.p.pop();
+  }
+  
+  drawFuelStain(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    // Darker, more subtle ground stain - fixed in place
+    this.p.noStroke();
+    this.p.fill(20, 20, 20, 40); // Even more subtle opacity
+    
+    // Main oil puddle
+    this.p.ellipse(0, 0, 16 * obs.size, 12 * obs.size);
+    
+    // Create several irregular oil patches with fixed shape
+    // Use deterministic positions based on seedAngle
+    const numPatches = 5;
+    for (let i = 0; i < numPatches; i++) {
+      // Create fixed positions based on obs.seedAngle
+      const angle = obs.seedAngle + i * (Math.PI * 2 / numPatches);
+      const distance = 5 + i * 2.5; // Fixed pattern
+      const x = Math.cos(angle) * distance;
+      const y = Math.sin(angle) * distance;
+      
+      // Size variation based on position
+      const size = 3 + ((i * 29) % 5) * obs.size;
+      
+      // Slightly different shades of black for variation
+      const alpha = 30 + (i * 5);
+      this.p.fill(15, 15, 15, alpha);
+      
+      // Add subtle outline to stains
+      this.p.stroke(10, 10, 10, alpha * 0.6);
+      this.p.strokeWeight(0.3);
+      this.p.ellipse(x, y, size, size * 0.8);
+      this.p.noStroke();
     }
     
     this.p.pop();

@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class WorldGenerator {
@@ -124,11 +125,13 @@ export default class WorldGenerator {
   }
 
   generateHutShape(size: number) {
+    // Create proper hut shape with points
     let shape = [];
     let baseWidth = 30 * size;
     let baseHeight = 20 * size;
     let cornerRounding = 3 * size;
     
+    // Create a rounded rectangle shape for the hut
     shape.push({ x: -baseWidth/2 + cornerRounding, y: baseHeight/2 });
     shape.push({ x: -baseWidth/2, y: baseHeight/2 - cornerRounding });
     shape.push({ x: -baseWidth/2, y: -baseHeight/2 + cornerRounding });
@@ -297,13 +300,26 @@ export default class WorldGenerator {
     let areaResources = [];
     
     for (let i = 0; i < 5; i++) {
+      // Generate points for metal scrap
+      const pointCount = 6;
+      const points = [];
+      for (let j = 0; j < pointCount; j++) {
+        const angle = (j / pointCount) * this.p.TWO_PI;
+        const radius = 5 + this.p.random() * 3;
+        points.push({
+          x: Math.cos(angle) * radius,
+          y: Math.sin(angle) * radius
+        });
+      }
+      
       areaResources.push({ 
         x: this.p.random(this.p.width), 
         y: this.p.random(this.p.height), 
         type: 'metal',
         rotation: this.p.random(this.p.TWO_PI),
         size: this.p.random(0.7, 1.3),
-        buried: this.p.random(0.3, 0.7)  
+        buried: this.p.random(0.3, 0.7),
+        points: points
       });
     }
     
