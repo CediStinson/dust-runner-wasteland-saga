@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -455,5 +454,10 @@ export default class Hoverbike implements HoverbikeType {
   setWorldCoordinates(x: number, y: number) {
     this.worldX = x;
     this.worldY = y;
+  }
+
+  // Add the render method that just calls the display method
+  render() {
+    this.display();
   }
 }
