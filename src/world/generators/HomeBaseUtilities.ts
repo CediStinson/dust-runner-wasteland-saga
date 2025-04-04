@@ -52,6 +52,7 @@ export default class HomeBaseUtilities {
       y: hutPosition.y - 30,
       width: 70,
       height: 50,
+      size: 1.0, // Add the required size property
       rotation: 0.2,
       holePositions: [
         { x: 0.2, y: 0.3, size: 5 },
