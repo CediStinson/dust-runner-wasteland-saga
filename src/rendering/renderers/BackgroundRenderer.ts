@@ -93,8 +93,8 @@ export default class BackgroundRenderer {
   drawBackground() {
     let zoneKey = `${this.worldX},${this.worldY}`;
     
-    // Clear the background first to avoid visual artifacts
-    this.p.background(220, 210, 180); // Base sand color
+    // Use a softer base color instead of potentially leaving black lines
+    this.p.background(220, 210, 180); // Base sand color with soft tone
     
     // Draw sand texture if available
     if (this.worldGenerator.getSandTexture(zoneKey)) {
