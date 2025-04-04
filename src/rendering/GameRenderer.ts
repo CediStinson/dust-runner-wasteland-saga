@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -600,4 +601,110 @@ export default class GameRenderer {
 
       // Cactus details
       this.p.fill(50, 90, 50);
-      for
+      for (let i = 0; i < part.points.length; i += 2) {
+        if (i + 1 < part.points.length) {
+          let pointA = part.points[i];
+          let pointB = part.points[i + 1];
+          let midX = (pointA.x + pointB.x) * 0.5;
+          let midY = (pointA.y + pointB.y) * 0.5;
+          this.p.ellipse(midX, midY, 1 * obs.size, 1 * obs.size);
+        }
+      }
+      
+      // Add spikes to the cactus
+      this.p.stroke(30, 70, 30);
+      this.p.strokeWeight(0.5);
+      for (let i = 0; i < part.points.length; i += 2) {
+        let point = part.points[i];
+        let angle = this.p.atan2(point.y, point.x);
+        let spikeLength = 2 * obs.size;
+        this.p.line(
+          point.x, point.y,
+          point.x + this.p.cos(angle) * spikeLength,
+          point.y + this.p.sin(angle) * spikeLength
+        );
+      }
+      this.p.noStroke();
+    }
+    
+    this.p.pop();
+  }
+
+  drawResources() {
+    let currentResources = this.worldGenerator.getResources()[`${this.worldX},${this.worldY}`] || [];
+    
+    for (let res of currentResources) {
+      if (res.type === 'metal') {
+        this.drawMetal(res);
+      } else if (res.type === 'copper') {
+        this.drawCopper(res);
+      }
+    }
+  }
+  
+  drawMetal(res: any) {
+    this.p.push();
+    this.p.translate(res.x, res.y);
+    
+    // Shadow
+    this.p.fill(50, 40, 30, 80);
+    this.p.ellipse(2, 2, 10, 3);
+    
+    // Main metal piece
+    this.p.fill(180, 180, 190);
+    this.p.stroke(150, 150, 160);
+    this.p.strokeWeight(0.5);
+    this.p.beginShape();
+    for (let point of res.shape) {
+      this.p.vertex(point.x, point.y);
+    }
+    this.p.endShape(this.p.CLOSE);
+    
+    // Highlights
+    this.p.fill(200, 200, 210);
+    this.p.noStroke();
+    this.p.ellipse(-1, -2, 4, 1);
+    this.p.ellipse(2, 1, 3, 1);
+    
+    this.p.pop();
+  }
+  
+  drawCopper(res: any) {
+    this.p.push();
+    this.p.translate(res.x, res.y);
+    
+    // Shadow
+    this.p.fill(50, 40, 30, 80);
+    this.p.ellipse(2, 2, 16, 4);
+    
+    // Rock base
+    this.p.fill(120, 100, 90);
+    this.p.stroke(100, 80, 70);
+    this.p.strokeWeight(0.5);
+    this.p.beginShape();
+    for (let point of res.shape) {
+      this.p.vertex(point.x, point.y);
+    }
+    this.p.endShape(this.p.CLOSE);
+    
+    // Copper veins
+    this.p.fill(200, 120, 80);
+    this.p.noStroke();
+    
+    for (let vein of res.veins) {
+      this.p.beginShape();
+      for (let point of vein) {
+        this.p.vertex(point.x, point.y);
+      }
+      this.p.endShape(this.p.CLOSE);
+    }
+    
+    // Copper sparkle
+    if (this.p.frameCount % 120 < 10) {
+      this.p.fill(255, 220, 180, this.p.map(this.p.frameCount % 10, 0, 10, 255, 0));
+      this.p.ellipse(res.sparkleX, res.sparkleY, 2, 2);
+    }
+    
+    this.p.pop();
+  }
+}

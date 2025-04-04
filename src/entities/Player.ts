@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -226,26 +225,32 @@ export default class Player implements PlayerType {
       this.p.endShape(this.p.CLOSE);
       this.p.noStroke();
       
-      // Cloak details
-      this.p.fill(damageFlash ? 220, 150, 130 : 150, 130, 110);
+      // Cloak details - Fixed conditional color expressions
+      const cloakColor = damageFlash ? this.p.color(220, 150, 130) : this.p.color(150, 130, 110);
+      this.p.fill(cloakColor);
       this.p.ellipse(-4, 2, 4, 3);
       this.p.ellipse(4, 2, 4, 3);
-      this.p.fill(damageFlash ? 180, 60, 40 : 100, 80, 60);
+      
+      const detailColor = damageFlash ? this.p.color(180, 60, 40) : this.p.color(100, 80, 60);
+      this.p.fill(detailColor);
       this.p.ellipse(-6, 0, 3, 2);
       this.p.ellipse(6, 0, 3, 2);
       
-      // Head with outline
-      this.p.fill(damageFlash ? 160, 80, 60 : 80, 60, 40);
+      // Head with outline - Fixed conditional color expressions
+      const headColor = damageFlash ? this.p.color(160, 80, 60) : this.p.color(80, 60, 40);
+      this.p.fill(headColor);
       this.p.stroke(60, 40, 20); // Added outline
       this.p.strokeWeight(0.6);  // Thin outline
       this.p.ellipse(0, -6, 8, 6);
       this.p.noStroke();
       
-      this.p.fill(damageFlash ? 140, 60, 40 : 60, 40, 20);
+      const innerHeadColor = damageFlash ? this.p.color(140, 60, 40) : this.p.color(60, 40, 20);
+      this.p.fill(innerHeadColor);
       this.p.ellipse(0, -5, 6, 4);
       
-      // Face
-      this.p.fill(damageFlash ? 255, 200, 180 : 200, 180, 150);
+      // Face - Fixed conditional color expressions
+      const faceColor = damageFlash ? this.p.color(255, 200, 180) : this.p.color(200, 180, 150);
+      this.p.fill(faceColor);
       this.p.ellipse(0, -5, 4, 2);
       this.p.fill(50, 50, 50);
       this.p.ellipse(-1, -5, 2, 1);
@@ -255,11 +260,14 @@ export default class Player implements PlayerType {
       this.p.fill(80, 60, 40, 100);
       this.p.ellipse(0, 6, 12, 4);
       
-      // Show digging animation if active
+      // Show digging animation if active - Fixed conditional color expressions
       if (this.digging) {
-        this.p.fill(damageFlash ? 200, 80, 60 : 120, 100, 80);
+        const diggingColor = damageFlash ? this.p.color(200, 80, 60) : this.p.color(120, 100, 80);
+        this.p.fill(diggingColor);
         this.p.ellipse(6, 0, 4, 4);
-        this.p.stroke(damageFlash ? 160, 60, 40 : 80, 60, 40);
+        
+        const strokeColor = damageFlash ? this.p.color(160, 60, 40) : this.p.color(80, 60, 40);
+        this.p.stroke(strokeColor);
         this.p.strokeWeight(1);
         this.p.line(6, 0, 12, this.p.sin(this.p.frameCount * 0.3) * 3);
         this.p.noStroke();
