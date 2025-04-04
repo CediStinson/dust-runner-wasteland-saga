@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -99,21 +98,71 @@ export default class GameRenderer {
       if (obs.type === 'rock') {
         this.drawRock(obs);
       } else if (obs.type === 'hut') {
+        // Draw shadows first
+        if (this.worldX === 0 && this.worldY === 0) {
+          // Draw texture around home hut
+          this.drawGroundTexture(obs.x, obs.y, 70, 3);
+        }
         this.drawHut(obs);
       } else if (obs.type === 'bush') {
         this.drawBush(obs);
       } else if (obs.type === 'cactus') {
         this.drawCactus(obs);
       } else if (obs.type === 'fuelPump') {
+        // Draw ground texture around fuel pump
+        if (this.worldX === 0 && this.worldY === 0) {
+          this.drawGroundTexture(obs.x, obs.y, 50, 5);
+        }
         this.drawFuelPump(obs);
       } else if (obs.type === 'fuelStain') {
         this.drawFuelStain(obs);
       } else if (obs.type === 'walkingMarks') {
         this.drawWalkingMarks(obs);
+      } else if (obs.type === 'tutorialText') {
+        this.drawTutorialText(obs);
       }
     }
   }
   
+  drawGroundTexture(x: number, y: number, radius: number, density: number) {
+    // Add subtle ground texture/paths around structures
+    this.p.push();
+    this.p.translate(x, y);
+    
+    // Draw several small texture marks
+    this.p.noStroke();
+    
+    for (let i = 0; i < 60 * density; i++) {
+      // Use deterministic angle (based on i) for stable appearance
+      const angle = (i / 60) * Math.PI * 2;
+      const distance = this.p.random(radius * 0.3, radius);
+      
+      const dotX = Math.cos(angle) * distance;
+      const dotY = Math.sin(angle) * distance;
+      
+      // Different texture marks
+      const alpha = this.p.map(distance, radius * 0.3, radius, 70, 20);
+      if (i % 3 === 0) {
+        // Small rocks
+        this.p.fill(120, 110, 90, alpha);
+        const size = this.p.random(1, 3);
+        this.p.ellipse(dotX, dotY, size, size);
+      } else if (i % 3 === 1) {
+        // Small dirt patches
+        this.p.fill(100, 80, 60, alpha);
+        const size = this.p.random(2, 4);
+        this.p.ellipse(dotX, dotY, size, size * 0.7);
+      } else {
+        // Small debris
+        this.p.fill(130, 120, 100, alpha);
+        const size = this.p.random(1, 2);
+        this.p.rect(dotX, dotY, size, size);
+      }
+    }
+    
+    this.p.pop();
+  }
+
   drawWalkingMarks(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
@@ -545,6 +594,34 @@ export default class GameRenderer {
           this.p.ellipse(x, y - 2 * obs.size, 1 * obs.size, 1 * obs.size);
         }
       }
+    }
+    
+    this.p.pop();
+  }
+
+  drawTutorialText(obs: any) {
+    if (!obs.visible) return;
+    
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    // Draw indicator above resource
+    this.p.fill(255, 255, 255, 200);
+    this.p.rect(-obs.width/2, -obs.height - 10, obs.width, obs.height, 5);
+    
+    // Draw text
+    this.p.fill(0);
+    this.p.textAlign(this.p.CENTER);
+    this.p.textSize(10);
+    this.p.text(obs.text, 0, -obs.height/2 - 5);
+    
+    // Draw close button
+    if (obs.showCloseButton) {
+      this.p.fill(255, 100, 100, 200);
+      this.p.ellipse(obs.width/2 - 10, -obs.height - 5, 10, 10);
+      this.p.fill(255);
+      this.p.textSize(8);
+      this.p.text("x", obs.width/2 - 10, -obs.height - 3);
     }
     
     this.p.pop();

@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -88,6 +87,9 @@ export default class Game {
     
     // Add walking marks
     this.addWalkingMarksAtHomeBase();
+    
+    // Add starting resources and tutorial texts
+    this.addStartingResources();
   }
 
   addFuelStationAtHomeBase() {
@@ -135,6 +137,97 @@ export default class Game {
       // Update the world generator's obstacles
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
     }
+    
+    // Add the tutorial text for fuel
+    const hasFuelTutorial = homeObstacles.some(obs => obs.type === 'tutorialText' && obs.resourceType === 'fuel');
+    if (!hasFuelTutorial) {
+      homeObstacles.push({
+        type: 'tutorialText',
+        x: this.p.width / 2 + 100,
+        y: this.p.height / 2 - 80,
+        width: 160,
+        height: 40,
+        text: "Be careful not to run out of gas.\nRefill at the fuel station when low.",
+        visible: true,
+        showCloseButton: true,
+        resourceType: 'fuel'
+      });
+      
+      // Update the world generator's obstacles
+      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+    }
+  }
+  
+  addStartingResources() {
+    const homeAreaKey = "0,0";
+    
+    // Add a guaranteed metal resource near the home base
+    let homeResources = this.worldGenerator.getResources()[homeAreaKey] || [];
+    
+    // Check if we already have a metal resource
+    const hasStartingMetal = homeResources.some(res => res.type === 'metal' && res.isStartingResource);
+    
+    if (!hasStartingMetal) {
+      // Add starting metal resource
+      homeResources.push({
+        type: 'metal',
+        x: this.p.width / 2 - 80,
+        y: this.p.height / 2 - 40,
+        size: 1.2,
+        rotation: 0.3,
+        buried: 0.4,
+        isStartingResource: true
+      });
+      
+      // Add tutorial text for metal
+      let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
+      homeObstacles.push({
+        type: 'tutorialText',
+        x: this.p.width / 2 - 80,
+        y: this.p.height / 2 - 60,
+        width: 160,
+        height: 30,
+        text: "Press E to gather metal scraps",
+        visible: true,
+        showCloseButton: false,
+        resourceType: 'metal'
+      });
+      
+      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+    }
+    
+    // Check if we already have a copper resource
+    const hasStartingCopper = homeResources.some(res => res.type === 'copper' && res.isStartingResource);
+    
+    if (!hasStartingCopper) {
+      // Add starting copper resource
+      homeResources.push({
+        type: 'copper',
+        x: this.p.width / 2 + 80,
+        y: this.p.height / 2 + 40,
+        size: 1.0,
+        isStartingResource: true
+      });
+      
+      // Add tutorial text for copper
+      let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
+      homeObstacles.push({
+        type: 'tutorialText',
+        x: this.p.width / 2 + 80,
+        y: this.p.height / 2 + 20,
+        width: 160,
+        height: 30,
+        text: "Press E to dig for rare metals",
+        visible: true,
+        showCloseButton: false,
+        resourceType: 'copper'
+      });
+      
+      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+    }
+    
+    // Update resources
+    this.worldGenerator.getResources()[homeAreaKey] = homeResources;
   }
   
   addWalkingMarksAtHomeBase() {
@@ -380,9 +473,12 @@ export default class Game {
       }
     }
     
-    // Removed the 'd' key handler for durability upgrades
+    if (key === 'e' || key === 'E') {
+      // Handle resource collection and tutorial text dismissal
+      this.player.collectResource();
+    }
   }
-
+  
   resize() {
     this.worldGenerator.clearTextures();
     this.worldGenerator.generateNewArea(this.worldX, this.worldY);
@@ -400,6 +496,24 @@ export default class Game {
       if (mouseX > btnX && mouseX < btnX + btnWidth && 
           mouseY > btnY && mouseY < btnY + btnHeight) {
         this.gameStarted = true;
+      }
+      return;
+    }
+    
+    // Handle click for tutorial dismissal
+    let currentObstacles = this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`] || [];
+    for (let obs of currentObstacles) {
+      if (obs.type === 'tutorialText' && obs.visible && obs.showCloseButton) {
+        // Check if close button is clicked
+        const closeButtonX = obs.x + obs.width/2 - 10;
+        const closeButtonY = obs.y - obs.height - 5;
+        const closeButtonRadius = 5;
+        
+        // Calculate distance from click to button center
+        const distance = Math.sqrt((mouseX - closeButtonX) ** 2 + (mouseY - closeButtonY) ** 2);
+        if (distance <= closeButtonRadius) {
+          obs.visible = false;
+        }
       }
     }
   }
