@@ -1,4 +1,3 @@
-
 export interface PlayerType {
   x: number;
   y: number;
@@ -20,6 +19,7 @@ export interface PlayerType {
   startDigging: (target: any) => void;
   updateDigging: () => void;
   displayDigProgress: () => void;
+  render: () => void;
 }
 
 export interface HoverbikeType {
@@ -45,6 +45,7 @@ export interface HoverbikeType {
   display: () => void;
   upgradeSpeed: () => void;
   upgradeDurability: () => void;
+  render: () => void;
 }
 
 // String hashCode extension
