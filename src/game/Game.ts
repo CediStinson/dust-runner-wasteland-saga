@@ -1,9 +1,9 @@
-
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
 import WorldGenerator from '../world/WorldGenerator';
 import GameRenderer from '../rendering/GameRenderer';
+import HomeBaseUtilities from '../world/generators/HomeBaseUtilities';
 import { emitGameStateUpdate } from '../utils/gameUtils';
 
 export default class Game {
@@ -135,43 +135,7 @@ export default class Game {
     const hasFuelPump = homeObstacles.some(obs => obs.type === 'fuelPump');
     
     if (!hasFuelPump) {
-      // Move fuel pump closer to hut and rotate it 135 degrees
-      const hutPosition = { x: this.p.width / 2, y: this.p.height / 2 };
-      
-      // Add fuel stains first (so they render underneath)
-      // Create multiple fixed stains with different seed angles
-      homeObstacles.push({
-        type: 'fuelStain',
-        x: hutPosition.x + 40, 
-        y: hutPosition.y - 40, // Position closer to the hut
-        seedAngle: 0.5,
-        size: 1.2
-      });
-      
-      homeObstacles.push({
-        type: 'fuelStain',
-        x: hutPosition.x + 50,
-        y: hutPosition.y - 35,
-        seedAngle: 2.1,
-        size: 0.9
-      });
-      
-      homeObstacles.push({
-        type: 'fuelStain',
-        x: hutPosition.x + 35,
-        y: hutPosition.y - 45,
-        seedAngle: 4.2,
-        size: 1.0
-      });
-      
-      // Add fuel pump without stains now (stains are separate objects)
-      homeObstacles.push({
-        type: 'fuelPump',
-        x: hutPosition.x + 40, 
-        y: hutPosition.y - 40, // Position closer to the hut
-        size: 1.0,
-        rotation: 135 * (Math.PI / 180) // Rotate 135 degrees clockwise (convert to radians)
-      });
+      homeObstacles = HomeBaseUtilities.addFuelStationToArea(this.p, homeObstacles);
       
       // Update the world generator's obstacles
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
@@ -186,22 +150,7 @@ export default class Game {
     const hasTarp = homeObstacles.some(obs => obs.type === 'tarp');
     
     if (!hasTarp) {
-      // Add tarp close to the hut on the left side
-      const hutPosition = { x: this.p.width / 2, y: this.p.height / 2 };
-      
-      homeObstacles.push({
-        type: 'tarp',
-        x: hutPosition.x - 60, // Left side of hut
-        y: hutPosition.y - 30, // Slightly offset from center
-        width: 70,
-        height: 50,
-        rotation: 0.2, // Slight rotation for natural look
-        holePositions: [
-          { x: 0.2, y: 0.3, size: 5 },
-          { x: 0.7, y: 0.6, size: 8 },
-          { x: 0.5, y: 0.2, size: 3 }
-        ]
-      });
+      homeObstacles = HomeBaseUtilities.addTarpToArea(this.p, homeObstacles);
       
       // Update the world generator's obstacles
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
@@ -216,22 +165,7 @@ export default class Game {
     const hasWalkingMarks = homeObstacles.some(obs => obs.type === 'walkingMarks');
     
     if (!hasWalkingMarks) {
-      // Add multiple footprint sets in a pattern approaching the home base
-      // Use fixed positions for stability
-      const walkingMarkPositions = [
-        { x: this.p.width / 2 - 80, y: this.p.height / 2 + 60, angle: 0.8, size: 0.9, opacity: 170 },
-        { x: this.p.width / 2 + 45, y: this.p.height / 2 + 75, angle: 5.5, size: 0.8, opacity: 150 },
-        { x: this.p.width / 2 - 30, y: this.p.height / 2 - 65, angle: 2.2, size: 1.0, opacity: 190 },
-        { x: this.p.width / 2 + 80, y: this.p.height / 2 - 15, angle: 3.7, size: 0.7, opacity: 160 },
-        { x: this.p.width / 2 - 60, y: this.p.height / 2 - 25, angle: 1.3, size: 0.85, opacity: 180 }
-      ];
-      
-      for (const position of walkingMarkPositions) {
-        homeObstacles.push({
-          type: 'walkingMarks',
-          ...position
-        });
-      }
+      homeObstacles = HomeBaseUtilities.addWalkingMarksToArea(this.p, homeObstacles);
       
       // Update the world generator's obstacles
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;

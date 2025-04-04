@@ -18,7 +18,7 @@ export interface ShapeSegment {
   points: ShapePoint[];
 }
 
-// Improve type safety by making this a discriminated union
+// Shape is now a discriminated union type
 export type Shape = ShapePoint[] | ShapeSegment[];
 
 export interface ObstacleObject extends WorldObject {
@@ -35,6 +35,8 @@ export interface ObstacleObject extends WorldObject {
 
 export interface ResourceObject extends WorldObject {
   collected: boolean;
+  rotation?: number;
+  buried?: number;
 }
 
 export interface RendererConfig {
@@ -45,4 +47,8 @@ export interface RendererConfig {
   worldX: number;
   worldY: number;
   timeOfDay: number;
+}
+
+export interface TextureStore {
+  [key: string]: p5.Graphics | null;
 }
