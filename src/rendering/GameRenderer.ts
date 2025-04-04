@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -44,9 +43,6 @@ export default class GameRenderer {
   }
   
   applyDaytimeTint() {
-    // Apply color tint based on time of day
-    // 0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset, 1 = midnight
-    
     // Clear any previous tint
     this.p.noTint();
     
