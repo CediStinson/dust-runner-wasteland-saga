@@ -1,5 +1,5 @@
+
 import p5 from 'p5';
-import { StringType } from '../utils/gameUtils';
 
 export default class WorldGenerator {
   p: any;
@@ -264,5 +264,11 @@ export default class WorldGenerator {
     
     this.obstacles[`${x},${y}`] = obstacles;
     this.resources[`${x},${y}`] = resources;
+  }
+
+  // Add the method that's being called in Game.ts
+  generateNewArea(x: number, y: number) {
+    // Simply call the existing generateArea method
+    this.generateArea(x, y);
   }
 }
