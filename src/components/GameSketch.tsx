@@ -58,11 +58,18 @@ const GameSketch = () => {
         p.resizeCanvas(p.windowWidth, p.windowHeight);
         game.resize();
       };
+      
+      // Listen for skip to morning event
+      window.addEventListener('skipToMorning', () => {
+        game.skipToMorning();
+      });
     };
 
     const myP5 = new p5(sketch, sketchRef.current);
 
     return () => {
+      // Clean up event listener
+      window.removeEventListener('skipToMorning', () => {});
       myP5.remove();
     };
   }, [sketchRef]);

@@ -25,6 +25,8 @@ export default class Hoverbike implements HoverbikeType {
   previousAcceleration: number;
   smokeParticles: Array<{x: number, y: number, worldX: number, worldY: number, opacity: number, size: number, age: number}>;
   isRiding: boolean;
+  fuelRefillRate: number;
+  lastFuelRefill: number;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -48,6 +50,8 @@ export default class Hoverbike implements HoverbikeType {
     this.previousAcceleration = 0;
     this.smokeParticles = [];
     this.isRiding = false;
+    this.fuelRefillRate = 0.2; // How much fuel to add per refill tick
+    this.lastFuelRefill = 0;
   }
 
   update() {
@@ -56,7 +60,6 @@ export default class Hoverbike implements HoverbikeType {
       this.handleControls();
       this.applyMovement();
       this.checkCollisions();
-      this.checkFuelRefill();
       this.updateSmokeParticles();
       
       if (this.collisionCooldown > 0) {
@@ -67,6 +70,9 @@ export default class Hoverbike implements HoverbikeType {
       if (this.isRiding) {
         this.isRiding = false;
       }
+      
+      // Check for fuel refill when player is not riding
+      this.checkFuelRefill();
       this.updateSmokeParticles();
     }
   }
@@ -171,12 +177,12 @@ export default class Hoverbike implements HoverbikeType {
   
   addSmokeParticle() {
     // Calculate position behind the hoverbike (opposing the direction of travel)
-    const offsetDistance = 20;
+    const offsetDistance = 24; // Increased to better follow the back of the hoverbike
     const smokeX = -offsetDistance * Math.cos(this.angle);
     const smokeY = -offsetDistance * Math.sin(this.angle);
     
-    // Add minimal randomness to the position for a smoother trail
-    const jitter = 1.5;
+    // Add more randomness to create a dispersing trail effect
+    const jitter = 3;
     const randomX = this.p.random(-jitter, jitter);
     const randomY = this.p.random(-jitter, jitter);
     
@@ -186,7 +192,7 @@ export default class Hoverbike implements HoverbikeType {
       worldX: this.worldX,
       worldY: this.worldY,
       opacity: 150, // Start with lower opacity for subtler effect
-      size: this.p.random(3, 4),
+      size: this.p.random(4, 6), // Slightly larger for better visibility
       age: 0
     });
   }
@@ -288,8 +294,10 @@ export default class Hoverbike implements HoverbikeType {
   }
   
   checkFuelRefill() {
-    // Only check for refill if we have fuel less than max
-    if (this.fuel >= this.maxFuel) return;
+    // Only check for refill if:
+    // 1. We have fuel less than max
+    // 2. Player is not riding
+    if (this.fuel >= this.maxFuel || this.player.riding) return;
     
     let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
     for (let obs of currentObstacles) {
@@ -300,10 +308,15 @@ export default class Hoverbike implements HoverbikeType {
         
         // If close to fuel pump, refill fuel at a reasonable rate
         if (distance < 40 && this.fuel < this.maxFuel) {
-          const oldFuel = this.fuel;
-          this.fuel = Math.min(this.maxFuel, this.fuel + 0.5);
-          if (oldFuel !== this.fuel && this.p.frameCount % 10 === 0) {
-            emitGameStateUpdate(this.player, this);
+          // Only refill every few frames for a slower refill effect
+          if (this.p.frameCount - this.lastFuelRefill > 10) {
+            const oldFuel = this.fuel;
+            this.fuel = Math.min(this.maxFuel, this.fuel + this.fuelRefillRate);
+            this.lastFuelRefill = this.p.frameCount;
+            
+            if (oldFuel !== this.fuel && this.p.frameCount % 10 === 0) {
+              emitGameStateUpdate(this.player, this);
+            }
           }
         }
       }

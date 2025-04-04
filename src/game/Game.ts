@@ -21,6 +21,7 @@ export default class Game {
   gameStarted: boolean;
   dayTimeIcon: string; // "sun" or "moon"
   dayTimeAngle: number; // Position on the circle
+  lastHomeAreaLeave: boolean;
 
   constructor(p: any) {
     this.p = p;
@@ -33,6 +34,7 @@ export default class Game {
     this.gameStarted = false;
     this.dayTimeIcon = "sun"; // Start with the sun
     this.dayTimeAngle = this.timeOfDay * Math.PI * 2; // Calculate initial angle
+    this.lastHomeAreaLeave = false;
     
     this.worldGenerator = new WorldGenerator(p);
     
@@ -41,11 +43,14 @@ export default class Game {
     this.player = {} as Player;
     this.hoverbike = {} as Hoverbike;
     
+    // Make sure to initialize the home base area first
+    this.worldGenerator.generateNewArea(0, 0);
+    
     // Now fully initialize them with proper references
     this.player = new Player(
       p, 
-      p.width / 2, 
-      p.height / 2 - 50, 
+      p.width / 2 + 50, // Start player near hut
+      p.height / 2, 
       this.worldX, 
       this.worldY, 
       this.worldGenerator.getObstacles(), 
@@ -54,10 +59,11 @@ export default class Game {
       this.riding
     );
     
+    // Initialize hoverbike under the tarp
     this.hoverbike = new Hoverbike(
       p, 
-      p.width / 2, 
-      p.height / 2, 
+      p.width / 2 - 50, // Start bike under the tarp
+      p.height / 2 - 10,
       this.worldX, 
       this.worldY, 
       this.worldGenerator.getObstacles(),
@@ -77,22 +83,94 @@ export default class Game {
       this.timeOfDay
     );
     
-    // Generate the initial area
-    this.worldGenerator.generateNewArea(0, 0);
+    // Add the home base elements
+    this.setupHomeBase();
     
     // Initialize UI values
     emitGameStateUpdate(this.player, this.hoverbike);
-    
+  }
+
+  setupHomeBase() {
     // Add the fuel station at home base
     this.addFuelStationAtHomeBase();
     
     // Add walking marks
     this.addWalkingMarksAtHomeBase();
+    
+    // Add tarp
+    this.addTarpAtHomeBase();
+    
+    // Add sand dune streaks
+    this.addSandDunesHome();
+  }
+  
+  addSandDunesHome() {
+    const homeAreaKey = "0,0";
+    let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
+    
+    // Add sand dune streaks
+    const hasDunes = homeObstacles.some(obs => obs.type === 'sandDune');
+    
+    if (!hasDunes) {
+      // Add a few subtle sand dune streaks
+      const dunePositions = [
+        { x: this.p.width / 2 - 150, y: this.p.height / 2 + 100, angle: 0.3, length: 200, width: 15 },
+        { x: this.p.width / 2 + 200, y: this.p.height / 2 - 120, angle: 2.1, length: 250, width: 20 },
+        { x: this.p.width / 2 - 100, y: this.p.height / 2 - 180, angle: 5.5, length: 180, width: 12 },
+        { x: this.p.width / 2 + 80, y: this.p.height / 2 + 60, angle: 1.2, length: 150, width: 18 }
+      ];
+      
+      for (const dune of dunePositions) {
+        homeObstacles.push({
+          type: 'sandDune',
+          ...dune
+        });
+      }
+      
+      // Update the world generator's obstacles
+      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+    }
+  }
+  
+  addTarpAtHomeBase() {
+    const homeAreaKey = "0,0";
+    let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
+    
+    // Add tarp if it doesn't exist
+    const hasTarp = homeObstacles.some(obs => obs.type === 'tarp');
+    
+    if (!hasTarp) {
+      // Get hut position
+      const hut = homeObstacles.find(obs => obs.type === 'hut');
+      if (hut) {
+        // Place tarp to the left of the hut
+        homeObstacles.push({
+          type: 'tarp',
+          x: hut.x - 50, // To the left of the hut
+          y: hut.y, // Same y-position as the hut
+          angle: 0.2, // Slight angle for realism
+          size: 1.2
+        });
+      }
+      
+      // Update the world generator's obstacles
+      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+    }
   }
 
   addFuelStationAtHomeBase() {
     const homeAreaKey = "0,0";
     let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
+    
+    // Get hut position first
+    const hut = homeObstacles.find(obs => obs.type === 'hut');
+    let hutX = this.p.width / 2;
+    let hutY = this.p.height / 2;
+    
+    if (hut) {
+      hutX = hut.x;
+      hutY = hut.y;
+    }
     
     // Add fuel pump if it doesn't exist
     const hasFuelPump = homeObstacles.some(obs => obs.type === 'fuelPump');
@@ -102,24 +180,24 @@ export default class Game {
       // Create multiple fixed stains with different seed angles
       homeObstacles.push({
         type: 'fuelStain',
-        x: this.p.width / 2 + 100,
-        y: this.p.height / 2 - 45, // Slightly offset from the pump
+        x: hutX + 40,
+        y: hutY - 45, // Slightly offset from the pump
         seedAngle: 0.5,
         size: 1.2
       });
       
       homeObstacles.push({
         type: 'fuelStain',
-        x: this.p.width / 2 + 110,
-        y: this.p.height / 2 - 40,
+        x: hutX + 50,
+        y: hutY - 40,
         seedAngle: 2.1,
         size: 0.9
       });
       
       homeObstacles.push({
         type: 'fuelStain',
-        x: this.p.width / 2 + 95,
-        y: this.p.height / 2 - 55,
+        x: hutX + 45,
+        y: hutY - 55,
         seedAngle: 4.2,
         size: 1.0
       });
@@ -127,9 +205,10 @@ export default class Game {
       // Add fuel pump without stains now (stains are separate objects)
       homeObstacles.push({
         type: 'fuelPump',
-        x: this.p.width / 2 + 100,
-        y: this.p.height / 2 - 50,
+        x: hutX + 40,
+        y: hutY - 50,
         size: 1.0,
+        angle: 3 * Math.PI / 4, // Rotate 135 degrees clockwise
       });
       
       // Update the world generator's obstacles
@@ -141,18 +220,52 @@ export default class Game {
     const homeAreaKey = "0,0";
     let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
     
+    // Get hut position
+    const hut = homeObstacles.find(obs => obs.type === 'hut');
+    let hutX = this.p.width / 2;
+    let hutY = this.p.height / 2;
+    
+    if (hut) {
+      hutX = hut.x;
+      hutY = hut.y;
+    }
+    
     // Add walking marks
     const hasWalkingMarks = homeObstacles.some(obs => obs.type === 'walkingMarks');
     
     if (!hasWalkingMarks) {
       // Add multiple footprint sets in a pattern approaching the home base
-      // Use fixed positions for stability
+      // Create paths between hut and fuel pump, and other important areas
+      
+      // Path from hut to fuel pump
+      if (hut) {
+        const fuelPump = homeObstacles.find(obs => obs.type === 'fuelPump');
+        if (fuelPump) {
+          const pathAngle = Math.atan2(fuelPump.y - hutY, fuelPump.x - hutX);
+          
+          for (let i = 0.2; i <= 0.8; i += 0.2) {
+            const x = hutX + (fuelPump.x - hutX) * i;
+            const y = hutY + (fuelPump.y - hutY) * i;
+            
+            homeObstacles.push({
+              type: 'walkingMarks',
+              x: x,
+              y: y,
+              angle: pathAngle,
+              size: 0.8,
+              opacity: 160
+            });
+          }
+        }
+      }
+      
+      // Additional general paths
       const walkingMarkPositions = [
-        { x: this.p.width / 2 - 80, y: this.p.height / 2 + 60, angle: 0.8, size: 0.9, opacity: 170 },
-        { x: this.p.width / 2 + 45, y: this.p.height / 2 + 75, angle: 5.5, size: 0.8, opacity: 150 },
-        { x: this.p.width / 2 - 30, y: this.p.height / 2 - 65, angle: 2.2, size: 1.0, opacity: 190 },
-        { x: this.p.width / 2 + 80, y: this.p.height / 2 - 15, angle: 3.7, size: 0.7, opacity: 160 },
-        { x: this.p.width / 2 - 60, y: this.p.height / 2 - 25, angle: 1.3, size: 0.85, opacity: 180 }
+        { x: hutX - 80, y: hutY + 60, angle: 0.8, size: 0.9, opacity: 170 },
+        { x: hutX + 45, y: hutY + 75, angle: 5.5, size: 0.8, opacity: 150 },
+        { x: hutX - 30, y: hutY - 65, angle: 2.2, size: 1.0, opacity: 190 },
+        { x: hutX + 80, y: hutY - 15, angle: 3.7, size: 0.7, opacity: 160 },
+        { x: hutX - 60, y: hutY - 25, angle: 1.3, size: 0.85, opacity: 180 }
       ];
       
       for (const position of walkingMarkPositions) {
@@ -185,6 +298,11 @@ export default class Game {
     
     // Update renderer with time of day
     this.renderer.setTimeOfDay(this.timeOfDay);
+    
+    // Check if player left home area
+    if (this.worldX !== 0 || this.worldY !== 0) {
+      this.lastHomeAreaLeave = true;
+    }
   }
 
   updateTimeOfDay() {
@@ -205,6 +323,16 @@ export default class Game {
     } else {
       this.dayTimeIcon = "moon";
     }
+  }
+  
+  skipToMorning() {
+    // Set time to sunrise (0.25)
+    this.timeOfDay = 0.25;
+    this.dayTimeIcon = "sun";
+    this.dayTimeAngle = this.timeOfDay * Math.PI * 2;
+    
+    // Update renderer
+    this.renderer.setTimeOfDay(this.timeOfDay);
   }
 
   render() {
@@ -379,8 +507,6 @@ export default class Game {
         emitGameStateUpdate(this.player, this.hoverbike);
       }
     }
-    
-    // Removed the 'd' key handler for durability upgrades
   }
 
   resize() {
