@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class WorldGenerator {
@@ -125,13 +124,11 @@ export default class WorldGenerator {
   }
 
   generateHutShape(size: number) {
-    // Create proper hut shape with points
     let shape = [];
     let baseWidth = 30 * size;
     let baseHeight = 20 * size;
     let cornerRounding = 3 * size;
     
-    // Create a rounded rectangle shape for the hut
     shape.push({ x: -baseWidth/2 + cornerRounding, y: baseHeight/2 });
     shape.push({ x: -baseWidth/2, y: baseHeight/2 - cornerRounding });
     shape.push({ x: -baseWidth/2, y: -baseHeight/2 + cornerRounding });
@@ -245,7 +242,8 @@ export default class WorldGenerator {
             size: size
           });
         }
-        for (let i = 0; i < 2; i++) {
+        
+        for (let i = 0; i < 4; i++) {
           let size = this.p.random(0.5, 1.2);
           areaObstacles.push({ 
             x: this.p.random(this.p.width), 
@@ -278,7 +276,8 @@ export default class WorldGenerator {
             size: size
           });
         }
-        for (let i = 0; i < 3; i++) {
+        
+        for (let i = 0; i < 6; i++) {
           let size = this.p.random(0.5, 1.2);
           areaObstacles.push({ 
             x: this.p.random(this.p.width), 
@@ -300,7 +299,6 @@ export default class WorldGenerator {
     let areaResources = [];
     
     for (let i = 0; i < 5; i++) {
-      // Generate points for metal scrap
       const pointCount = 6;
       const points = [];
       for (let j = 0; j < pointCount; j++) {
@@ -319,15 +317,18 @@ export default class WorldGenerator {
         rotation: this.p.random(this.p.TWO_PI),
         size: this.p.random(0.7, 1.3),
         buried: this.p.random(0.3, 0.7),
-        points: points
+        points: points,
+        collected: false
       });
     }
     
     let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
     
     for (let rock of rocks) {
-      if (this.p.random() < 0.4) {
-        areaResources.push(this.generateCopperOre(`${x},${y}`, rock));
+      if (this.p.random() < 0.25) {
+        let copperOre = this.generateCopperOre(`${x},${y}`, rock);
+        copperOre.collected = false;
+        areaResources.push(copperOre);
       }
     }
     

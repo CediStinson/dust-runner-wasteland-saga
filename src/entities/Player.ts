@@ -79,23 +79,6 @@ export default class Player implements PlayerType {
               willCollide = true;
               break;
             }
-          } else if (obs.type === 'cactus') {
-            let dx = newX - obs.x;
-            let dy = newY - obs.y;
-            let hitboxWidth = 15 * obs.size;
-            let distance = this.p.sqrt(dx * dx + dy * dy);
-            
-            if (distance < hitboxWidth) {
-              willCollide = true;
-              if (this.p.frameCount % 30 === 0) {
-                const oldHealth = this.health;
-                this.health = this.p.max(0, this.health - 1);
-                if (oldHealth !== this.health) {
-                  emitGameStateUpdate(this, this.hoverbike);
-                }
-              }
-              break;
-            }
           }
         }
         
@@ -108,6 +91,7 @@ export default class Player implements PlayerType {
         }
         
         this.checkForCollectableResources();
+        this.checkForCactusCollision();
       }
     } else {
       this.x = this.hoverbike.x;
@@ -225,8 +209,35 @@ export default class Player implements PlayerType {
     }
   }
 
+  checkForCactusCollision() {
+    if (this.riding) return; // Don't check for damage if riding the hoverbike
+    
+    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+    
+    for (let obs of currentObstacles) {
+      if (obs.type === 'cactus') {
+        let dx = this.x - obs.x;
+        let dy = this.y - obs.y;
+        let hitboxWidth = 15 * obs.size;
+        let distance = this.p.sqrt(dx * dx + dy * dy);
+        
+        if (distance < hitboxWidth) {
+          if (this.p.frameCount % 30 === 0) { // Apply damage every 30 frames (0.5 seconds)
+            const oldHealth = this.health;
+            this.health = this.p.max(0, this.health - 1);
+            if (oldHealth !== this.health) {
+              emitGameStateUpdate(this, this.hoverbike);
+            }
+          }
+        }
+      }
+    }
+  }
+
   checkForCollectableResources() {
     let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
+    let firstMetal = this.getFirstMetalScrap();
+    let firstCopper = this.getFirstCopperOre();
     
     for (let res of currentResources) {
       if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
@@ -237,9 +248,60 @@ export default class Player implements PlayerType {
         this.p.textAlign(this.p.CENTER);
         this.p.textSize(8);
         this.p.text("E", res.x, res.y - 13);
+        
+        // Show tutorial text for the first metal scrap
+        if (res === firstMetal && !res.collected) {
+          this.p.textSize(10);
+          this.p.fill(0, 0, 0, 80);
+          this.p.rect(res.x, res.y - 35, 200, 20, 5);
+          this.p.fill(255);
+          this.p.text("Press E to gather metal scraps and other resources laying on the ground.", res.x, res.y - 30);
+        }
+        
+        this.p.pop();
+      }
+      
+      if (res.type === 'copper' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
+        this.p.push();
+        this.p.fill(255, 255, 100, 150);
+        this.p.ellipse(res.x, res.y - 15, 5, 5);
+        this.p.fill(255);
+        this.p.textAlign(this.p.CENTER);
+        this.p.textSize(8);
+        this.p.text("E", res.x, res.y - 13);
+        
+        // Show tutorial text for the first copper ore
+        if (res === firstCopper && !res.collected) {
+          this.p.textSize(10);
+          this.p.fill(0, 0, 0, 80);
+          this.p.rect(res.x, res.y - 35, 200, 20, 5);
+          this.p.fill(255);
+          this.p.text("Press E to dig for rare metals.", res.x, res.y - 30);
+        }
+        
         this.p.pop();
       }
     }
+  }
+  
+  getFirstMetalScrap() {
+    let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
+    for (let res of currentResources) {
+      if (res.type === 'metal') {
+        return res;
+      }
+    }
+    return null;
+  }
+  
+  getFirstCopperOre() {
+    let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
+    for (let res of currentResources) {
+      if (res.type === 'copper') {
+        return res;
+      }
+    }
+    return null;
   }
 
   collectResource() {
@@ -249,6 +311,7 @@ export default class Player implements PlayerType {
       let res = currentResources[i];
       if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
         this.inventory.metal++;
+        res.collected = true; // Mark as collected for tutorial purposes
         currentResources.splice(i, 1);
         emitGameStateUpdate(this, this.hoverbike);
       }
@@ -287,6 +350,7 @@ export default class Player implements PlayerType {
       if (currentResources) {
         let index = currentResources.indexOf(this.digTarget);
         if (index !== -1) {
+          this.digTarget.collected = true; // Mark as collected for tutorial purposes
           currentResources.splice(index, 1);
         }
       }
