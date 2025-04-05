@@ -1,5 +1,5 @@
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, PostgrestSingleResponse } from '@supabase/supabase-js';
 
 // Get environment variables with fallbacks
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -23,13 +23,16 @@ export const supabase = hasValidSupabaseCredentials()
 // Mock client to prevent runtime errors
 function createMockSupabaseClient() {
   // Basic mock that returns empty data and prevents app crashes
-  const mockErrorResponse = {
+  const mockErrorResponse: PostgrestSingleResponse<any> = {
     data: null, 
-    error: new Error('Supabase credentials not configured')
+    error: new Error('Supabase credentials not configured'),
+    count: null,
+    status: 400,
+    statusText: 'Bad Request'
   };
   
   // Create a more complete chain of methods to avoid TypeScript errors
-  const mockQueryBuilder = {
+  const mockQueryBuilder: any = {
     select: () => mockQueryBuilder,
     eq: () => mockQueryBuilder,
     single: () => Promise.resolve(mockErrorResponse),
@@ -59,28 +62,30 @@ export const saveGameState = async (userId: string, gameState: any) => {
 
   try {
     // Check if game state already exists for this user
-    const { data: existingData } = await supabase
+    const { data: existingData, error: fetchError } = await supabase
       .from('game_saves')
       .select('*')
       .eq('user_id', userId)
       .single();
     
+    if (fetchError && fetchError.message !== 'No rows found') throw fetchError;
+    
     if (existingData) {
       // Update existing save
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('game_saves')
         .update({ state: gameState, updated_at: new Date() })
         .eq('user_id', userId);
         
-      if (error) throw error;
+      if (updateError) throw updateError;
       return { success: true, message: 'Game saved successfully!' };
     } else {
       // Create new save
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('game_saves')
         .insert([{ user_id: userId, state: gameState }]);
         
-      if (error) throw error;
+      if (insertError) throw insertError;
       return { success: true, message: 'Game saved successfully!' };
     }
   } catch (error: any) {
@@ -103,7 +108,7 @@ export const loadGameState = async (userId: string) => {
       .eq('user_id', userId)
       .single();
       
-    if (error) throw error;
+    if (error && error.message !== 'No rows found') throw error;
     return { success: true, data: data?.state || null };
   } catch (error: any) {
     console.error('Error loading game:', error);
