@@ -35,8 +35,7 @@ function createMockSupabaseClient() {
     single: () => Promise.resolve(mockErrorResponse),
     insert: () => mockQueryBuilder,
     update: () => mockQueryBuilder,
-    from: () => mockQueryBuilder,
-    then: (callback: any) => Promise.resolve(mockErrorResponse).then(callback),
+    from: () => mockQueryBuilder
   };
   
   return {
