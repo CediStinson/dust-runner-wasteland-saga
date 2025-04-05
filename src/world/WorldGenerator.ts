@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class WorldGenerator {
@@ -10,6 +11,7 @@ export default class WorldGenerator {
   obstacles: Record<string, any[]>;
   resources: Record<string, any[]>;
   cactusProb: number;
+  windmillAngle: number;  // Add windmill angle property
 
   constructor(p: any) {
     this.p = p;
@@ -21,6 +23,7 @@ export default class WorldGenerator {
     this.obstacles = {};
     this.resources = {};
     this.cactusProb = 0.05; // Increased probability for cactus generation
+    this.windmillAngle = 0; // Initialize windmill angle
   }
 
   generateNoise(x: number, y: number) {
@@ -229,6 +232,27 @@ export default class WorldGenerator {
     this.generateResources(x, y);
     
     this.generatedAreas[areaKey] = true;
+  }
+  
+  // Add this method for compatibility with Game.ts
+  generateNewArea(x: number, y: number) {
+    this.generateArea(x, y);
+  }
+  
+  // Add this method for windmill animation
+  updateWindmillAngle() {
+    this.windmillAngle += 0.01;
+  }
+  
+  // Add this method to get the windmill angle
+  getWindmillAngle() {
+    return this.windmillAngle;
+  }
+  
+  // Add this method for compatibility with Game.ts
+  clearTextures() {
+    // This would clear any cached textures if we had any
+    // For now, it's just a stub method for compatibility
   }
   
   getObstacles() {
