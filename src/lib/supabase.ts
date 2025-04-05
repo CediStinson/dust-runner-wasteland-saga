@@ -1,5 +1,5 @@
 
-import { createClient, PostgrestSingleResponse } from '@supabase/supabase-js';
+import { createClient, PostgrestSingleResponse, PostgrestError } from '@supabase/supabase-js';
 
 // Get environment variables with fallbacks
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -22,10 +22,18 @@ export const supabase = hasValidSupabaseCredentials()
 
 // Mock client to prevent runtime errors
 function createMockSupabaseClient() {
+  // Create a properly formatted PostgrestError
+  const mockError: PostgrestError = {
+    message: 'Supabase credentials not configured',
+    details: '',
+    hint: 'Set your Supabase URL and Anonymous Key in environment variables',
+    code: 'not_configured'
+  };
+  
   // Basic mock that returns empty data and prevents app crashes
   const mockErrorResponse: PostgrestSingleResponse<any> = {
     data: null, 
-    error: new Error('Supabase credentials not configured'),
+    error: mockError,
     count: null,
     status: 400,
     statusText: 'Bad Request'
@@ -44,8 +52,8 @@ function createMockSupabaseClient() {
   return {
     from: () => mockQueryBuilder,
     auth: {
-      signInWithPassword: async () => ({ data: null, error: new Error('Supabase credentials not configured') }),
-      signUp: async () => ({ data: null, error: new Error('Supabase credentials not configured') }),
+      signInWithPassword: async () => ({ data: null, error: mockError }),
+      signUp: async () => ({ data: null, error: mockError }),
       signOut: async () => ({ error: null }),
       getSession: async () => ({ data: { session: null }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
