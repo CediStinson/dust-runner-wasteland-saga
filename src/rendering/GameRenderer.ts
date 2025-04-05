@@ -358,22 +358,22 @@ export default class GameRenderer {
     
     // Larger, more defined shadow
     this.p.fill(0, 0, 0, 50);
-    this.p.ellipse(8, 8, 45, 25);
+    this.p.ellipse(8, 8, 55, 35);
     
     // Base platform - concrete/metal pad
     this.p.fill(80, 80, 85);
-    this.p.rect(-20, -15, 40, 30, 2);
+    this.p.rect(-30, -25, 60, 50, 2);
     
     // Weathered concrete stains
     this.p.fill(100, 100, 100, 80);
-    this.p.ellipse(-10, 0, 15, 20);
+    this.p.ellipse(-10, 0, 25, 30);
     this.p.fill(90, 90, 90, 60);
-    this.p.ellipse(5, 8, 18, 12);
+    this.p.ellipse(5, 8, 28, 22);
     
     // Oil stains on platform
     this.p.fill(20, 20, 20, 70);
-    this.p.ellipse(0, -5, 15, 10);
-    this.p.ellipse(-5, 5, 8, 12);
+    this.p.ellipse(0, -5, 20, 15);
+    this.p.ellipse(-5, 15, 12, 18);
     
     // Draw the main pumpjack structure
     
@@ -466,6 +466,62 @@ export default class GameRenderer {
       this.p.fill(200, 50, 50, 180); // Red indicator light
       this.p.ellipse(-14, -16, 3, 3);
     }
+
+    // ----- FUEL STATION AREA -----
+    
+    // Fuel dispenser in front of the pumpjack
+    this.p.push();
+    this.p.translate(0, 30); // Position in front of the pumpjack
+    
+    // Dispenser base
+    this.p.fill(70, 70, 75);
+    this.p.rect(-10, -5, 20, 15, 2);
+    
+    // Dispenser body
+    this.p.fill(90, 50, 40); // Rusty red
+    this.p.rect(-8, -15, 16, 12, 1);
+    
+    // Display panel
+    this.p.fill(40, 40, 45);
+    this.p.rect(-5, -13, 10, 8, 1);
+    
+    // Display digits/numbers
+    this.p.fill(180, 60, 40);
+    for (let i = 0; i < 3; i++) {
+      this.p.rect(-3 + i * 2, -11, 1.5, 4, 0.5);
+    }
+    
+    // Fuel nozzle holder
+    this.p.fill(60, 60, 65);
+    this.p.rect(-6, -3, 12, 3, 1);
+    
+    // Fuel nozzle
+    this.p.fill(80, 80, 85);
+    this.p.rect(3, -2, 3, 6, 1);
+    
+    // Fuel hose
+    this.p.stroke(40, 40, 45);
+    this.p.strokeWeight(2);
+    this.p.noFill();
+    this.p.bezier(4, 0, 8, 4, 12, 5, 14, 2);
+    this.p.noStroke();
+    
+    // Rust patches on dispenser
+    this.p.fill(110, 70, 50, 180);
+    this.p.rect(-8, -8, 4, 5, 1);
+    this.p.ellipse(5, -10, 4, 3);
+    
+    // Ground marker lines
+    this.p.fill(255, 255, 0, 120); // Faded yellow
+    this.p.rect(-15, 12, 30, 2);
+    this.p.rect(-15, 16, 30, 2);
+    
+    // Worn parking spot
+    this.p.fill(70, 70, 75, 100);
+    this.p.rect(-20, -5, 40, 25, 3);
+    this.p.pop();
+    
+    // ----- END FUEL STATION AREA -----
     
     this.p.pop();
   }
