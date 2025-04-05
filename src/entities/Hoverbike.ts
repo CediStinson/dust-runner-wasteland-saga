@@ -305,16 +305,16 @@ export default class Hoverbike implements HoverbikeType {
         const minExhaustLength = 5;
         const maxExhaustLength = 25;
         const exhaustLength = this.p.map(this.thrustIntensity, 0, 5, minExhaustLength, maxExhaustLength);
-        const flameWidth = this.p.map(exhaustLength, minExhaustLength, maxExhaustLength, 4, 2);
-        
-        this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
-        this.p.ellipse(-28 - exhaustLength, 0, flameWidth, exhaustLength * 1.5);
-        
-        this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
-        this.p.ellipse(-32 - exhaustLength * 1.2, 0, flameWidth * 0.75, exhaustLength * 1.2);
+        const flameWidth = 4;
         
         this.p.fill(255, 50, 50, 200 + this.p.sin(this.p.frameCount * 0.3) * 55);
-        this.p.ellipse(-35 - exhaustLength * 1.5, 0, flameWidth * 0.5, exhaustLength);
+        this.p.ellipse(-28, 0, flameWidth, exhaustLength);
+        
+        this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
+        this.p.ellipse(-28, 0, flameWidth * 0.75, exhaustLength * 1.2);
+        
+        this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
+        this.p.ellipse(-28, 0, flameWidth * 0.5, exhaustLength * 1.5);
       }
       
       this.p.stroke(0);
