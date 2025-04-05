@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class WorldGenerator {
@@ -119,7 +120,8 @@ export default class WorldGenerator {
       x: oreX,
       y: oreY,
       type: 'copper',
-      shape: shape
+      shape: shape,
+      collected: false // Added collected property with default value false
     };
   }
 
@@ -327,7 +329,7 @@ export default class WorldGenerator {
     for (let rock of rocks) {
       if (this.p.random() < 0.25) {
         let copperOre = this.generateCopperOre(`${x},${y}`, rock);
-        copperOre.collected = false;
+        // Removed the extra assignment to collected as it's now part of the generateCopperOre return object
         areaResources.push(copperOre);
       }
     }
