@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -350,15 +349,15 @@ export default class Hoverbike implements HoverbikeType {
         
         // Outer glow - yellow/orange (furthest back)
         this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
-        this.p.ellipse(-28 - exhaustLength/2, 0, 4, Math.max(8, exhaustLength));
+        this.p.ellipse(-28 - exhaustLength, 0, 4, 8);
         
         // Inner glow - brighter orange (middle layer)
         this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
-        this.p.ellipse(-32 - exhaustLength/3, 0, 3, Math.max(6, exhaustLength * 0.8));
+        this.p.ellipse(-32 - exhaustLength * 1.2, 0, 3, 6);
         
         // Brightest core - red hot (innermost layer)
         this.p.fill(255, 50, 50, 200 + this.p.sin(this.p.frameCount * 0.3) * 55);
-        this.p.ellipse(-35 - exhaustLength/4, 0, 2, Math.max(4, exhaustLength * 0.6));
+        this.p.ellipse(-35 - exhaustLength * 1.5, 0, 2, 4);
       }
       
       // Side panels with makeshift repairs
