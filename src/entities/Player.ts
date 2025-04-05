@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -316,7 +317,7 @@ export default class Player implements PlayerType {
       const currentObstacles = this.obstacles["0,0"] || [];
       for (const obs of currentObstacles) {
         if (obs.type === 'fuelPump') {
-          return this.p.dist(this.x, this.y, obs.x, obs.y) < 50; // Increased refueling range from 40 to 50
+          return this.p.dist(this.x, this.y, obs.x, obs.y) < 70; // Increased refueling range from 50 to 70
         }
       }
     }

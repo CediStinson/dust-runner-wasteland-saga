@@ -141,6 +141,23 @@ export default class Game {
         size: 0.7
       });
       
+      // Add even more stains to indicate the larger refueling area
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 150,
+        y: this.p.height / 2 - 60,
+        seedAngle: 5.2,
+        size: 0.6
+      });
+      
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 70,
+        y: this.p.height / 2 - 90,
+        seedAngle: 2.5,
+        size: 0.75
+      });
+      
       // Add fuel pump without stains now (stains are separate objects)
       homeObstacles.push({
         type: 'fuelPump',

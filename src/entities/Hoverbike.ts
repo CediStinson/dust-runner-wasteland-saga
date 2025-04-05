@@ -22,8 +22,8 @@ export default class Hoverbike implements HoverbikeType {
   obstacles: Record<string, any[]>;
   player: any;
   previousAcceleration: number;
-  smokeParticles: Array<{x: number, y: number, worldX: number, worldY: number, opacity: number, size: number, age: number}>;
   isRiding: boolean;
+  thrustIntensity: number;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -45,8 +45,8 @@ export default class Hoverbike implements HoverbikeType {
     this.durabilityLevel = 0;
     this.collisionCooldown = 0;
     this.previousAcceleration = 0;
-    this.smokeParticles = [];
     this.isRiding = false;
+    this.thrustIntensity = 0;
   }
 
   update() {
@@ -55,17 +55,21 @@ export default class Hoverbike implements HoverbikeType {
       this.handleControls();
       this.applyMovement();
       this.checkCollisions();
-      this.updateSmokeParticles();
+      
+      // Update thrust intensity based on velocity
+      const currentSpeed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
+      // Gradually adjust thrust intensity for smoother transitions
+      const targetIntensity = currentSpeed * 3; // Scale based on speed
+      this.thrustIntensity = this.p.lerp(this.thrustIntensity, targetIntensity, 0.1);
       
       if (this.collisionCooldown > 0) {
         this.collisionCooldown--;
       }
     } else {
-      // Track that we're not riding anymore to handle smoke fade-out
-      if (this.isRiding) {
-        this.isRiding = false;
-      }
-      this.updateSmokeParticles();
+      // Track that we're not riding anymore
+      this.isRiding = false;
+      // Gradually fade out thrust effect when not riding
+      this.thrustIntensity = this.p.max(0, this.thrustIntensity - 0.2);
       this.checkFuelRefill();
     }
   }
@@ -84,11 +88,6 @@ export default class Hoverbike implements HoverbikeType {
         if (oldFuel !== this.fuel) {
           emitGameStateUpdate(this.player, this);
         }
-      }
-      
-      // Generate smoke particles when accelerating - more consistent rate for smoother effect
-      if (this.p.frameCount % 4 === 0) {
-        this.addSmokeParticle();
       }
     } else if (this.p.keyIsDown(this.p.DOWN_ARROW)) {
       // If moving forward, brake first
@@ -125,15 +124,10 @@ export default class Hoverbike implements HoverbikeType {
             emitGameStateUpdate(this.player, this);
           }
         }
-        
-        // Generate smoke for reverse too - more consistent rate
-        if (this.p.frameCount % 5 === 0) {
-          this.addSmokeParticle();
-        }
       }
     }
     
-    // Store acceleration for particle effects
+    // Store acceleration for thrust effects
     this.previousAcceleration = acceleration;
 
     let turningVelocity = 0;
@@ -145,49 +139,6 @@ export default class Hoverbike implements HoverbikeType {
     this.velocityY += this.p.sin(this.angle) * acceleration;
     this.velocityX *= 0.95;
     this.velocityY *= 0.95;
-  }
-  
-  updateSmokeParticles() {
-    // Update existing smoke particles
-    for (let i = this.smokeParticles.length - 1; i >= 0; i--) {
-      const particle = this.smokeParticles[i];
-      
-      // Age the particle
-      particle.age += 1;
-      
-      // Calculate fade rate based on riding state
-      const fadeRate = this.isRiding ? 0.8 : 2.0; // Fade faster when dismounted
-      
-      // Smoother fade
-      particle.opacity -= fadeRate;
-      particle.size += 0.12; // Slower growth for smoother effect
-      
-      if (particle.opacity <= 0) {
-        this.smokeParticles.splice(i, 1);
-      }
-    }
-  }
-  
-  addSmokeParticle() {
-    // Calculate position behind the hoverbike (opposing the direction of travel)
-    const offsetDistance = 20;
-    const smokeX = -offsetDistance * Math.cos(this.angle);
-    const smokeY = -offsetDistance * Math.sin(this.angle);
-    
-    // Add minimal randomness to the position for a smoother trail
-    const jitter = 1.5;
-    const randomX = this.p.random(-jitter, jitter);
-    const randomY = this.p.random(-jitter, jitter);
-    
-    this.smokeParticles.push({
-      x: smokeX + randomX,
-      y: smokeY + randomY,
-      worldX: this.worldX,
-      worldY: this.worldY,
-      opacity: 150, // Start with lower opacity for subtler effect
-      size: this.p.random(3, 4),
-      age: 0
-    });
   }
 
   applyMovement() {
@@ -210,7 +161,7 @@ export default class Hoverbike implements HoverbikeType {
         } else if (obs.type === 'hut') {
           collisionRadius = 30; // Hut collision radius
         } else if (obs.type === 'fuelPump') {
-          collisionRadius = 25; // Fuel pump collision radius
+          collisionRadius = 35; // Fuel pump collision radius
         }
         
         let distance = this.p.sqrt(dx * dx + dy * dy);
@@ -301,7 +252,7 @@ export default class Hoverbike implements HoverbikeType {
         let distance = this.p.sqrt(dx * dx + dy * dy);
         
         // If close to fuel pump, refill fuel at a reasonable rate
-        if (distance < 40 && this.fuel < this.maxFuel) {
+        if (distance < 70 && this.fuel < this.maxFuel) { // Increased refueling range from 40 to 70
           const oldFuel = this.fuel;
           this.fuel = Math.min(this.maxFuel, this.fuel + 0.3);
           if (oldFuel !== this.fuel && this.p.frameCount % 10 === 0) {
@@ -317,19 +268,6 @@ export default class Hoverbike implements HoverbikeType {
       this.p.push();
       this.p.translate(this.x, this.y);
       this.p.rotate(this.angle); // Remove the PI/2 rotation so it faces the direction of travel
-      
-      // Draw smoke particles (behind the hoverbike)
-      this.p.noStroke(); // No outline for smoke
-      for (const particle of this.smokeParticles) {
-        // Only draw particles in the current world cell
-        if (particle.worldX === this.worldX && particle.worldY === this.worldY) {
-          // Simple line-like smoke effect - more consistent coloring
-          const smokeGray = 150 + this.p.map(particle.age, 0, 50, 0, 30); // Smoother color transition
-          this.p.fill(smokeGray, smokeGray, smokeGray, particle.opacity);
-          // Draw elongated particle (more like a line)
-          this.p.ellipse(particle.x, particle.y, particle.size * 1.5, particle.size * 0.8);
-        }
-      }
       
       // Main body - hoverbike with correct orientation (front facing forward, back in the rear)
       // First layer - base chassis (gray metallic)
@@ -391,12 +329,24 @@ export default class Hoverbike implements HoverbikeType {
       this.p.fill(50, 50, 55);
       this.p.rect(-15, -4, 4, 8, 1);
       
-      // Exhaust flame
+      // Enhanced exhaust flame - dynamic length based on thrust intensity
       this.p.noStroke();
+      
+      // Base glow - always present but minimal when not moving
+      const baseLength = 5; 
+      const thrustLength = baseLength + this.thrustIntensity;
+      
+      // Outer glow - yellow/orange
       this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
-      this.p.ellipse(-22, 0, 4, 8);
+      this.p.ellipse(-22, 0, 4, Math.max(8, thrustLength));
+      
+      // Inner glow - brighter, more intense
       this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
-      this.p.ellipse(-24, 0, 3, 5);
+      this.p.ellipse(-24, 0, 3, Math.max(5, thrustLength * 0.7));
+      
+      // Brightest core - red hot
+      this.p.fill(255, 50, 50, 200 + this.p.sin(this.p.frameCount * 0.3) * 55);
+      this.p.ellipse(-25, 0, 2, Math.max(3, thrustLength * 0.5));
       
       // Side panels with makeshift repairs
       this.p.stroke(0);
