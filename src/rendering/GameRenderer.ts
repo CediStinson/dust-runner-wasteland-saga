@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -354,7 +353,7 @@ export default class GameRenderer {
   drawFuelPump(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
-    this.p.rotate(this.p.radians(135)); // Rotate 135 degrees anti-clockwise
+    this.p.rotate(this.p.radians(125)); // Rotate 135 degrees anti-clockwise
     
     // Larger, more defined shadow
     this.p.fill(0, 0, 0, 50);
@@ -439,26 +438,6 @@ export default class GameRenderer {
     this.p.line(15, 4, 15, 12);
     this.p.line(15, 12, 25, 12);
     this.p.noStroke();
-    
-    // Small oil tank beside the pumpjack
-    this.p.fill(120, 50, 40); // Rusty tank color
-    this.p.ellipse(25, 0, 15, 15);
-    
-    // Tank top
-    this.p.fill(100, 40, 35);
-    this.p.ellipse(25, 0, 12, 12);
-    
-    // Heavy rust streaks on tank
-    this.p.fill(80, 40, 30, 180);
-    this.p.arc(25, 0, 15, 15, this.p.PI * 0.2, this.p.PI * 0.8);
-    
-    // Vent pipe on tank
-    this.p.fill(90, 50, 40);
-    this.p.rect(22, -8, 2, 8);
-    
-    // Small valve on pipes
-    this.p.fill(60, 60, 70);
-    this.p.ellipse(20, 12, 5, 5);
     
     // Small blinking light to indicate activity
     const blinkRate = Math.sin(this.p.frameCount * 0.05) > 0;
@@ -630,113 +609,4 @@ export default class GameRenderer {
           let p1 = part.points[0];
           let p2 = part.points[part.points.length - 1];
           let x = this.p.lerp(p1.x, p2.x, t);
-          let y = this.p.lerp(p1.y, p2.y, t);
-          this.p.ellipse(x - 3 * obs.size, y, 1 * obs.size, 1 * obs.size);
-          this.p.ellipse(x + 3 * obs.size, y, 1 * obs.size, 1 * obs.size);
-        }
-      } else if (part.type === 'arm') {
-        for (let i = 0; i < 3; i++) {
-          let t = i / 2;
-          let p1 = part.points[0];
-          let p2 = part.points[part.points.length - 1];
-          let x = this.p.lerp(p1.x, p2.x, t);
-          let y = this.p.lerp(p1.y, p2.y, t);
-          this.p.ellipse(x, y - 2 * obs.size, 1 * obs.size, 1 * obs.size);
-        }
-      }
-    }
-    
-    this.p.pop();
-  }
-
-  drawResources() {
-    let currentResources = this.worldGenerator.getResources()[`${this.worldX},${this.worldY}`] || [];
-    for (let res of currentResources) {
-      this.p.push();
-      this.p.translate(res.x, res.y);
-      
-      if (res.type === 'metal') {
-        // Rotate to random angle
-        this.p.rotate(res.rotation);
-        
-        // Half-buried metal scraps - lighter color, more square/sheet-like
-        let buriedDepth = res.buried; // 0.3-0.7, higher = more buried
-        
-        // Shadow under the metal
-        this.p.fill(80, 80, 80, 100);
-        this.p.ellipse(2, 2, 14 * res.size, 4 * res.size);
-        
-        // Base layer - buried part
-        this.p.fill(120, 120, 120);
-        this.p.beginShape();
-        this.p.vertex(-8 * res.size, buriedDepth * 5 * res.size);
-        this.p.vertex(8 * res.size, buriedDepth * 4 * res.size);
-        this.p.vertex(7 * res.size, buriedDepth * 8 * res.size);
-        this.p.vertex(-7 * res.size, buriedDepth * 7 * res.size);
-        this.p.endShape(this.p.CLOSE);
-        
-        // Main metal sheet
-        this.p.fill(200, 200, 210);
-        this.p.rect(-6 * res.size, -4 * res.size, 12 * res.size, 8 * res.size, 1);
-        
-        // Exposed part - showing above ground
-        let exposedHeight = this.p.map(buriedDepth, 0.3, 0.7, 6, 3);
-        this.p.fill(220, 220, 225);
-        this.p.rect(-5 * res.size, -4 * res.size, 10 * res.size, exposedHeight * res.size, 1);
-        
-        // Add details - rivets, bends, tears
-        this.p.fill(180, 180, 185);
-        this.p.ellipse(-4 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
-        this.p.ellipse(0 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
-        this.p.ellipse(4 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
-        
-        // Bent/torn edge
-        this.p.fill(210, 210, 215);
-        this.p.beginShape();
-        this.p.vertex(6 * res.size, -2 * res.size);
-        this.p.vertex(7 * res.size, -1 * res.size);
-        this.p.vertex(8 * res.size, -3 * res.size);
-        this.p.vertex(7 * res.size, -4 * res.size);
-        this.p.endShape(this.p.CLOSE);
-        
-        // Rust spots
-        this.p.fill(180, 120, 90, 150);
-        this.p.ellipse(-3 * res.size, 1 * res.size, 4 * res.size, 2 * res.size);
-        this.p.ellipse(2 * res.size, 0 * res.size, 2 * res.size, 3 * res.size);
-      } else if (res.type === 'copper') {
-        // Draw copper ore deposits
-        // Reddish-brown rock base with green/blue-green copper patina
-        
-        // Base rock
-        this.p.fill(120, 80, 60);
-        this.p.beginShape();
-        for (let point of res.shape) {
-          this.p.vertex(point.x, point.y);
-        }
-        this.p.endShape(this.p.CLOSE);
-        
-        // Copper flecks and veins (greener)
-        this.p.fill(60, 120, 100);
-        this.p.noStroke();
-        
-        for (let i = 0; i < 6; i++) {
-          let angle = this.p.random(this.p.TWO_PI);
-          let dist = this.p.random(2, 4);
-          let size = this.p.random(1, 3);
-          this.p.ellipse(Math.cos(angle) * dist, Math.sin(angle) * dist, size, size);
-        }
-        
-        // Main copper deposit
-        this.p.fill(80, 160, 120);
-        let depositSize = this.p.random(3, 5);
-        this.p.ellipse(0, 0, depositSize, depositSize);
-        
-        // Shine/highlight
-        this.p.fill(180, 255, 200, 150);
-        this.p.ellipse(-depositSize/5, -depositSize/5, depositSize/3, depositSize/3);
-      }
-      
-      this.p.pop();
-    }
-  }
-}
+          let y = this.p.lerp
