@@ -56,7 +56,16 @@ export default class Hoverbike implements HoverbikeType {
     if (this.player.riding) {
       this.isRiding = true;
       this.handleControls();
-      this.applyMovement();
+      
+      // Only apply movement if there's fuel
+      if (this.fuel > 0) {
+        this.applyMovement();
+      } else {
+        // Gradually slow down when out of fuel
+        this.velocityX *= 0.95;
+        this.velocityY *= 0.95;
+      }
+      
       this.checkCollisions();
       
       // Update flame length based on acceleration
@@ -67,8 +76,8 @@ export default class Hoverbike implements HoverbikeType {
         // Accelerating - increase flame length
         const targetLength = currentSpeed * 4 + 5; // Base flame + speed-dependent component
         this.flameLength = this.p.lerp(this.flameLength, targetLength, 0.1); // Smooth transition
-      } else if (this.p.keyIsDown(this.p.DOWN_ARROW)) {
-        // Braking/reversing - decrease flame length
+      } else if (this.p.keyIsDown(this.p.DOWN_ARROW) && this.fuel > 0) {
+        // Only allow braking/reversing if we have fuel
         const targetLength = Math.max(currentSpeed * 2, 3); // Smaller flame when braking
         this.flameLength = this.p.lerp(this.flameLength, targetLength, 0.2); // Faster transition when braking
       } else {
@@ -95,7 +104,7 @@ export default class Hoverbike implements HoverbikeType {
   handleControls() {
     let acceleration = 0;
     
-    // Only consume fuel when pressing Up or Down arrows
+    // Only accelerate or brake if there's fuel
     if (this.p.keyIsDown(this.p.UP_ARROW) && this.fuel > 0) {
       acceleration = 0.1;
       
@@ -107,7 +116,7 @@ export default class Hoverbike implements HoverbikeType {
           emitGameStateUpdate(this.player, this);
         }
       }
-    } else if (this.p.keyIsDown(this.p.DOWN_ARROW)) {
+    } else if (this.p.keyIsDown(this.p.DOWN_ARROW) && this.fuel > 0) {
       // If moving forward, brake first
       if (Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY) > 0.1) {
         // Calculate if we're moving mostly in the direction we're facing
@@ -149,12 +158,22 @@ export default class Hoverbike implements HoverbikeType {
     this.previousAcceleration = acceleration;
 
     let turningVelocity = 0;
-    if (this.p.keyIsDown(this.p.LEFT_ARROW)) turningVelocity = -0.03;
-    else if (this.p.keyIsDown(this.p.RIGHT_ARROW)) turningVelocity = 0.03;
+    // Allow turning even without fuel, but at a reduced rate if no fuel
+    if (this.p.keyIsDown(this.p.LEFT_ARROW)) {
+      turningVelocity = this.fuel > 0 ? -0.03 : -0.01;
+    }
+    else if (this.p.keyIsDown(this.p.RIGHT_ARROW)) {
+      turningVelocity = this.fuel > 0 ? 0.03 : 0.01;
+    }
 
     this.angle += turningVelocity;
-    this.velocityX += this.p.cos(this.angle) * acceleration;
-    this.velocityY += this.p.sin(this.angle) * acceleration;
+    
+    // Only apply acceleration if we have fuel
+    if (this.fuel > 0) {
+      this.velocityX += this.p.cos(this.angle) * acceleration;
+      this.velocityY += this.p.sin(this.angle) * acceleration;
+    }
+    
     this.velocityX *= 0.95;
     this.velocityY *= 0.95;
   }
@@ -269,11 +288,14 @@ export default class Hoverbike implements HoverbikeType {
         let dy = this.y - obs.y;
         let distance = this.p.sqrt(dx * dx + dy * dy);
         
-        // If close to fuel pump, refill fuel at a reasonable rate
-        if (distance < 70 && this.fuel < this.maxFuel) { // Increased refueling range from 40 to 70
+        // If close to fuel pump, refill fuel at a slower rate
+        if (distance < 70 && this.fuel < this.maxFuel) {
           const oldFuel = this.fuel;
-          this.fuel = Math.min(this.maxFuel, this.fuel + 0.3);
-          if (oldFuel !== this.fuel && this.p.frameCount % 10 === 0) {
+          // Reduced refill speed from 0.3 to 0.1 units per frame
+          this.fuel = Math.min(this.maxFuel, this.fuel + 0.1);
+          
+          // Update UI more frequently for smoother visual updates (every 5 frames instead of 10)
+          if (oldFuel !== this.fuel && this.p.frameCount % 5 === 0) {
             emitGameStateUpdate(this.player, this);
           }
         }
