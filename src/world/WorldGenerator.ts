@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class WorldGenerator {
@@ -130,7 +129,7 @@ export default class WorldGenerator {
   }
   
   generateRock(x: number, y: number) {
-    const size = this.p.random(0.5, 1.5);
+    const size = this.p.random(1.5, 3.0); // Increase rock size by doubling the base size
     const aspectRatio = this.p.random(0.5, 2);
     
     // Generate rock shape
@@ -291,21 +290,27 @@ export default class WorldGenerator {
       }
     }
     
-    // Generate hut in specific area
+    // Generate hut specifically in 0,1 area
     if (x === 0 && y === 1) {
       const hut = this.generateHut(this.p.width / 2, this.p.height / 2);
       areaObstacles.push(hut);
     }
     
-    // Generate fuel pump in specific area
+    // Generate fuel pump specifically in 1,0 area
     if (x === 1 && y === 0) {
       const fuelPump = this.generateFuelPump(this.p.width / 2, this.p.height / 2);
       areaObstacles.push(fuelPump);
     }
     
-    // Generate cacti with increased probability
+    // Generate hut in home base (0,0) area as well for desert home
+    if (x === 0 && y === 0) {
+      const homeHut = this.generateHut(this.p.width / 2 - 100, this.p.height / 2); // Position on the left side
+      areaObstacles.push(homeHut);
+    }
+    
+    // Generate cacti with normal probability
     if (x !== 0 || y !== 0) {  // Avoid spawning cacti in the home area
-      const numCacti = this.p.floor(this.p.random(5, 10)); // Increased number of cacti
+      const numCacti = this.p.floor(this.p.random(5, 10));
       for (let i = 0; i < numCacti; i++) {
         if (this.p.random() < this.cactusProb * 3) { // Tripled cactus probability
           const cacX = this.p.random(this.p.width * 0.1, this.p.width * 0.9);
