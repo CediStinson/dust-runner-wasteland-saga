@@ -32,10 +32,11 @@ function createMockSupabaseClient() {
   const mockQueryBuilder = {
     select: () => mockQueryBuilder,
     eq: () => mockQueryBuilder,
-    single: async () => mockErrorResponse,
-    insert: async () => mockErrorResponse,
-    update: async () => mockErrorResponse,
+    single: () => Promise.resolve(mockErrorResponse),
+    insert: () => mockQueryBuilder,
+    update: () => mockQueryBuilder,
     from: () => mockQueryBuilder,
+    then: (callback: any) => Promise.resolve(mockErrorResponse).then(callback),
   };
   
   return {
