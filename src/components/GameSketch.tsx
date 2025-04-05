@@ -41,7 +41,8 @@ const GameSketch = () => {
               baseWorldX: 0,
               baseWorldY: 0,
               dayTimeIcon: game.dayTimeIcon,
-              dayTimeAngle: game.dayTimeAngle
+              dayTimeAngle: game.dayTimeAngle,
+              worldData: game.getWorldData() // Add world data to state update
             }
           });
           window.dispatchEvent(event);
@@ -110,10 +111,15 @@ const GameSketch = () => {
           if (gameRef.current.renderer) {
             gameRef.current.renderer.setWorldCoordinates(savedState.worldX, savedState.worldY);
           }
-          
-          // Generate the area for the new coordinates
-          gameRef.current.worldGenerator.generateNewArea(savedState.worldX, savedState.worldY);
         }
+        
+        // Load world data (explored areas, obstacles, and resources)
+        if (savedState.worldData) {
+          gameRef.current.loadWorldData(savedState.worldData);
+        }
+        
+        // Generate the area for the new coordinates - will only generate if needed
+        gameRef.current.worldGenerator.generateNewArea(savedState.worldX, savedState.worldY);
       }
     };
     

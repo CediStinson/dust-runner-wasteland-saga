@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -21,6 +20,7 @@ export default class Game {
   gameStarted: boolean;
   dayTimeIcon: string; // "sun" or "moon"
   dayTimeAngle: number; // Position on the circle
+  exploredAreas: Set<string>; // Track explored areas
 
   constructor(p: any) {
     this.p = p;
@@ -33,6 +33,7 @@ export default class Game {
     this.gameStarted = false;
     this.dayTimeIcon = "sun"; // Start with the sun
     this.dayTimeAngle = this.timeOfDay * Math.PI * 2; // Calculate initial angle
+    this.exploredAreas = new Set<string>(); // Initialize empty set of explored areas
     
     this.worldGenerator = new WorldGenerator(p);
     
@@ -79,6 +80,7 @@ export default class Game {
     
     // Generate the initial area
     this.worldGenerator.generateNewArea(0, 0);
+    this.exploredAreas.add('0,0'); // Mark initial area as explored
     
     // Initialize UI values
     emitGameStateUpdate(this.player, this.hoverbike);
@@ -336,6 +338,7 @@ export default class Game {
       
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+      this.exploredAreas.add(`${this.worldX},${this.worldY}`); // Mark as explored
     } else if (this.player.x < 0) {
       this.worldX--;
       this.player.x = this.p.width;
@@ -348,6 +351,7 @@ export default class Game {
       
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+      this.exploredAreas.add(`${this.worldX},${this.worldY}`); // Mark as explored
     }
     
     if (this.player.y > this.p.height) {
@@ -362,6 +366,7 @@ export default class Game {
       
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+      this.exploredAreas.add(`${this.worldX},${this.worldY}`); // Mark as explored
     } else if (this.player.y < 0) {
       this.worldY--;
       this.player.y = this.p.height;
@@ -374,6 +379,7 @@ export default class Game {
       
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+      this.exploredAreas.add(`${this.worldX},${this.worldY}`); // Mark as explored
     }
   }
 
@@ -435,6 +441,57 @@ export default class Game {
           mouseY > btnY && mouseY < btnY + btnHeight) {
         this.gameStarted = true;
       }
+    }
+  }
+
+  // Method to get world data for saving
+  getWorldData() {
+    const exploredAreasArray = Array.from(this.exploredAreas);
+    const obstacles = {};
+    const resources = {};
+    
+    // Only save data for explored areas
+    for (const areaKey of exploredAreasArray) {
+      if (this.worldGenerator.getObstacles()[areaKey]) {
+        obstacles[areaKey] = this.worldGenerator.getObstacles()[areaKey];
+      }
+      if (this.worldGenerator.getResources()[areaKey]) {
+        resources[areaKey] = this.worldGenerator.getResources()[areaKey];
+      }
+    }
+    
+    return {
+      exploredAreas: exploredAreasArray,
+      obstacles,
+      resources
+    };
+  }
+  
+  // Method to load world data from saved state
+  loadWorldData(worldData: any) {
+    if (!worldData) return;
+    
+    // Restore explored areas
+    this.exploredAreas = new Set(worldData.exploredAreas || []);
+    
+    // Restore obstacles and resources
+    if (worldData.obstacles) {
+      for (const areaKey in worldData.obstacles) {
+        this.worldGenerator.getObstacles()[areaKey] = worldData.obstacles[areaKey];
+      }
+    }
+    
+    if (worldData.resources) {
+      for (const areaKey in worldData.resources) {
+        this.worldGenerator.getResources()[areaKey] = worldData.resources[areaKey];
+      }
+    }
+    
+    // Ensure the current area is properly loaded
+    const currentAreaKey = `${this.worldX},${this.worldY}`;
+    if (!this.worldGenerator.getObstacles()[currentAreaKey]) {
+      this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+      this.exploredAreas.add(currentAreaKey);
     }
   }
 }

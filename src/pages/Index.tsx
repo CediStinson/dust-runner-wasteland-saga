@@ -25,6 +25,7 @@ const Index = () => {
   const [worldY, setWorldY] = useState(0);
   const [dayTimeIcon, setDayTimeIcon] = useState("sun");
   const [dayTimeAngle, setDayTimeAngle] = useState(0);
+  const [worldData, setWorldData] = useState<any>(null);
   
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -43,7 +44,8 @@ const Index = () => {
       worldX,
       worldY,
       dayTimeIcon,
-      dayTimeAngle
+      dayTimeAngle,
+      worldData // Include world data in save
     };
   };
   
@@ -63,6 +65,11 @@ const Index = () => {
     setWorldX(savedState.worldX || 0);
     setWorldY(savedState.worldY || 0);
     
+    // Add worldData to the state
+    if (savedState.worldData) {
+      setWorldData(savedState.worldData);
+    }
+    
     // Emit an event to update the game with loaded state
     const loadEvent = new CustomEvent('loadGameState', {
       detail: savedState
@@ -77,7 +84,7 @@ const Index = () => {
       const { 
         resources, copper, health, maxHealth, fuel, maxFuel,
         playerHealth, maxPlayerHealth, worldX, worldY, baseWorldX, baseWorldY,
-        dayTimeIcon, dayTimeAngle
+        dayTimeIcon, dayTimeAngle, worldData
       } = event.detail;
       
       setResources(resources);
@@ -92,6 +99,9 @@ const Index = () => {
       setWorldY(worldY || 0);
       setDayTimeIcon(dayTimeIcon || "sun");
       setDayTimeAngle(dayTimeAngle || 0);
+      if (worldData) {
+        setWorldData(worldData);
+      }
     };
     
     // Add event listener
