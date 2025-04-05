@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -35,20 +36,12 @@ export default class Game {
     
     this.worldGenerator = new WorldGenerator(p);
     
-    // Generate the initial area
-    this.worldGenerator.generateNewArea(0, 0);
+    // Initialize player and hoverbike with references to each other
+    // We need to create placeholder objects first
+    this.player = {} as Player;
+    this.hoverbike = {} as Hoverbike;
     
-    // Initialize player and hoverbike with proper references
-    this.hoverbike = new Hoverbike(
-      p, 
-      p.width / 2, 
-      p.height / 2, 
-      this.worldX, 
-      this.worldY, 
-      this.worldGenerator.getObstacles(),
-      null as unknown as Player // Temporary placeholder, will fix below
-    );
-    
+    // Now fully initialize them with proper references
     this.player = new Player(
       p, 
       p.width / 2, 
@@ -61,8 +54,18 @@ export default class Game {
       this.riding
     );
     
-    // Update hoverbike to reference the proper player
-    this.hoverbike.player = this.player;
+    this.hoverbike = new Hoverbike(
+      p, 
+      p.width / 2, 
+      p.height / 2, 
+      this.worldX, 
+      this.worldY, 
+      this.worldGenerator.getObstacles(),
+      this.player
+    );
+    
+    // Update player to reference the proper hoverbike
+    this.player.hoverbike = this.hoverbike;
     
     this.renderer = new GameRenderer(
       p,
@@ -73,6 +76,9 @@ export default class Game {
       this.worldY,
       this.timeOfDay
     );
+    
+    // Generate the initial area
+    this.worldGenerator.generateNewArea(0, 0);
     
     // Initialize UI values
     emitGameStateUpdate(this.player, this.hoverbike);
@@ -169,10 +175,6 @@ export default class Game {
     // Update time of day
     this.updateTimeOfDay();
     
-    // Enable the hoverbike's engine when riding
-    this.hoverbike.engineOn = this.riding;
-    
-    // Always update hoverbike if in same area
     if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
       this.hoverbike.update();
     }
@@ -353,12 +355,10 @@ export default class Game {
       if (this.riding) {
         this.riding = false;
         this.player.setRiding(false);
-        this.hoverbike.engineOn = false;
       } else if (this.p.dist(this.player.x, this.player.y, this.hoverbike.x, this.hoverbike.y) < 30 && 
                 this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
         this.riding = true;
         this.player.setRiding(true);
-        this.hoverbike.engineOn = true;
       }
     }
     
@@ -379,6 +379,8 @@ export default class Game {
         emitGameStateUpdate(this.player, this.hoverbike);
       }
     }
+    
+    // Removed the 'd' key handler for durability upgrades
   }
 
   resize() {

@@ -1,26 +1,16 @@
 
-import WorldGenerator from "../world/WorldGenerator";
-import Player from "../entities/Player";
-import Hoverbike from "../entities/Hoverbike";
+import p5 from 'p5';
 
 export default class GameRenderer {
   p: any;
-  worldGenerator: WorldGenerator;
-  player: Player;
-  hoverbike: Hoverbike;
+  worldGenerator: any;
+  player: any;
+  hoverbike: any;
   worldX: number;
   worldY: number;
   timeOfDay: number;
 
-  constructor(
-    p: any,
-    worldGenerator: WorldGenerator,
-    player: Player,
-    hoverbike: Hoverbike,
-    worldX: number,
-    worldY: number,
-    timeOfDay: number
-  ) {
+  constructor(p: any, worldGenerator: any, player: any, hoverbike: any, worldX: number, worldY: number, timeOfDay: number = 0.25) {
     this.p = p;
     this.worldGenerator = worldGenerator;
     this.player = player;
@@ -30,22 +20,18 @@ export default class GameRenderer {
     this.timeOfDay = timeOfDay;
   }
 
-  setTimeOfDay(timeOfDay: number) {
-    this.timeOfDay = timeOfDay;
-  }
-
   setWorldCoordinates(worldX: number, worldY: number) {
     this.worldX = worldX;
     this.worldY = worldY;
   }
+  
+  setTimeOfDay(timeOfDay: number) {
+    this.timeOfDay = timeOfDay;
+  }
 
   render() {
-    this.p.background(20, 18, 24);
-    this.drawStars();
-    this.drawHorizon();
-    this.drawSunMoon();
-    this.drawWindmill();
-    this.drawGround();
+    this.drawBackground();
+    this.applyDaytimeTint();
     this.drawObstacles();
     this.drawResources();
     
@@ -56,450 +42,95 @@ export default class GameRenderer {
     this.player.display();
   }
 
-  drawBackgroundFuelStains() {
-    // Draw more subtle and darker background fuel stains for the home base area
-    this.p.noStroke();
-    
-    // Main stain under the fuel pump area (reduced size, darker black)
-    this.p.fill(0, 0, 0, 15); // Very dark but transparent
-    this.p.ellipse(this.p.width / 2 + 100, this.p.height / 2 - 40, 50, 35); // Smaller size
-    
-    // Darker center of the main stain (even darker)
-    this.p.fill(0, 0, 0, 25); // Slightly more opaque
-    this.p.ellipse(this.p.width / 2 + 100, this.p.height / 2 - 45, 30, 25); // Smaller size
-    
-    // Fewer additional smaller stains with lower opacities
-    const stainPositions = [
-      {x: this.p.width / 2 + 130, y: this.p.height / 2 - 30, size: 25, opacity: 10},
-      {x: this.p.width / 2 + 85, y: this.p.height / 2 - 60, size: 20, opacity: 8}
-    ];
-    
-    // Draw each additional stain
-    for (const stain of stainPositions) {
-      this.p.fill(0, 0, 0, stain.opacity); // Pure black with low opacity
-      this.p.ellipse(stain.x, stain.y, stain.size, stain.size * 0.7);
+  drawBackground() {
+    let zoneKey = `${this.worldX},${this.worldY}`;
+    if (this.worldGenerator.getSandTexture(zoneKey)) {
+      this.p.image(this.worldGenerator.getSandTexture(zoneKey), 0, 0);
+    }
+    if (this.worldGenerator.getGrassTexture(zoneKey)) {
+      this.p.image(this.worldGenerator.getGrassTexture(zoneKey), 0, 0);
     }
   }
-
-  drawStars() {
-    this.p.fill(255, 255, 255);
-    for (let i = 0; i < 100; i++) {
-      const x = this.p.random(this.p.width);
-      const y = this.p.random(this.p.height / 2);
-      const size = this.p.random(1, 3);
-      this.p.ellipse(x, y, size, size);
-    }
-  }
-
-  drawHorizon() {
-    let horizonColor = this.p.lerpColor(
-      this.p.color(10, 10, 20),
-      this.p.color(80, 60, 40),
-      this.timeOfDay
-    );
-    this.p.background(horizonColor);
-  }
-
-  drawSunMoon() {
-    this.p.push();
-
-    // Calculate the angle based on the time of day
-    let angle = this.p.map(this.timeOfDay, 0, 1, 0, 360);
-
-    // Position the sun/moon
-    let sunMoonX = this.p.width / 2 + this.p.cos(this.p.radians(angle)) * (this.p.width / 2);
-    let sunMoonY = this.p.height / 2 + this.p.sin(this.p.radians(angle)) * (this.p.height / 3);
-
-    // Draw sun/moon
-    if (this.timeOfDay > 0.25 && this.timeOfDay < 0.75) {
-      // Draw sun
-      this.p.fill(255, 204, 0);
-      this.p.noStroke();
-      this.p.ellipse(sunMoonX, sunMoonY, 50, 50);
+  
+  applyDaytimeTint() {
+    // Apply color tint based on time of day
+    // 0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset, 1 = midnight
+    
+    // Clear any previous tint
+    this.p.noTint();
+    
+    if (this.timeOfDay < 0.25) {
+      // Midnight to sunrise: blue night tint getting lighter
+      const blendFactor = this.timeOfDay / 0.25; // 0 to 1
+      const r = this.p.lerp(50, 150, blendFactor);
+      const g = this.p.lerp(50, 120, blendFactor);
+      const b = this.p.lerp(80, 100, blendFactor);
+      const alpha = this.p.lerp(180, 30, blendFactor);
+      
+      this.p.fill(r, g, b, alpha);
+      this.p.rect(0, 0, this.p.width, this.p.height);
+    } else if (this.timeOfDay < 0.5) {
+      // Sunrise to noon: orangey sunrise to clear day
+      const blendFactor = (this.timeOfDay - 0.25) / 0.25; // 0 to 1
+      const r = this.p.lerp(255, 255, blendFactor);
+      const g = this.p.lerp(200, 255, blendFactor);
+      const b = this.p.lerp(150, 255, blendFactor);
+      const alpha = this.p.lerp(40, 0, blendFactor);
+      
+      this.p.fill(r, g, b, alpha);
+      this.p.rect(0, 0, this.p.width, this.p.height);
+    } else if (this.timeOfDay < 0.75) {
+      // Noon to sunset: clear day to orangey sunset
+      const blendFactor = (this.timeOfDay - 0.5) / 0.25; // 0 to 1
+      const r = this.p.lerp(255, 255, blendFactor);
+      const g = this.p.lerp(255, 150, blendFactor);
+      const b = this.p.lerp(255, 100, blendFactor);
+      const alpha = this.p.lerp(0, 50, blendFactor);
+      
+      this.p.fill(r, g, b, alpha);
+      this.p.rect(0, 0, this.p.width, this.p.height);
     } else {
-      // Draw moon
-      this.p.fill(200);
-      this.p.noStroke();
-      this.p.ellipse(sunMoonX, sunMoonY, 40, 40);
+      // Sunset to midnight: orangey sunset to blue night
+      const blendFactor = (this.timeOfDay - 0.75) / 0.25; // 0 to 1
+      const r = this.p.lerp(255, 50, blendFactor);
+      const g = this.p.lerp(150, 50, blendFactor);
+      const b = this.p.lerp(100, 80, blendFactor);
+      const alpha = this.p.lerp(50, 180, blendFactor);
+      
+      this.p.fill(r, g, b, alpha);
+      this.p.rect(0, 0, this.p.width, this.p.height);
     }
-
-    this.p.pop();
-  }
-
-  drawWindmill() {
-    this.p.push();
-    this.p.translate(this.p.width * 0.15, this.p.height * 0.25);
-    this.p.fill(150);
-    this.p.stroke(100);
-    this.p.strokeWeight(2);
-    this.p.rect(-10, 0, 20, 100);
-
-    this.p.push();
-    this.p.rotate(this.worldGenerator.getWindmillAngle());
-    this.p.fill(100);
-    this.p.stroke(50);
-    this.p.strokeWeight(3);
-    this.p.rect(-5, -40, 10, 80);
-    this.p.rect(-40, -5, 80, 10);
-    this.p.pop();
-
-    this.p.pop();
-  }
-
-  drawGround() {
-    this.p.push();
-
-    // Sand color that changes slightly with time of day
-    let sandColor = this.p.lerpColor(
-      this.p.color(194, 178, 128),
-      this.p.color(150, 130, 80),
-      this.timeOfDay
-    );
-    this.p.background(sandColor);
-
-    // Draw faint sand lines
-    this.p.stroke(184, 168, 118, 50);
-    this.p.strokeWeight(1);
-    for (let i = 0; i < this.p.width; i += 20) {
-      let offset = this.p.sin(i * 0.05 + this.timeOfDay * this.p.TWO_PI) * 10;
-      this.p.line(i, this.p.height / 2 + offset, i, this.p.height);
-    }
-
-    this.p.pop();
   }
 
   drawObstacles() {
     let currentObstacles = this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`] || [];
-
     for (let obs of currentObstacles) {
       if (obs.type === 'rock') {
         this.drawRock(obs);
+      } else if (obs.type === 'hut') {
+        this.drawHut(obs);
       } else if (obs.type === 'bush') {
         this.drawBush(obs);
       } else if (obs.type === 'cactus') {
         this.drawCactus(obs);
-      } else if (obs.type === 'hut') {
-        this.drawHut(obs);
       } else if (obs.type === 'fuelPump') {
         this.drawFuelPump(obs);
-      } else if (obs.type === 'walkingMarks') {
-        this.drawWalkingMarks(obs);
       } else if (obs.type === 'fuelStain') {
         this.drawFuelStain(obs);
+      } else if (obs.type === 'walkingMarks') {
+        this.drawWalkingMarks(obs);
       }
     }
   }
-
-  drawRock(obs: any) {
-    this.p.push();
-    this.p.translate(obs.x, obs.y);
-
-    // Shadow
-    this.p.fill(50, 40, 30, 80);
-    let shadowOffsetX = 5 * obs.size;
-    let shadowOffsetY = 5 * obs.size;
-    let shadowWidth = 20 * obs.size * (obs.aspectRatio > 1 ? obs.aspectRatio : 1);
-    let shadowHeight = 20 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
-    this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
-
-    // Main rock shape
-    this.p.fill(80, 70, 60);
-    this.p.stroke(50, 40, 30); // Added outline
-    this.p.strokeWeight(0.5);  // Thin outline
-    
-    if (obs.shape && Array.isArray(obs.shape)) {
-      this.p.beginShape();
-      for (let point of obs.shape) {
-        this.p.vertex(point.x, point.y);
-      }
-      this.p.endShape(this.p.CLOSE);
-
-      // Inner shapes (no stroke)
-      this.p.noStroke();
-      this.p.fill(100, 90, 80);
-      this.p.beginShape();
-      for (let point of obs.shape) {
-        let offsetX = 2 * obs.size;
-        let offsetY = 2 * obs.size;
-        this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
-      }
-      this.p.endShape(this.p.CLOSE);
-
-      this.p.fill(120, 110, 100);
-      this.p.beginShape();
-      for (let point of obs.shape) {
-        let offsetX = -2 * obs.size;
-        let offsetY = -2 * obs.size;
-        this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
-      }
-      this.p.endShape(this.p.CLOSE);
-    } else {
-      // Fallback if shape is missing
-      this.p.ellipse(0, 0, 20 * obs.size, 15 * obs.size);
-    }
-
-    // Details
-    this.p.fill(60, 50, 40);
-    this.p.ellipse(-4 * obs.size, -2 * obs.size, 3 * obs.size, 1 * obs.size);
-    this.p.ellipse(2 * obs.size, 3 * obs.size, 1 * obs.size, 3 * obs.size);
-    this.p.fill(130, 120, 110);
-    this.p.ellipse(-2 * obs.size, 4 * obs.size, 2 * obs.size, 2 * obs.size);
-    this.p.ellipse(3 * obs.size, -3 * obs.size, 2 * obs.size, 2 * obs.size);
-    this.p.ellipse(-5 * obs.size, 0 * obs.size, 1 * obs.size, 1 * obs.size);
-    this.p.ellipse(0 * obs.size, 5 * obs.size, 1 * obs.size, 1 * obs.size);
-
-    this.p.pop();
-  }
-
-  drawBush(obs: any) {
-    this.p.push();
-    this.p.translate(obs.x, obs.y);
-
-    // Shadow
-    this.p.fill(180, 150, 100, 50);
-    let shadowOffsetX = 2 * obs.size;
-    let shadowOffsetY = 2 * obs.size;
-    let shadowWidth = 10 * obs.size;
-    let shadowHeight = 10 * obs.size;
-    this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
-
-    // Main bush shape with outline
-    this.p.fill(50, 70, 30);
-    this.p.stroke(30, 50, 20); // Added outline
-    this.p.strokeWeight(0.6);  // Medium outline
-    
-    if (obs.shape && Array.isArray(obs.shape)) {
-      this.p.beginShape();
-      for (let point of obs.shape) {
-        this.p.vertex(point.x, point.y);
-      }
-      this.p.endShape(this.p.CLOSE);
-
-      // Inner shapes
-      this.p.noStroke();
-      this.p.fill(70, 90, 50);
-      this.p.beginShape();
-      for (let point of obs.shape) {
-        let offsetX = 1 * obs.size;
-        let offsetY = 1 * obs.size;
-        this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
-      }
-      this.p.endShape(this.p.CLOSE);
-
-      this.p.fill(90, 110, 70);
-      this.p.beginShape();
-      for (let point of obs.shape) {
-        let offsetX = -1 * obs.size;
-        let offsetY = -1 * obs.size;
-        this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
-      }
-      this.p.endShape(this.p.CLOSE);
-    } else {
-      // Fallback if shape is missing
-      this.p.ellipse(0, 0, 15 * obs.size, 12 * obs.size);
-    }
-
-    // Details
-    this.p.fill(60, 80, 40);
-    this.p.ellipse(-3 * obs.size, -1 * obs.size, 2 * obs.size, 2 * obs.size);
-    this.p.ellipse(2 * obs.size, 2 * obs.size, 3 * obs.size, 1 * obs.size);
-    this.p.fill(80, 100, 60);
-    this.p.ellipse(1 * obs.size, -2 * obs.size, 1 * obs.size, 3 * obs.size);
-    this.p.ellipse(-2 * obs.size, 1 * obs.size, 3 * obs.size, 1 * obs.size);
-
-    this.p.pop();
-  }
-
-  drawCactus(obs: any) {
-    this.p.push();
-    this.p.translate(obs.x, obs.y);
-
-    // Shadow
-    this.p.fill(30, 40, 30, 50);
-    let shadowOffsetX = 3 * obs.size;
-    let shadowOffsetY = 3 * obs.size;
-    let shadowWidth = 12 * obs.size;
-    let shadowHeight = 8 * obs.size;
-    this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
-
-    // Main cactus shape with outline
-    this.p.fill(40, 60, 40);
-    this.p.stroke(20, 40, 20); // Added outline
-    this.p.strokeWeight(0.7);  // Medium outline
-    
-    if (obs.shape && Array.isArray(obs.shape)) {
-      // Draw body first
-      const bodyPart = obs.shape.find((part: any) => part.type === 'body');
-      if (bodyPart && bodyPart.points) {
-        this.p.beginShape();
-        for (let point of bodyPart.points) {
-          this.p.vertex(point.x, point.y);
-        }
-        this.p.endShape(this.p.CLOSE);
-      } else {
-        // Fallback if body shape is missing
-        this.p.rect(-3 * obs.size, -25 * obs.size, 6 * obs.size, 25 * obs.size, 1);
-      }
-
-      // Draw arms
-      for (let part of obs.shape) {
-        if (part.type === 'arm' && part.points) {
-          this.p.beginShape();
-          for (let point of part.points) {
-            this.p.vertex(point.x, point.y);
-          }
-          this.p.endShape(this.p.CLOSE);
-        }
-      }
-    } else {
-      // Fallback if shape is missing
-      this.p.rect(-3 * obs.size, -25 * obs.size, 6 * obs.size, 25 * obs.size, 1);
-    }
-
-    // Details (spikes)
-    this.p.stroke(20, 40, 20); // Added outline for spikes
-    this.p.strokeWeight(1);    // Slightly thicker outline
-    let spikeCount = 5;
-    for (let i = 0; i < spikeCount; i++) {
-      let angle = this.p.TWO_PI / spikeCount * i;
-      let spikeX = this.p.cos(angle) * 8 * obs.size;
-      let spikeY = this.p.sin(angle) * 8 * obs.size;
-      this.p.line(0, 0, spikeX, spikeY);
-    }
-    this.p.noStroke();
-
-    this.p.pop();
-  }
-
-  drawHut(obs: any) {
-    this.p.push();
-    this.p.translate(obs.x, obs.y);
-
-    // Shadow
-    this.p.fill(50, 40, 30, 70);
-    let shadowOffsetX = 4 * obs.size;
-    let shadowOffsetY = 4 * obs.size;
-    let shadowWidth = 30 * obs.size;
-    let shadowHeight = 15 * obs.size;
-    this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
-
-    // Check if obs.shape exists, is an array, and has elements
-    if (obs.shape && Array.isArray(obs.shape) && obs.shape.length > 0) {
-      // Main hut shape with outline
-      this.p.fill(120, 100, 80);
-      this.p.stroke(80, 60, 40); // Added outline
-      this.p.strokeWeight(0.8);  // Medium outline
-      this.p.beginShape();
-      for (let point of obs.shape) {
-        this.p.vertex(point.x, point.y);
-      }
-      this.p.endShape(this.p.CLOSE);
-
-      // Inner shapes
-      this.p.noStroke();
-      this.p.fill(140, 120, 100);
-      this.p.beginShape();
-      for (let point of obs.shape) {
-        let offsetX = 1 * obs.size;
-        let offsetY = 1 * obs.size;
-        this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
-      }
-      this.p.endShape(this.p.CLOSE);
-
-      this.p.fill(160, 140, 120);
-      this.p.beginShape();
-      for (let point of obs.shape) {
-        let offsetX = -1 * obs.size;
-        let offsetY = -1 * obs.size;
-        this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
-      }
-      this.p.endShape(this.p.CLOSE);
-    } else {
-      // Default size if not specified
-      const size = obs.size || 1;
-      
-      // Main hut body
-      this.p.fill(120, 100, 80);
-      this.p.stroke(80, 60, 40);
-      this.p.strokeWeight(0.8);
-      this.p.rect(-15 * size, -5 * size, 30 * size, 20 * size, 2 * size);
-      
-      // Hut roof
-      this.p.fill(100, 80, 60);
-      this.p.triangle(
-        -18 * size, -5 * size,
-        18 * size, -5 * size,
-        0, -15 * size
-      );
-      
-      // Door
-      this.p.fill(80, 60, 40);
-      this.p.rect(-5 * size, 5 * size, 10 * size, 10 * size);
-      
-      // Window
-      this.p.fill(160, 140, 100);
-      this.p.rect(8 * size, -2 * size, 5 * size, 5 * size);
-    }
-
-    // Details (door)
-    this.p.fill(80, 60, 40);
-    this.p.stroke(50, 30, 10); // Added outline for door
-    this.p.strokeWeight(1);    // Slightly thicker outline
-    const size = obs.size || 1;
-    this.p.rect(-8 * size, 6 * size, 16 * size, 8 * size);
-    this.p.noStroke();
-
-    this.p.pop();
-  }
-
-  drawFuelPump(obs: any) {
-    this.p.push();
-    this.p.translate(obs.x, obs.y);
-
-    // Shadow
-    this.p.fill(50, 40, 30, 70);
-    let shadowOffsetX = 3 * obs.size;
-    let shadowOffsetY = 5 * obs.size;
-    let shadowWidth = 15 * obs.size;
-    let shadowHeight = 8 * obs.size;
-    this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
-
-    // Main fuel pump shape with outline
-    this.p.fill(100, 100, 100);
-    this.p.stroke(60, 60, 60); // Added outline
-    this.p.strokeWeight(0.9);  // Medium outline
-    this.p.rect(-6 * obs.size, -10 * obs.size, 12 * obs.size, 20 * obs.size, 2 * obs.size);
-
-    // Inner details
-    this.p.noStroke();
-    this.p.fill(120, 120, 120);
-    this.p.rect(-4 * obs.size, -8 * obs.size, 8 * obs.size, 16 * obs.size, 2 * obs.size);
-
-    this.p.fill(80, 80, 80);
-    this.p.ellipse(0, -6 * obs.size, 6 * obs.size, 6 * obs.size);
-
-    // Nozzle and hose
-    this.p.fill(50, 50, 50);
-    this.p.stroke(30, 30, 30); // Added outline for nozzle
-    this.p.strokeWeight(1);    // Slightly thicker outline
-    this.p.rect(6 * obs.size, 2 * obs.size, 2 * obs.size, 6 * obs.size);
-    this.p.noStroke();
-
-    this.p.pop();
-  }
-
+  
   drawWalkingMarks(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
     this.p.rotate(obs.angle);
     
     // Draw subtle walking marks/footprints
+    this.p.noStroke();
     const opacity = obs.opacity || 100;
-    
-    // Add very subtle outline to footprints
-    this.p.stroke(160, 140, 100, opacity * 0.5);
-    this.p.strokeWeight(0.3);
-    
     this.p.fill(190, 170, 140, opacity);
     
     // Draw a series of footprints
@@ -518,7 +149,170 @@ export default class GameRenderer {
     
     this.p.pop();
   }
-  
+
+  drawRock(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+
+    this.p.fill(50, 40, 30, 80);
+    let shadowOffsetX = 5 * obs.size;
+    let shadowOffsetY = 5 * obs.size;
+    let shadowWidth = 20 * obs.size * (obs.aspectRatio > 1 ? obs.aspectRatio : 1);
+    let shadowHeight = 20 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
+    this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
+
+    this.p.fill(80, 70, 60);
+    this.p.beginShape();
+    for (let point of obs.shape) {
+      this.p.vertex(point.x, point.y);
+    }
+    this.p.endShape(this.p.CLOSE);
+
+    this.p.fill(100, 90, 80);
+    this.p.beginShape();
+    for (let point of obs.shape) {
+      let offsetX = 2 * obs.size;
+      let offsetY = 2 * obs.size;
+      this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+    }
+    this.p.endShape(this.p.CLOSE);
+
+    this.p.fill(120, 110, 100);
+    this.p.beginShape();
+    for (let point of obs.shape) {
+      let offsetX = -2 * obs.size;
+      let offsetY = -2 * obs.size;
+      this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
+    }
+    this.p.endShape(this.p.CLOSE);
+
+    this.p.fill(60, 50, 40);
+    this.p.ellipse(-4 * obs.size, -2 * obs.size, 3 * obs.size, 1 * obs.size);
+    this.p.ellipse(2 * obs.size, 3 * obs.size, 1 * obs.size, 3 * obs.size);
+    this.p.fill(130, 120, 110);
+    this.p.ellipse(-2 * obs.size, 4 * obs.size, 2 * obs.size, 2 * obs.size);
+    this.p.ellipse(3 * obs.size, -3 * obs.size, 2 * obs.size, 2 * obs.size);
+    this.p.ellipse(-5 * obs.size, 0 * obs.size, 1 * obs.size, 1 * obs.size);
+    this.p.ellipse(0 * obs.size, 5 * obs.size, 1 * obs.size, 1 * obs.size);
+
+    this.p.pop();
+  }
+
+  drawHut(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+
+    // Enhanced detailed desert hut from top-down perspective
+    
+    // Larger shadow
+    this.p.fill(50, 40, 30, 80);
+    this.p.ellipse(8, 8, 50, 40);
+    
+    // Base foundation - circular platform
+    this.p.fill(180, 160, 130);  // Sandy ground color
+    this.p.ellipse(0, 0, 55, 55);
+    
+    // Main structure - circular adobe/mud hut
+    this.p.fill(210, 180, 140); // Sandstone/mud walls
+    this.p.ellipse(0, 0, 48, 48);
+    
+    // Inner structure
+    this.p.fill(190, 160, 120);
+    this.p.ellipse(0, 0, 40, 40);
+    
+    // Detail lines on the circular wall
+    this.p.stroke(170, 140, 110);
+    this.p.strokeWeight(1);
+    for (let i = 0; i < 12; i++) {
+      let angle = i * this.p.TWO_PI / 12;
+      this.p.line(
+        Math.cos(angle) * 20, 
+        Math.sin(angle) * 20,
+        Math.cos(angle) * 24, 
+        Math.sin(angle) * 24
+      );
+    }
+    this.p.noStroke();
+    
+    // Entrance (dark opening)
+    this.p.fill(60, 50, 40);
+    this.p.arc(0, 22, 12, 14, -this.p.PI * 0.8, -this.p.PI * 0.2);
+    
+    // Conical roof
+    this.p.fill(180, 150, 100);
+    this.p.ellipse(0, 0, 44, 44);
+    this.p.fill(160, 130, 90);
+    this.p.ellipse(0, 0, 34, 34);
+    this.p.fill(140, 110, 80);
+    this.p.ellipse(0, 0, 24, 24);
+    this.p.fill(120, 90, 70);
+    this.p.ellipse(0, 0, 14, 14);
+    
+    // Center pole/smoke hole
+    this.p.fill(80, 60, 50);
+    this.p.ellipse(0, 0, 6, 6);
+    
+    // Smoke from center
+    this.p.noStroke();
+    for (let i = 0; i < 3; i++) {
+      let t = (this.p.frameCount * 0.01 + i * 0.3) % 1;
+      let size = this.p.map(t, 0, 1, 3, 8);
+      let alpha = this.p.map(t, 0, 1, 200, 0);
+      this.p.fill(200, 200, 200, alpha);
+      this.p.ellipse(0, 0 - t * 15, size, size);
+    }
+    
+    // Windmill on side of hut
+    this.p.push();
+    this.p.translate(16, -10);
+    this.p.rotate(this.worldGenerator.getWindmillAngle());
+    // Windmill blades
+    this.p.fill(100, 80, 60);
+    for (let i = 0; i < 4; i++) {
+      this.p.push();
+      this.p.rotate(i * this.p.PI / 2);
+      this.p.beginShape();
+      this.p.vertex(0, 0);
+      this.p.vertex(2, -10);
+      this.p.vertex(-2, -10);
+      this.p.endShape(this.p.CLOSE);
+      this.p.pop();
+    }
+    // Center hub
+    this.p.fill(120, 120, 120);
+    this.p.ellipse(0, 0, 4, 4);
+    this.p.pop();
+    
+    // Satellite dish on roof
+    this.p.fill(180, 180, 180);
+    this.p.ellipse(-12, -10, 8, 8);
+    this.p.fill(150, 150, 150);
+    this.p.ellipse(-12, -10, 6, 6);
+    this.p.stroke(120, 120, 120);
+    this.p.strokeWeight(1);
+    this.p.line(-12, -10, -16, -13);
+    this.p.noStroke();
+    
+    // Small decorative elements around the hut
+    // Water jars
+    this.p.fill(160, 120, 100);
+    this.p.ellipse(-18, 10, 8, 8);
+    this.p.ellipse(-14, 16, 6, 6);
+    
+    // Cloth/tarp
+    this.p.fill(180, 180, 160);
+    this.p.rect(-22, -8, 10, 8, 2);
+    
+    // Small junk pile on side
+    this.p.fill(130, 120, 110);
+    this.p.ellipse(18, 14, 15, 10);
+    this.p.fill(140, 130, 120);
+    this.p.rect(14, 12, 8, 2);
+    this.p.rect(18, 14, 6, 3);
+    
+    this.p.pop();
+  }
+
   drawFuelStain(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
@@ -547,164 +341,275 @@ export default class GameRenderer {
       const alpha = 30 + (i * 5);
       this.p.fill(15, 15, 15, alpha);
       
-      // Add subtle outline to stains
-      this.p.stroke(10, 10, 10, alpha * 0.6);
-      this.p.strokeWeight(0.3);
       this.p.ellipse(x, y, size, size * 0.8);
-      this.p.noStroke();
     }
     
     this.p.pop();
   }
-  
+
+  drawFuelPump(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    // Shadow
+    this.p.fill(0, 0, 0, 40);
+    this.p.ellipse(5, 5, 30, 10);
+    
+    // Base platform
+    this.p.fill(50, 50, 50); // Darker, rustier gray
+    this.p.rect(-12, -15, 24, 30, 2);
+    
+    // Fuel pump body - much more weathered, rusty color
+    this.p.fill(110, 50, 40); // More rusty, less vibrant red
+    this.p.rect(-10, -15, 20, 25, 1);
+    
+    // Heavy rust streaks
+    this.p.fill(70, 35, 25, 180); // Darker rust color
+    this.p.rect(-10, -8, 5, 18, 0);
+    this.p.rect(3, -12, 5, 22, 0);
+    
+    // More rust spots - patches and splotches
+    this.p.fill(80, 40, 30, 150);
+    this.p.ellipse(-5, -10, 8, 5);
+    this.p.ellipse(2, 5, 6, 9);
+    
+    // Pump details - worn, rusty metal
+    this.p.fill(35, 35, 35);
+    this.p.rect(-8, -10, 16, 8);
+    
+    // Pump readings/display - very faded, almost unreadable
+    this.p.fill(150, 150, 80, 130); // More faded, dusty yellow
+    this.p.rect(-6, -8, 12, 4);
+    
+    // Scratches on display
+    this.p.stroke(70, 70, 60, 100);
+    this.p.strokeWeight(1);
+    this.p.line(-5, -7, 0, -5);
+    this.p.line(2, -8, 5, -6);
+    this.p.noStroke();
+    
+    // Pump nozzle - heavily weathered metal
+    this.p.fill(60, 60, 60);
+    this.p.rect(5, 0, 10, 3);
+    this.p.fill(50, 50, 50);
+    this.p.rect(13, -5, 2, 10);
+    
+    // Top of pump - chipped, worn paint
+    this.p.fill(100, 45, 35); // Darker, duller red
+    this.p.rect(-8, -18, 16, 3);
+    
+    // Chipped paint effect on top
+    this.p.fill(70, 35, 30);
+    this.p.rect(-6, -18, 3, 1);
+    this.p.rect(2, -18, 4, 2);
+    
+    // Fuel barrel next to the pump - very rusty, worn
+    this.p.fill(100, 45, 35); // More rusty barrel color
+    this.p.ellipse(20, 0, 20, 20);
+    
+    // Heavy rust on barrel
+    this.p.fill(70, 35, 30);
+    this.p.arc(20, 0, 20, 20, this.p.PI * 0.2, this.p.PI * 0.8);
+    
+    // Barrel top - worn, rusty metal
+    this.p.fill(80, 35, 25); // Darker rusty color
+    this.p.ellipse(20, 0, 15, 15);
+    
+    // Barrel details - heavy rust streaks and cracks
+    this.p.stroke(60, 25, 20);
+    this.p.strokeWeight(1);
+    this.p.line(14, -4, 26, -4);
+    this.p.line(14, 0, 26, 0);
+    this.p.line(14, 4, 26, 4);
+    this.p.line(20, -7, 20, 7);
+    this.p.noStroke();
+    
+    // Worn hazard symbol on barrel
+    this.p.fill(40, 40, 40);
+    this.p.push();
+    this.p.translate(20, 0);
+    this.p.rotate(this.p.PI/4);
+    this.p.rect(-4, -1, 8, 2);
+    this.p.rect(-1, -4, 2, 8);
+    this.p.pop();
+    
+    this.p.pop();
+  }
+
+  drawBush(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+
+    this.p.fill(180, 150, 100, 50);
+    let shadowOffsetX = 2 * obs.size;
+    let shadowOffsetY = 2 * obs.size;
+    let shadowWidth = 10 * obs.size;
+    let shadowHeight = 10 * obs.size;
+    this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
+
+    this.p.fill(50, 70, 30);
+    this.p.beginShape();
+    for (let point of obs.shape) {
+      this.p.vertex(point.x, point.y);
+    }
+    this.p.endShape(this.p.CLOSE);
+
+    this.p.fill(70, 90, 50);
+    this.p.beginShape();
+    for (let point of obs.shape) {
+      let offsetX = 1 * obs.size;
+      let offsetY = 1 * obs.size;
+      this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+    }
+    this.p.endShape(this.p.CLOSE);
+
+    this.p.fill(90, 110, 70);
+    this.p.beginShape();
+    for (let point of obs.shape) {
+      let offsetX = -1 * obs.size;
+      let offsetY = -1 * obs.size;
+      this.p.vertex(point.x * 0.6 + offsetX, point.y * 0.6 + offsetY);
+    }
+    this.p.endShape(this.p.CLOSE);
+
+    this.p.fill(40, 60, 20);
+    this.p.ellipse(-3 * obs.size, -2 * obs.size, 2 * obs.size, 1 * obs.size);
+    this.p.ellipse(2 * obs.size, 1 * obs.size, 1 * obs.size, 2 * obs.size);
+    this.p.fill(100, 120, 80);
+    this.p.ellipse(-1 * obs.size, 2 * obs.size, 1 * obs.size, 1 * obs.size);
+    this.p.stroke(70, 50, 30);
+    this.p.strokeWeight(1 * obs.size);
+    this.p.line(0, 0, -5 * obs.size, -3 * obs.size);
+    this.p.line(0, 0, 4 * obs.size, -2 * obs.size);
+    this.p.noStroke();
+    
+    this.p.pop();
+  }
+
+  drawCactus(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+
+    this.p.fill(180, 150, 100, 50);
+    let shadowOffsetX = 2 * obs.size;
+    let shadowOffsetY = 2 * obs.size;
+    let shadowWidth = 8 * obs.size;
+    let shadowHeight = 10 * obs.size;
+    this.p.beginShape();
+    for (let i = 0; i < 8; i++) {
+      let angle = this.p.map(i, 0, 8, 0, this.p.TWO_PI);
+      let radiusX = shadowWidth * (0.8 + this.p.noise(angle * 0.5) * 0.4);
+      let radiusY = shadowHeight * (0.8 + this.p.noise(angle * 0.5 + 10) * 0.4);
+      let x = shadowOffsetX + this.p.cos(angle) * radiusX;
+      let y = shadowOffsetY + this.p.sin(angle) * radiusY;
+      this.p.vertex(x, y);
+    }
+    this.p.endShape(this.p.CLOSE);
+
+    for (let part of obs.shape) {
+      this.p.fill(40, 80, 40);
+      this.p.beginShape();
+      for (let point of part.points) {
+        this.p.vertex(point.x, point.y);
+      }
+      this.p.endShape(this.p.CLOSE);
+
+      this.p.fill(60, 100, 60);
+      this.p.beginShape();
+      for (let i = 0; i < part.points.length; i++) {
+        let point = part.points[i];
+        let offsetX = -1 * obs.size;
+        let offsetY = -1 * obs.size;
+        this.p.vertex(point.x * 0.8 + offsetX, point.y * 0.8 + offsetY);
+      }
+      this.p.endShape(this.p.CLOSE);
+
+      this.p.fill(50, 90, 50);
+      for (let i = 0; i < part.points.length - 1; i += 2) {
+        let p1 = part.points[i];
+        let p2 = part.points[i + 1];
+        this.p.ellipse((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, 2 * obs.size, 2 * obs.size);
+      }
+    }
+
+    this.p.fill(200, 200, 150);
+    for (let part of obs.shape) {
+      if (part.type === 'body') {
+        for (let i = 0; i < 5; i++) {
+          let t = i / 4;
+          let p1 = part.points[0];
+          let p2 = part.points[part.points.length - 1];
+          let x = this.p.lerp(p1.x, p2.x, t);
+          let y = this.p.lerp(p1.y, p2.y, t);
+          this.p.ellipse(x - 3 * obs.size, y, 1 * obs.size, 1 * obs.size);
+          this.p.ellipse(x + 3 * obs.size, y, 1 * obs.size, 1 * obs.size);
+        }
+      } else if (part.type === 'arm') {
+        for (let i = 0; i < 3; i++) {
+          let t = i / 2;
+          let p1 = part.points[0];
+          let p2 = part.points[part.points.length - 1];
+          let x = this.p.lerp(p1.x, p2.x, t);
+          let y = this.p.lerp(p1.y, p2.y, t);
+          this.p.ellipse(x, y - 2 * obs.size, 1 * obs.size, 1 * obs.size);
+        }
+      }
+    }
+    
+    this.p.pop();
+  }
+
   drawResources() {
     let currentResources = this.worldGenerator.getResources()[`${this.worldX},${this.worldY}`] || [];
-    
     for (let res of currentResources) {
+      this.p.push();
+      this.p.translate(res.x, res.y);
+      
       if (res.type === 'metal') {
-        this.drawMetalScrap(res);
-      } else if (res.type === 'copper') {
-        this.drawCopperOre(res);
-      }
-    }
-  }
-  
-  drawMetalScrap(res: any) {
-    this.p.push();
-    this.p.translate(res.x, res.y);
-    
-    // Shadow
-    this.p.fill(40, 40, 40, 70);
-    this.p.ellipse(2, 2, 15, 8);
-    
-    // Metal scrap with outline
-    this.p.fill(180, 180, 180);
-    this.p.stroke(100, 100, 100);
-    this.p.strokeWeight(0.7);
-    
-    // Draw random jagged metal shape
-    if (res.points && Array.isArray(res.points)) {
-      this.p.beginShape();
-      for (let i = 0; i < res.points.length; i++) {
-        this.p.vertex(res.points[i].x, res.points[i].y);
-      }
-      this.p.endShape(this.p.CLOSE);
-      
-      // Highlights on metal
-      this.p.noStroke();
-      this.p.fill(220, 220, 220);
-      
-      // Draw small highlights
-      for (let i = 0; i < 3; i++) {
-        let idx = i % res.points.length;
-        let x = res.points[idx].x * 0.3;
-        let y = res.points[idx].y * 0.3;
-        this.p.ellipse(x, y, 2, 2);
-      }
-    } else {
-      // Fallback shape if points are missing
-      this.p.beginShape();
-      for (let i = 0; i < 6; i++) {
-        const angle = (i / 6) * this.p.TWO_PI;
-        const radius = 5 + Math.random() * 3;
-        const x = Math.cos(angle) * radius;
-        const y = Math.sin(angle) * radius;
-        this.p.vertex(x, y);
-      }
-      this.p.endShape(this.p.CLOSE);
-      
-      // Add highlights
-      this.p.noStroke();
-      this.p.fill(220, 220, 220);
-      this.p.ellipse(-1, -1, 2, 2);
-      this.p.ellipse(2, 1, 1.5, 1.5);
-    }
-    
-    this.p.pop();
-  }
-  
-  drawCopperOre(res: any) {
-    this.p.push();
-    this.p.translate(res.x, res.y);
-    
-    // Shadow
-    this.p.fill(40, 30, 20, 70);
-    this.p.ellipse(3, 3, 18, 10);
-    
-    // Main rock part with outline
-    this.p.fill(90, 70, 50);
-    this.p.stroke(70, 50, 30);
-    this.p.strokeWeight(0.8);
-    
-    // Draw rock shape
-    if (res.shape && Array.isArray(res.shape)) {
-      this.p.beginShape();
-      for (let i = 0; i < res.shape.length; i++) {
-        this.p.vertex(res.shape[i].x, res.shape[i].y);
-      }
-      this.p.endShape(this.p.CLOSE);
-      
-      // Copper veins with outline
-      this.p.fill(200, 120, 40);
-      this.p.stroke(160, 100, 30);
-      this.p.strokeWeight(0.5);
-      
-      // Generate copper veins if they don't exist
-      if (!res.copperPoints) {
-        res.copperPoints = [];
-        const veinCount = 3;
-        for (let i = 0; i < veinCount; i++) {
-          const veinPoints = [];
-          const startAngle = Math.random() * this.p.TWO_PI;
-          const veinLength = 3 + Math.random() * 2;
-          for (let j = 0; j < veinLength; j++) {
-            veinPoints.push({
-              x: Math.cos(startAngle) * j * 2,
-              y: Math.sin(startAngle) * j * 2
-            });
-          }
-          res.copperPoints.push(veinPoints);
-        }
-      }
-      
-      // Draw copper veins
-      for (let i = 0; i < res.copperPoints.length; i++) {
-        let vein = res.copperPoints[i];
+        // Rotate to random angle
+        this.p.rotate(res.rotation);
+        
+        // Half-buried metal scraps - lighter color, more square/sheet-like
+        let buriedDepth = res.buried; // 0.3-0.7, higher = more buried
+        
+        // Shadow under the metal
+        this.p.fill(80, 80, 80, 100);
+        this.p.ellipse(2, 2, 14 * res.size, 4 * res.size);
+        
+        // Base layer - buried part
+        this.p.fill(120, 120, 120);
         this.p.beginShape();
-        for (let j = 0; j < vein.length; j++) {
-          this.p.vertex(vein[j].x, vein[j].y);
-        }
+        this.p.vertex(-8 * res.size, buriedDepth * 5 * res.size);
+        this.p.vertex(8 * res.size, buriedDepth * 4 * res.size);
+        this.p.vertex(7 * res.size, buriedDepth * 8 * res.size);
+        this.p.vertex(-7 * res.size, buriedDepth * 7 * res.size);
+        this.p.endShape(this.p.CLOSE);
+        
+        // Main metal sheet
+        this.p.fill(200, 200, 210);
+        this.p.rect(-6 * res.size, -4 * res.size, 12 * res.size, 8 * res.size, 1);
+        
+        // Exposed part - showing above ground
+        let exposedHeight = this.p.map(buriedDepth, 0.3, 0.7, 6, 3);
+        this.p.fill(220, 220, 225);
+        this.p.rect(-5 * res.size, -4 * res.size, 10 * res.size, exposedHeight * res.size, 1);
+        
+        // Add details - rivets, bends, tears
+        this.p.fill(180, 180, 185);
+        this.p.ellipse(-4 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
+        this.p.ellipse(0, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
+        this.p.ellipse(4 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
+        
+        // Bent/damaged corner
+        this.p.fill(190, 190, 195);
+        this.p.beginShape();
+        this.p.vertex(-6 * res.size, -4 * res.size);
+        this.p.vertex(-4 * res.size, -5 * res.size);
+        this.p.vertex(-2 * res.size, -4 * res.size);
         this.p.endShape(this.p.CLOSE);
       }
       
-      // Copper highlights
-      this.p.noStroke();
-      this.p.fill(240, 160, 60, 200);
-      
-      // Draw highlights
-      for (let i = 0; i < res.copperPoints.length; i++) {
-        let vein = res.copperPoints[i];
-        if (vein.length > 0) {
-          let centerIdx = Math.floor(vein.length / 2);
-          this.p.ellipse(vein[centerIdx].x, vein[centerIdx].y, 2, 2);
-        }
-      }
-    } else {
-      // Fallback if shape is missing
-      this.p.ellipse(0, 0, 12, 10);
-      
-      // Add simple copper veins
-      this.p.fill(200, 120, 40);
-      this.p.noStroke();
-      this.p.ellipse(-2, -1, 4, 3);
-      this.p.ellipse(3, 2, 3, 2);
-      
-      // Add highlights
-      this.p.fill(240, 160, 60);
-      this.p.ellipse(-2, -1, 1, 1);
-      this.p.ellipse(3, 2, 1, 1);
+      this.p.pop();
     }
-    
-    this.p.pop();
   }
 }
