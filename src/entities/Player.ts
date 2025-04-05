@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class Player {
@@ -94,19 +95,23 @@ export default class Player {
       const collisionRadius = obs.collisionRadius || this.getDefaultCollisionRadius(obs);
       const dist = this.p.dist(this.x, this.y, obs.x, obs.y);
       
-      // Use the proper collision radius
-      if (dist < collisionRadius + this.size / 2) {
-        // Handle collision with obstacle
-        // Move player out of collision
-        const angle = this.p.atan2(this.y - obs.y, this.x - obs.x);
-        this.x = obs.x + (collisionRadius + this.size / 2) * this.p.cos(angle);
-        this.y = obs.y + (collisionRadius + this.size / 2) * this.p.sin(angle);
-        
-        // Stop movement in collision direction
-        const dotProduct = this.xSpeed * this.p.cos(angle) + this.ySpeed * this.p.sin(angle);
-        if (dotProduct > 0) {
-          this.xSpeed -= dotProduct * this.p.cos(angle);
-          this.ySpeed -= dotProduct * this.p.sin(angle);
+      // Only apply collisions with solid objects
+      if (obs.type !== 'fuelStain' && obs.type !== 'walkingMarks') {
+        // Use the proper collision radius
+        if (dist < collisionRadius + this.size / 2) {
+          // Handle collision with obstacle
+          // Move player out of collision
+          const angle = this.p.atan2(this.y - obs.y, this.x - obs.x);
+          const pushDistance = collisionRadius + this.size / 2 - dist;
+          this.x += pushDistance * this.p.cos(angle);
+          this.y += pushDistance * this.p.sin(angle);
+          
+          // Stop movement in collision direction
+          const dotProduct = this.xSpeed * this.p.cos(angle) + this.ySpeed * this.p.sin(angle);
+          if (dotProduct > 0) {
+            this.xSpeed -= dotProduct * this.p.cos(angle);
+            this.ySpeed -= dotProduct * this.p.sin(angle);
+          }
         }
       }
     }

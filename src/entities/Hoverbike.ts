@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import Player from './Player';
 
@@ -55,7 +56,12 @@ export default class Hoverbike {
   display() {
     this.p.push();
     this.p.translate(this.x, this.y);
-    this.p.rotate(this.p.atan2(this.ySpeed, this.xSpeed)); // Rotate towards movement direction
+    
+    // Only rotate if moving
+    if (Math.abs(this.xSpeed) > 0.1 || Math.abs(this.ySpeed) > 0.1) {
+      this.p.rotate(this.p.atan2(this.ySpeed, this.xSpeed)); // Rotate towards movement direction
+    }
+    
     this.p.fill(150);
     this.p.rect(-this.size / 2, -this.size / 4, this.size, this.size / 2);
     this.p.fill(100);
@@ -67,36 +73,40 @@ export default class Hoverbike {
     if (this.engineOn && this.fuel > 0) {
       this.fuel -= this.fuelConsumptionRate;
       
-      // Normalize the speed based on maxSpeed
-      let normalizedSpeed = this.speed / this.maxSpeed;
-      
-      // Accelerate up to the max speed
-      if (this.xSpeed < this.speed) {
-        this.xSpeed += 0.1 * normalizedSpeed;
+      if (this.p.keyIsDown(this.p.LEFT_ARROW) || this.p.keyIsDown(65)) {
+        this.xSpeed -= 0.1;
       }
-      if (this.ySpeed < this.speed) {
-        this.ySpeed += 0.1 * normalizedSpeed;
+      if (this.p.keyIsDown(this.p.RIGHT_ARROW) || this.p.keyIsDown(68)) {
+        this.xSpeed += 0.1;
+      }
+      if (this.p.keyIsDown(this.p.UP_ARROW) || this.p.keyIsDown(87)) {
+        this.ySpeed -= 0.1;
+      }
+      if (this.p.keyIsDown(this.p.DOWN_ARROW) || this.p.keyIsDown(83)) {
+        this.ySpeed += 0.1;
       }
       
-      this.x += this.xSpeed;
-      this.y += this.ySpeed;
+      // Limit max speed
+      this.xSpeed = this.p.constrain(this.xSpeed, -this.maxSpeed, this.maxSpeed);
+      this.ySpeed = this.p.constrain(this.ySpeed, -this.maxSpeed, this.maxSpeed);
     } else {
       // Gradual deceleration
-      if (this.xSpeed > 0) {
-        this.xSpeed -= 0.05;
-      } else if (this.xSpeed < 0) {
+      if (Math.abs(this.xSpeed) > 0.05) {
+        this.xSpeed *= 0.98;
+      } else {
         this.xSpeed = 0;
       }
       
-      if (this.ySpeed > 0) {
-        this.ySpeed -= 0.05;
-      } else if (this.ySpeed < 0) {
+      if (Math.abs(this.ySpeed) > 0.05) {
+        this.ySpeed *= 0.98;
+      } else {
         this.ySpeed = 0;
       }
-      
-      this.x += this.xSpeed;
-      this.y += this.ySpeed;
     }
+    
+    // Apply movement
+    this.x += this.xSpeed;
+    this.y += this.ySpeed;
   }
 
   brake() {
@@ -133,8 +143,8 @@ export default class Hoverbike {
   }
 
   update() {
-    this.checkCollisions();
     this.move();
+    this.checkCollisions();
   }
 
   checkCollisions() {
@@ -142,6 +152,11 @@ export default class Hoverbike {
     const obstacles = this.obstacles[areaKey] || [];
     
     for (let obs of obstacles) {
+      // Skip non-solid obstacles
+      if (obs.type === 'fuelStain' || obs.type === 'walkingMarks') {
+        continue;
+      }
+      
       // Check if the obstacle has a custom collision radius
       const collisionRadius = obs.collisionRadius || this.getDefaultCollisionRadius(obs);
       const dist = this.p.dist(this.x, this.y, obs.x, obs.y);
@@ -150,26 +165,22 @@ export default class Hoverbike {
       if (dist < collisionRadius + this.size / 2) {
         // Handle collision
         const angle = this.p.atan2(this.y - obs.y, this.x - obs.x);
-        this.x = obs.x + (collisionRadius + this.size / 2) * this.p.cos(angle);
-        this.y = obs.y + (collisionRadius + this.size / 2) * this.p.sin(angle);
+        const pushDistance = collisionRadius + this.size / 2 - dist;
+        this.x += pushDistance * this.p.cos(angle);
+        this.y += pushDistance * this.p.sin(angle);
         
-        // Stop movement and apply damage for solid obstacles
-        if (obs.type !== 'fuelStain' && obs.type !== 'walkingMarks') {
-          // Damage calculation based on speed
-          const speed = Math.sqrt(this.xSpeed * this.xSpeed + this.ySpeed * this.ySpeed);
-          if (speed > 1) {
-            const damage = this.p.map(speed, 1, this.maxSpeed, 1, 5);
-            this.health -= damage;
-            
-            // Emit damage effect (sound or visual would go here)
-          }
-          
-          // Reduce speed in collision direction
-          const dotProduct = this.xSpeed * this.p.cos(angle) + this.ySpeed * this.p.sin(angle);
-          if (dotProduct > 0) {
-            this.xSpeed -= dotProduct * this.p.cos(angle) * 1.5;
-            this.ySpeed -= dotProduct * this.p.sin(angle) * 1.5;
-          }
+        // Calculate damage based on speed
+        const speed = Math.sqrt(this.xSpeed * this.xSpeed + this.ySpeed * this.ySpeed);
+        if (speed > 1) {
+          const damage = this.p.map(speed, 1, this.maxSpeed, 1, 5);
+          this.health -= damage;
+        }
+        
+        // Reduce speed in collision direction
+        const dotProduct = this.xSpeed * this.p.cos(angle) + this.ySpeed * this.p.sin(angle);
+        if (dotProduct > 0) {
+          this.xSpeed -= dotProduct * this.p.cos(angle) * 1.5;
+          this.ySpeed -= dotProduct * this.p.sin(angle) * 1.5;
         }
       }
     }
