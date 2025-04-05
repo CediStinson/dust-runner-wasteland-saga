@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -24,6 +25,7 @@ export default class Hoverbike implements HoverbikeType {
   previousAcceleration: number;
   isRiding: boolean;
   thrustIntensity: number;
+  flameLength: number;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -47,6 +49,7 @@ export default class Hoverbike implements HoverbikeType {
     this.previousAcceleration = 0;
     this.isRiding = false;
     this.thrustIntensity = 0;
+    this.flameLength = 0;
   }
 
   update() {
@@ -56,20 +59,35 @@ export default class Hoverbike implements HoverbikeType {
       this.applyMovement();
       this.checkCollisions();
       
-      // Update thrust intensity based on velocity
+      // Update flame length based on acceleration
       const currentSpeed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
-      // Gradually adjust thrust intensity for smoother transitions
-      const targetIntensity = currentSpeed * 3; // Scale based on speed
-      this.thrustIntensity = this.p.lerp(this.thrustIntensity, targetIntensity, 0.1);
+      
+      // Check if accelerating/decelerating based on key states
+      if (this.p.keyIsDown(this.p.UP_ARROW) && this.fuel > 0) {
+        // Accelerating - increase flame length
+        const targetLength = currentSpeed * 4 + 5; // Base flame + speed-dependent component
+        this.flameLength = this.p.lerp(this.flameLength, targetLength, 0.1); // Smooth transition
+      } else if (this.p.keyIsDown(this.p.DOWN_ARROW)) {
+        // Braking/reversing - decrease flame length
+        const targetLength = Math.max(currentSpeed * 2, 3); // Smaller flame when braking
+        this.flameLength = this.p.lerp(this.flameLength, targetLength, 0.2); // Faster transition when braking
+      } else {
+        // Coasting - gradually adjust flame based on current speed
+        const targetLength = currentSpeed * 3;
+        this.flameLength = this.p.lerp(this.flameLength, targetLength, 0.1);
+      }
+      
+      // Ensure there's always a minimum flame when riding (unless no fuel)
+      this.thrustIntensity = (this.fuel > 0) ? Math.max(2, this.flameLength) : 0;
       
       if (this.collisionCooldown > 0) {
         this.collisionCooldown--;
       }
     } else {
-      // Track that we're not riding anymore
+      // Turn off flame completely when not riding
       this.isRiding = false;
-      // Gradually fade out thrust effect when not riding
-      this.thrustIntensity = this.p.max(0, this.thrustIntensity - 0.2);
+      this.thrustIntensity = 0;
+      this.flameLength = 0;
       this.checkFuelRefill();
     }
   }
@@ -329,24 +347,29 @@ export default class Hoverbike implements HoverbikeType {
       this.p.fill(50, 50, 55);
       this.p.rect(-15, -4, 4, 8, 1);
       
-      // Enhanced exhaust flame - dynamic length based on thrust intensity
-      this.p.noStroke();
-      
-      // Base glow - always present but minimal when not moving
-      const baseLength = 5; 
-      const thrustLength = baseLength + this.thrustIntensity;
-      
-      // Outer glow - yellow/orange
-      this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
-      this.p.ellipse(-22, 0, 4, Math.max(8, thrustLength));
-      
-      // Inner glow - brighter, more intense
-      this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
-      this.p.ellipse(-24, 0, 3, Math.max(5, thrustLength * 0.7));
-      
-      // Brightest core - red hot
-      this.p.fill(255, 50, 50, 200 + this.p.sin(this.p.frameCount * 0.3) * 55);
-      this.p.ellipse(-25, 0, 2, Math.max(3, thrustLength * 0.5));
+      // Only display flame if riding
+      if (this.thrustIntensity > 0) {
+        // Enhanced exhaust flame - dynamic length based on thrust intensity
+        this.p.noStroke();
+        
+        // Horizontal flame that stretches with acceleration/deceleration
+        // Base glow - always present but minimal when not moving
+        const flameWidth = this.thrustIntensity;
+        const flameHeight = 6;
+        const flameX = -21 - (flameWidth / 2); // Position flame just behind the exhaust
+        
+        // Outer glow - yellow/orange
+        this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
+        this.p.ellipse(flameX, 0, flameWidth, flameHeight);
+        
+        // Inner glow - brighter, more intense
+        this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
+        this.p.ellipse(flameX - 1, 0, flameWidth * 0.7, flameHeight * 0.8);
+        
+        // Brightest core - red hot
+        this.p.fill(255, 50, 50, 200 + this.p.sin(this.p.frameCount * 0.3) * 55);
+        this.p.ellipse(flameX - 2, 0, flameWidth * 0.5, flameHeight * 0.6);
+      }
       
       // Side panels with makeshift repairs
       this.p.stroke(0);
