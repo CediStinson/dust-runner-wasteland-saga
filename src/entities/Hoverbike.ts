@@ -1,420 +1,195 @@
 import p5 from 'p5';
-import { HoverbikeType } from '../utils/gameUtils';
-import { emitGameStateUpdate } from '../utils/gameUtils';
+import Player from './Player';
 
-export default class Hoverbike implements HoverbikeType {
+export default class Hoverbike {
+  p: any;
   x: number;
   y: number;
   worldX: number;
   worldY: number;
-  angle: number;
-  velocityX: number;
-  velocityY: number;
-  health: number;
-  maxHealth: number;
+  size: number;
+  speed: number;
+  maxSpeed: number;
+  xSpeed: number;
+  ySpeed: number;
+  engineOn: boolean;
   fuel: number;
   maxFuel: number;
-  speed: number;
-  speedLevel: number;
-  durabilityLevel: number;
-  collisionCooldown: number;
-  p: any;
+  fuelConsumptionRate: number;
   obstacles: Record<string, any[]>;
-  player: any;
-  previousAcceleration: number;
-  smokeParticles: Array<{x: number, y: number, worldX: number, worldY: number, opacity: number, size: number, age: number}>;
-  isRiding: boolean;
+  player: Player;
+  health: number;
+  maxHealth: number;
 
-  constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
+  constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: Player) {
     this.p = p;
     this.x = x;
     this.y = y;
     this.worldX = worldX;
     this.worldY = worldY;
-    this.obstacles = obstacles;
-    this.player = player;
-    this.angle = 0;
-    this.velocityX = 0;
-    this.velocityY = 0;
-    this.health = 100;
-    this.maxHealth = 100;
+    this.size = 30;
+    this.speed = 2;
+    this.maxSpeed = 5;
+    this.xSpeed = 0;
+    this.ySpeed = 0;
+    this.engineOn = false;
     this.fuel = 100;
     this.maxFuel = 100;
-    this.speed = 2;
-    this.speedLevel = 0;
-    this.durabilityLevel = 0;
-    this.collisionCooldown = 0;
-    this.previousAcceleration = 0;
-    this.smokeParticles = [];
-    this.isRiding = false;
-  }
-
-  update() {
-    if (this.player.riding) {
-      this.isRiding = true;
-      this.handleControls();
-      this.applyMovement();
-      this.checkCollisions();
-      this.checkFuelRefill();
-      this.updateSmokeParticles();
-      
-      if (this.collisionCooldown > 0) {
-        this.collisionCooldown--;
-      }
-    } else {
-      if (this.isRiding) {
-        this.isRiding = false;
-      }
-      this.updateSmokeParticles();
-    }
-  }
-
-  handleControls() {
-    let acceleration = 0;
-    
-    if (this.p.keyIsDown(this.p.UP_ARROW) && this.fuel > 0) {
-      acceleration = 0.1;
-      
-      if (this.p.frameCount % 60 === 0) {
-        const oldFuel = this.fuel;
-        this.fuel = Math.max(0, this.fuel - 0.5);
-        if (oldFuel !== this.fuel) {
-          emitGameStateUpdate(this.player, this);
-        }
-      }
-      
-      if (this.p.frameCount % 4 === 0) {
-        this.addSmokeParticle();
-      }
-    } else if (this.p.keyIsDown(this.p.DOWN_ARROW)) {
-      if (Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY) > 0.1) {
-        const movementAngle = Math.atan2(this.velocityY, this.velocityX);
-        const angleDifference = Math.abs((movementAngle - this.angle + Math.PI * 2) % (Math.PI * 2));
-        
-        if (angleDifference < Math.PI / 2 || angleDifference > Math.PI * 3 / 2) {
-          acceleration = -0.05;
-        } else {
-          acceleration = -0.1;
-          
-          if (this.p.frameCount % 60 === 0 && this.fuel > 0) {
-            const oldFuel = this.fuel;
-            this.fuel = Math.max(0, this.fuel - 0.5);
-            if (oldFuel !== this.fuel) {
-              emitGameStateUpdate(this.player, this);
-            }
-          }
-        }
-      } else {
-        acceleration = -0.1;
-        
-        if (this.p.frameCount % 60 === 0 && this.fuel > 0) {
-          const oldFuel = this.fuel;
-          this.fuel = Math.max(0, this.fuel - 0.5);
-          if (oldFuel !== this.fuel) {
-            emitGameStateUpdate(this.player, this);
-          }
-        }
-        
-        if (this.p.frameCount % 5 === 0) {
-          this.addSmokeParticle();
-        }
-      }
-    }
-    
-    this.previousAcceleration = acceleration;
-
-    let turningVelocity = 0;
-    if (this.p.keyIsDown(this.p.LEFT_ARROW)) turningVelocity = -0.03;
-    else if (this.p.keyIsDown(this.p.RIGHT_ARROW)) turningVelocity = 0.03;
-
-    this.angle += turningVelocity;
-    this.velocityX += this.p.cos(this.angle) * acceleration;
-    this.velocityY += this.p.sin(this.angle) * acceleration;
-    this.velocityX *= 0.95;
-    this.velocityY *= 0.95;
-  }
-  
-  updateSmokeParticles() {
-    for (let i = this.smokeParticles.length - 1; i >= 0; i--) {
-      const particle = this.smokeParticles[i];
-      
-      particle.age += 1;
-      
-      const fadeRate = this.isRiding ? 0.8 : 2.0;
-      particle.opacity -= fadeRate;
-      particle.size += 0.12;
-      
-      if (particle.opacity <= 0) {
-        this.smokeParticles.splice(i, 1);
-      }
-    }
-  }
-  
-  addSmokeParticle() {
-    const offsetDistance = 20;
-    const smokeX = -offsetDistance * Math.cos(this.angle);
-    const smokeY = -offsetDistance * Math.sin(this.angle);
-    
-    const jitter = 1.5;
-    const randomX = this.p.random(-jitter, jitter);
-    const randomY = this.p.random(-jitter, jitter);
-    
-    this.smokeParticles.push({
-      x: smokeX + randomX,
-      y: smokeY + randomY,
-      worldX: this.worldX,
-      worldY: this.worldY,
-      opacity: 150,
-      size: this.p.random(3, 4),
-      age: 0
-    });
-  }
-
-  applyMovement() {
-    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-    let willCollide = false;
-    let newX = this.x + this.velocityX;
-    let newY = this.y + this.velocityY;
-    
-    for (let obs of currentObstacles) {
-      if (obs.type === 'hut' || obs.type === 'rock' || obs.type === 'fuelPump') {
-        let dx = newX - obs.x;
-        let dy = newY - obs.y;
-        
-        let collisionRadius = 0;
-        if (obs.type === 'rock') {
-          let hitboxWidth = 28 * obs.size * (obs.aspectRatio > 1 ? obs.aspectRatio : 1);
-          let hitboxHeight = 28 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
-          collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.5;
-        } else if (obs.type === 'hut') {
-          collisionRadius = 30;
-        } else if (obs.type === 'fuelPump') {
-          collisionRadius = 25;
-        }
-        
-        let distance = this.p.sqrt(dx * dx + dy * dy);
-        if (distance < collisionRadius) {
-          willCollide = true;
-          this.velocityX = -this.velocityX * 0.5;
-          this.velocityY = -this.velocityY * 0.5;
-          break;
-        }
-      }
-    }
-    
-    if (!willCollide) {
-      this.x += this.velocityX;
-      this.y += this.velocityY;
-    }
-  }
-
-  checkCollisions() {
-    if (this.collisionCooldown > 0) return;
-
-    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-    for (let obs of currentObstacles) {
-      if (obs.type === 'rock') {
-        let dx = this.x - obs.x;
-        let dy = this.y - obs.y;
-        let hitboxWidth = 30 * obs.size * (obs.aspectRatio > 1 ? obs.aspectRatio : 1);
-        let hitboxHeight = 30 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
-        let normalizedX = dx / hitboxWidth;
-        let normalizedY = dy / hitboxHeight;
-        let distance = this.p.sqrt(normalizedX * normalizedX + normalizedY * normalizedY);
-
-        if (distance < 1) {
-          const oldHealth = this.health;
-          this.health = this.p.max(0, this.health - 10);
-          if (oldHealth !== this.health) {
-            emitGameStateUpdate(this.player, this);
-          }
-          this.velocityX = -this.velocityX * 0.5;
-          this.velocityY = -this.velocityY * 0.5;
-          this.collisionCooldown = 30;
-          let pushDistance = (1 - distance) * 30;
-          let pushX = normalizedX * pushDistance;
-          let pushY = normalizedY * pushDistance;
-          this.x += pushX * hitboxWidth / 30;
-          this.y += pushY * hitboxHeight / 30;
-          break;
-        }
-      } else if (obs.type === 'cactus') {
-        let dx = this.x - obs.x;
-        let dy = this.y - obs.y;
-        let hitboxWidth = 20 * obs.size;
-        let hitboxHeight = 20 * obs.size;
-        let distance = this.p.sqrt(dx * dx + dy * dy);
-
-        if (distance < hitboxWidth) {
-          const oldHealth = this.health;
-          this.health = this.p.max(0, this.health - 3);
-          if (oldHealth !== this.health) {
-            emitGameStateUpdate(this.player, this);
-          }
-          this.velocityX *= 0.8;
-          this.velocityY *= 0.8;
-          this.collisionCooldown = 20;
-          let pushDistance = (hitboxWidth - distance);
-          let pushX = (dx / distance) * pushDistance;
-          let pushY = (dy / distance) * pushDistance;
-          this.x += pushX;
-          this.y += pushY;
-          break;
-        }
-      }
-    }
-  }
-  
-  checkFuelRefill() {
-    if (this.fuel >= this.maxFuel) return;
-    
-    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-    for (let obs of currentObstacles) {
-      if (obs.type === 'fuelPump') {
-        let dx = this.x - obs.x;
-        let dy = this.y - obs.y;
-        let distance = this.p.sqrt(dx * dx + dy * dy);
-        
-        if (distance < 40 && this.fuel < this.maxFuel) {
-          const oldFuel = this.fuel;
-          this.fuel = Math.min(this.maxFuel, this.fuel + 0.5);
-          if (oldFuel !== this.fuel && this.p.frameCount % 10 === 0) {
-            emitGameStateUpdate(this.player, this);
-          }
-        }
-      }
-    }
-  }
-
-  display() {
-    if (this.worldX === this.player.worldX && this.worldY === this.player.worldY) {
-      this.p.push();
-      this.p.translate(this.x, this.y);
-      this.p.rotate(this.angle);
-      
-      this.p.noStroke();
-      for (const particle of this.smokeParticles) {
-        if (particle.worldX === this.worldX && particle.worldY === this.worldY) {
-          const smokeGray = 150 + this.p.map(particle.age, 0, 50, 0, 30);
-          this.p.fill(smokeGray, smokeGray, smokeGray, particle.opacity);
-          this.p.ellipse(particle.x, particle.y, particle.size * 1.5, particle.size * 0.8);
-        }
-      }
-      
-      this.p.stroke(0);
-      this.p.fill(130, 130, 140);
-      this.p.beginShape();
-      this.p.vertex(20, 0);
-      this.p.vertex(16, 6);
-      this.p.vertex(0, 8);
-      this.p.vertex(-16, 6);
-      this.p.vertex(-16, -6);
-      this.p.vertex(0, -8);
-      this.p.vertex(16, -6);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.fill(80, 80, 90);
-      this.p.beginShape();
-      this.p.vertex(14, 0);
-      this.p.vertex(10, 5);
-      this.p.vertex(-6, 6);
-      this.p.vertex(-10, 4);
-      this.p.vertex(-10, -4);
-      this.p.vertex(-6, -6);
-      this.p.vertex(10, -5);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.fill(60, 60, 65);
-      this.p.ellipse(0, 0, 14, 10);
-      
-      this.p.stroke(70, 70, 75);
-      this.p.strokeWeight(2);
-      this.p.line(8, -4, 6, -8);
-      this.p.line(8, 4, 6, 8);
-      this.p.strokeWeight(1);
-      
-      this.p.fill(40, 40, 45);
-      this.p.ellipse(6, -8, 4, 3);
-      this.p.ellipse(6, 8, 4, 3);
-      
-      this.p.fill(200, 200, 100);
-      this.p.ellipse(18, 0, 6, 3);
-      
-      this.p.fill(90, 90, 95);
-      this.p.beginShape();
-      this.p.vertex(-14, -6);
-      this.p.vertex(-14, 6);
-      this.p.vertex(-20, 5);
-      this.p.vertex(-20, -5);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.fill(50, 50, 55);
-      this.p.rect(-15, -4, 4, 8, 1);
-      
-      this.p.noStroke();
-      this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
-      this.p.ellipse(-22, 0, 4, 8);
-      this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
-      this.p.ellipse(-24, 0, 3, 5);
-      
-      this.p.stroke(0);
-      this.p.fill(100, 100, 110);
-      this.p.beginShape();
-      this.p.vertex(-5, -8);
-      this.p.vertex(0, -10);
-      this.p.vertex(5, -8);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.beginShape();
-      this.p.vertex(-5, 8);
-      this.p.vertex(0, 10);
-      this.p.vertex(5, 8);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.fill(60, 60, 65);
-      this.p.ellipse(-8, -8, 2, 2);
-      this.p.ellipse(0, -8, 2, 2);
-      this.p.ellipse(8, -8, 2, 2);
-      this.p.ellipse(-8, 8, 2, 2);
-      this.p.ellipse(0, 8, 2, 2);
-      this.p.ellipse(8, 8, 2, 2);
-      
-      this.p.stroke(40, 40, 45);
-      this.p.strokeWeight(1);
-      this.p.line(-8, -6, -14, -4);
-      this.p.line(-8, -2, -14, -2);
-      this.p.line(-8, 2, -14, 2);
-      this.p.line(-8, 6, -14, 4);
-      
-      this.p.noStroke();
-      this.p.fill(50, 50, 60, 100);
-      this.p.ellipse(0, 0, 25, 20);
-      
-      this.p.pop();
-    }
+    this.fuelConsumptionRate = 0.01;
+    this.obstacles = obstacles;
+    this.player = player;
+    this.health = 100;
+    this.maxHealth = 100;
   }
 
   upgradeSpeed() {
-    if (this.speedLevel < 3) {
-      this.speedLevel++;
-      this.speed += 0.5;
+    this.speed += 0.5;
+    this.maxSpeed += 0.5;
+  }
+
+  setWorldCoordinates(worldX: number, worldY: number) {
+    this.worldX = worldX;
+    this.worldY = worldY;
+  }
+
+  display() {
+    this.p.push();
+    this.p.translate(this.x, this.y);
+    this.p.rotate(this.p.atan2(this.ySpeed, this.xSpeed)); // Rotate towards movement direction
+    this.p.fill(150);
+    this.p.rect(-this.size / 2, -this.size / 4, this.size, this.size / 2);
+    this.p.fill(100);
+    this.p.ellipse(0, 0, this.size / 2, this.size / 2);
+    this.p.pop();
+  }
+
+  move() {
+    if (this.engineOn && this.fuel > 0) {
+      this.fuel -= this.fuelConsumptionRate;
+      
+      // Normalize the speed based on maxSpeed
+      let normalizedSpeed = this.speed / this.maxSpeed;
+      
+      // Accelerate up to the max speed
+      if (this.xSpeed < this.speed) {
+        this.xSpeed += 0.1 * normalizedSpeed;
+      }
+      if (this.ySpeed < this.speed) {
+        this.ySpeed += 0.1 * normalizedSpeed;
+      }
+      
+      this.x += this.xSpeed;
+      this.y += this.ySpeed;
+    } else {
+      // Gradual deceleration
+      if (this.xSpeed > 0) {
+        this.xSpeed -= 0.05;
+      } else if (this.xSpeed < 0) {
+        this.xSpeed = 0;
+      }
+      
+      if (this.ySpeed > 0) {
+        this.ySpeed -= 0.05;
+      } else if (this.ySpeed < 0) {
+        this.ySpeed = 0;
+      }
+      
+      this.x += this.xSpeed;
+      this.y += this.ySpeed;
     }
   }
 
-  upgradeDurability() {
-    if (this.durabilityLevel < 3) {
-      this.durabilityLevel++;
-      this.maxHealth += 50;
-      this.health += 50;
+  brake() {
+    // Apply braking force
+    if (this.xSpeed > 0) {
+      this.xSpeed -= 0.1;
+    } else if (this.xSpeed < 0) {
+      this.xSpeed += 0.1;
+    }
+    
+    if (this.ySpeed > 0) {
+      this.ySpeed -= 0.1;
+    } else if (this.ySpeed < 0) {
+      this.ySpeed += 0.1;
+    }
+    
+    // Stop completely if the speed is low enough
+    if (Math.abs(this.xSpeed) < 0.1) {
+      this.xSpeed = 0;
+    }
+    if (Math.abs(this.ySpeed) < 0.1) {
+      this.ySpeed = 0;
     }
   }
 
-  setWorldCoordinates(x: number, y: number) {
-    this.worldX = x;
-    this.worldY = y;
+  turn(direction: number) {
+    // Turning influence on x and y speed
+    this.xSpeed += direction * 0.05;
+    this.ySpeed += direction * 0.05;
+    
+    // Limit the turning influence
+    this.xSpeed = this.p.constrain(this.xSpeed, -this.maxSpeed, this.maxSpeed);
+    this.ySpeed = this.p.constrain(this.ySpeed, -this.maxSpeed, this.maxSpeed);
   }
 
-  render() {
-    this.display();
+  update() {
+    this.checkCollisions();
+    this.move();
+  }
+
+  checkCollisions() {
+    const areaKey = `${this.worldX},${this.worldY}`;
+    const obstacles = this.obstacles[areaKey] || [];
+    
+    for (let obs of obstacles) {
+      // Check if the obstacle has a custom collision radius
+      const collisionRadius = obs.collisionRadius || this.getDefaultCollisionRadius(obs);
+      const dist = this.p.dist(this.x, this.y, obs.x, obs.y);
+      
+      // Use the proper collision radius
+      if (dist < collisionRadius + this.size / 2) {
+        // Handle collision
+        const angle = this.p.atan2(this.y - obs.y, this.x - obs.x);
+        this.x = obs.x + (collisionRadius + this.size / 2) * this.p.cos(angle);
+        this.y = obs.y + (collisionRadius + this.size / 2) * this.p.sin(angle);
+        
+        // Stop movement and apply damage for solid obstacles
+        if (obs.type !== 'fuelStain' && obs.type !== 'walkingMarks') {
+          // Damage calculation based on speed
+          const speed = Math.sqrt(this.xSpeed * this.xSpeed + this.ySpeed * this.ySpeed);
+          if (speed > 1) {
+            const damage = this.p.map(speed, 1, this.maxSpeed, 1, 5);
+            this.health -= damage;
+            
+            // Emit damage effect (sound or visual would go here)
+          }
+          
+          // Reduce speed in collision direction
+          const dotProduct = this.xSpeed * this.p.cos(angle) + this.ySpeed * this.p.sin(angle);
+          if (dotProduct > 0) {
+            this.xSpeed -= dotProduct * this.p.cos(angle) * 1.5;
+            this.ySpeed -= dotProduct * this.p.sin(angle) * 1.5;
+          }
+        }
+      }
+    }
+  }
+
+  getDefaultCollisionRadius(obstacle: any): number {
+    // Default collision radius based on obstacle type
+    switch(obstacle.type) {
+      case 'rock':
+        return obstacle.size * 10; // Base collision radius for rocks
+      case 'cactus':
+        return obstacle.size * 15; // Larger collision for cacti
+      case 'bush':
+        return obstacle.size * 8;
+      case 'hut':
+        return 35; // Default hut collision radius
+      case 'fuelPump':
+        return 20;
+      default:
+        return 10; // Default collision radius
+    }
   }
 }

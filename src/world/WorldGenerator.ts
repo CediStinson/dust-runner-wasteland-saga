@@ -124,12 +124,13 @@ export default class WorldGenerator {
       y: y,
       type: 'hut',
       size: 1.0,
-      shape: shape
+      shape: shape,
+      collisionRadius: 35
     };
   }
   
   generateRock(x: number, y: number) {
-    const size = this.p.random(1.5, 3.0); // Increase rock size by doubling the base size
+    const size = this.p.random(1.5, 3.0);
     const aspectRatio = this.p.random(0.5, 2);
     
     // Generate rock shape
@@ -144,13 +145,24 @@ export default class WorldGenerator {
       shape.push({x: px, y: py});
     }
     
+    let maxDistance = 0;
+    for (const point of shape) {
+      const distance = Math.sqrt(point.x * point.x + point.y * point.y);
+      if (distance > maxDistance) {
+        maxDistance = distance;
+      }
+    }
+    
+    const collisionRadius = maxDistance + (2 * size);
+    
     return {
       x: x,
       y: y,
       type: 'rock',
       size: size,
       aspectRatio: aspectRatio,
-      shape: shape
+      shape: shape,
+      collisionRadius: collisionRadius
     };
   }
   
@@ -247,9 +259,14 @@ export default class WorldGenerator {
     const numRocks = this.p.floor(this.p.random(3, 6));
     const rocks = [];
     
+    const spreadRadius = 40;
+    
     for (let i = 0; i < numRocks; i++) {
-      const rockX = x + this.p.random(-20, 20);
-      const rockY = y + this.p.random(-20, 20);
+      const angle = (i / numRocks) * this.p.TWO_PI + this.p.random(-0.5, 0.5);
+      const distance = this.p.random(spreadRadius * 0.4, spreadRadius);
+      
+      const rockX = x + distance * this.p.cos(angle);
+      const rockY = y + distance * this.p.sin(angle);
       rocks.push(this.generateRock(rockX, rockY));
     }
     
@@ -260,22 +277,43 @@ export default class WorldGenerator {
     const areaKey = `${x},${y}`;
     const areaObstacles = [];
     
-    // Generate rocks
     const numRockFormations = this.p.floor(this.p.random(1, 3));
+    
+    const cellSize = this.p.width / 3;
+    const rockPositions = [];
+    
     for (let i = 0; i < numRockFormations; i++) {
-      const rockX = this.p.random(this.p.width * 0.1, this.p.width * 0.9);
-      const rockY = this.p.random(this.p.height * 0.1, this.p.height * 0.9);
-      const rocks = this.generateRockFormation(rockX, rockY);
-      areaObstacles.push(...rocks);
+      let validPosition = false;
+      let rockX, rockY;
+      let attempts = 0;
+      
+      while (!validPosition && attempts < 10) {
+        rockX = this.p.random(this.p.width * 0.15, this.p.width * 0.85);
+        rockY = this.p.random(this.p.height * 0.15, this.p.height * 0.85);
+        
+        validPosition = true;
+        for (const pos of rockPositions) {
+          if (this.p.dist(rockX, rockY, pos.x, pos.y) < cellSize) {
+            validPosition = false;
+            break;
+          }
+        }
+        
+        attempts++;
+      }
+      
+      if (validPosition) {
+        rockPositions.push({x: rockX, y: rockY});
+        const rocks = this.generateRockFormation(rockX, rockY);
+        areaObstacles.push(...rocks);
+      }
     }
     
-    // Generate bushes
     const numBushes = this.p.floor(this.p.random(2, 5));
     for (let i = 0; i < numBushes; i++) {
       const bushX = this.p.random(this.p.width * 0.1, this.p.width * 0.9);
       const bushY = this.p.random(this.p.height * 0.1, this.p.height * 0.9);
       
-      // Check if too close to other objects
       let tooClose = false;
       for (let obs of areaObstacles) {
         const dist = this.p.dist(bushX, bushY, obs.x, obs.y);
@@ -290,45 +328,38 @@ export default class WorldGenerator {
       }
     }
     
-    // Generate hut specifically in 0,1 area
     if (x === 0 && y === 1) {
       const hut = this.generateHut(this.p.width / 2, this.p.height / 2);
       areaObstacles.push(hut);
     }
     
-    // Generate fuel pump specifically in 1,0 area
     if (x === 1 && y === 0) {
       const fuelPump = this.generateFuelPump(this.p.width / 2, this.p.height / 2);
       areaObstacles.push(fuelPump);
     }
     
-    // Generate hut in home base (0,0) area as well for desert home
     if (x === 0 && y === 0) {
-      const homeHut = this.generateHut(this.p.width / 2 - 100, this.p.height / 2); // Position on the left side
+      const homeHut = this.generateHut(this.p.width / 2, this.p.height / 2 - 50);
       areaObstacles.push(homeHut);
     }
     
-    // Generate cacti with normal probability
-    if (x !== 0 || y !== 0) {  // Avoid spawning cacti in the home area
-      const numCacti = this.p.floor(this.p.random(5, 10));
-      for (let i = 0; i < numCacti; i++) {
-        if (this.p.random() < this.cactusProb * 3) { // Tripled cactus probability
-          const cacX = this.p.random(this.p.width * 0.1, this.p.width * 0.9);
-          const cacY = this.p.random(this.p.height * 0.1, this.p.height * 0.9);
-          
-          // Check if too close to other objects
-          let tooClose = false;
-          for (let obs of areaObstacles) {
-            const dist = this.p.dist(cacX, cacY, obs.x, obs.y);
-            if (dist < 50) {
-              tooClose = true;
-              break;
-            }
+    const numCacti = this.p.floor(this.p.random(5, 10));
+    for (let i = 0; i < numCacti; i++) {
+      if (this.p.random() < this.cactusProb * 3) {
+        const cacX = this.p.random(this.p.width * 0.1, this.p.width * 0.9);
+        const cacY = this.p.random(this.p.height * 0.1, this.p.height * 0.9);
+        
+        let tooClose = false;
+        for (let obs of areaObstacles) {
+          const dist = this.p.dist(cacX, cacY, obs.x, obs.y);
+          if (dist < 50) {
+            tooClose = true;
+            break;
           }
-          
-          if (!tooClose) {
-            areaObstacles.push(this.generateCactus(cacX, cacY));
-          }
+        }
+        
+        if (!tooClose) {
+          areaObstacles.push(this.generateCactus(cacX, cacY));
         }
       }
     }
@@ -340,13 +371,11 @@ export default class WorldGenerator {
     const areaKey = `${x},${y}`;
     const areaResources = [];
     
-    // Generate metal scraps
     const numScraps = this.p.floor(this.p.random(3, 7));
     for (let i = 0; i < numScraps; i++) {
       const scrapX = this.p.random(this.p.width * 0.1, this.p.width * 0.9);
       const scrapY = this.p.random(this.p.height * 0.1, this.p.height * 0.9);
       
-      // Check if not too close to obstacles
       let validPosition = true;
       const areaObstacles = this.obstacles[areaKey] || [];
       for (let obs of areaObstacles) {
@@ -363,10 +392,9 @@ export default class WorldGenerator {
       }
     }
     
-    // Generate copper ore near rocks, with reduced probability
     const rocks = this.obstacles[areaKey]?.filter(obs => obs.type === 'rock') || [];
     for (let rock of rocks) {
-      if (this.p.random() < 0.15) { // Decreased copper generation probability (was 0.25)
+      if (this.p.random() < 0.15) {
         let copperOre = this.generateCopperOre(areaKey, rock);
         areaResources.push(copperOre);
       }
@@ -385,22 +413,18 @@ export default class WorldGenerator {
     this.generatedAreas[areaKey] = true;
   }
   
-  // Method for compatibility with Game.ts
   generateNewArea(x: number, y: number) {
     this.generateArea(x, y);
   }
   
-  // Method for windmill animation
   updateWindmillAngle() {
     this.windmillAngle += 0.01;
   }
   
-  // Method to get the windmill angle
   getWindmillAngle() {
     return this.windmillAngle;
   }
   
-  // Method for compatibility with Game.ts
   clearTextures() {
     // This would clear any cached textures if we had any
     // For now, it's just a stub method for compatibility
