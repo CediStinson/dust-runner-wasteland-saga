@@ -5,6 +5,7 @@ import Game from '../game/Game';
 
 const GameSketch = () => {
   const sketchRef = useRef<HTMLDivElement>(null);
+  const gameRef = useRef<Game | null>(null);
   
   useEffect(() => {
     if (!sketchRef.current) return;
@@ -16,6 +17,7 @@ const GameSketch = () => {
         p.createCanvas(p.windowWidth, p.windowHeight);
         p.noSmooth();
         game = new Game(p);
+        gameRef.current = game;
       };
 
       p.draw = () => {
@@ -62,8 +64,64 @@ const GameSketch = () => {
 
     const myP5 = new p5(sketch, sketchRef.current);
 
+    // Set up listener for loading game state
+    const handleLoadGameState = (event: CustomEvent) => {
+      if (gameRef.current && event.detail) {
+        const savedState = event.detail;
+        
+        // Update game state with saved values
+        if (gameRef.current.player && savedState.resources !== undefined) {
+          gameRef.current.player.inventory.metal = savedState.resources;
+        }
+        
+        if (gameRef.current.player && savedState.copper !== undefined) {
+          gameRef.current.player.inventory.copper = savedState.copper;
+        }
+        
+        if (gameRef.current.hoverbike && savedState.health !== undefined) {
+          gameRef.current.hoverbike.health = savedState.health;
+        }
+        
+        if (gameRef.current.hoverbike && savedState.fuel !== undefined) {
+          gameRef.current.hoverbike.fuel = savedState.fuel;
+        }
+        
+        if (gameRef.current.player && savedState.playerHealth !== undefined) {
+          gameRef.current.player.health = savedState.playerHealth;
+        }
+        
+        // Teleport player and hoverbike to saved coordinates
+        if (savedState.worldX !== undefined && savedState.worldY !== undefined) {
+          // Update game coordinates
+          gameRef.current.worldX = savedState.worldX;
+          gameRef.current.worldY = savedState.worldY;
+          
+          // Update player coordinates
+          if (gameRef.current.player) {
+            gameRef.current.player.setWorldCoordinates(savedState.worldX, savedState.worldY);
+          }
+          
+          // Update hoverbike coordinates to match
+          if (gameRef.current.hoverbike) {
+            gameRef.current.hoverbike.setWorldCoordinates(savedState.worldX, savedState.worldY);
+          }
+          
+          // Update renderer coordinates
+          if (gameRef.current.renderer) {
+            gameRef.current.renderer.setWorldCoordinates(savedState.worldX, savedState.worldY);
+          }
+          
+          // Generate the area for the new coordinates
+          gameRef.current.worldGenerator.generateNewArea(savedState.worldX, savedState.worldY);
+        }
+      }
+    };
+    
+    window.addEventListener('loadGameState', handleLoadGameState as EventListener);
+
     return () => {
       myP5.remove();
+      window.removeEventListener('loadGameState', handleLoadGameState as EventListener);
     };
   }, [sketchRef]);
 

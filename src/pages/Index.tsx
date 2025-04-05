@@ -3,6 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import GameSketch from '../components/GameSketch';
 import GameUI from '../components/GameUI';
+import GameSaveManager from '../components/GameSaveManager';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { LogIn, LogOut, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import '../styles/game.css';
 
 const Index = () => {
@@ -19,6 +25,50 @@ const Index = () => {
   const [worldY, setWorldY] = useState(0);
   const [dayTimeIcon, setDayTimeIcon] = useState("sun");
   const [dayTimeAngle, setDayTimeAngle] = useState(0);
+  
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  
+  // Get current game state for saving
+  const getCurrentGameState = () => {
+    return {
+      resources,
+      copper,
+      health,
+      maxHealth,
+      fuel,
+      maxFuel,
+      playerHealth,
+      maxPlayerHealth,
+      worldX,
+      worldY,
+      dayTimeIcon,
+      dayTimeAngle
+    };
+  };
+  
+  // Handle loading saved game state
+  const handleLoadGameState = (savedState: any) => {
+    if (!savedState) return;
+    
+    // Update state with saved values
+    setResources(savedState.resources || 0);
+    setCopper(savedState.copper || 0);
+    setHealth(savedState.health || 100);
+    setMaxHealth(savedState.maxHealth || 100);
+    setFuel(savedState.fuel || 100);
+    setMaxFuel(savedState.maxFuel || 100);
+    setPlayerHealth(savedState.playerHealth || 100);
+    setMaxPlayerHealth(savedState.maxPlayerHealth || 100);
+    setWorldX(savedState.worldX || 0);
+    setWorldY(savedState.worldY || 0);
+    
+    // Emit an event to update the game with loaded state
+    const loadEvent = new CustomEvent('loadGameState', {
+      detail: savedState
+    });
+    window.dispatchEvent(loadEvent);
+  };
   
   // Subscribe to game state updates
   useEffect(() => {
@@ -54,7 +104,7 @@ const Index = () => {
   }, []);
   
   return (
-    <div className="game-container" ref={gameContainerRef}>
+    <div className="game-container relative" ref={gameContainerRef}>
       <GameSketch />
       <GameUI 
         resources={resources}
@@ -71,6 +121,35 @@ const Index = () => {
         baseWorldY={0}
         dayTimeIcon={dayTimeIcon}
         dayTimeAngle={dayTimeAngle}
+      />
+      
+      {/* Auth controls */}
+      <div className="absolute top-4 left-4 z-50 flex gap-2">
+        {user ? (
+          <>
+            <div className="bg-background/80 backdrop-blur-sm rounded-md px-3 py-1 text-sm flex items-center">
+              <User className="w-4 h-4 mr-2" />
+              {user.email}
+            </div>
+            <Button variant="outline" size="sm" onClick={signOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </>
+        ) : (
+          <Link to="/login">
+            <Button variant="outline" size="sm">
+              <LogIn className="w-4 h-4 mr-2" />
+              Login
+            </Button>
+          </Link>
+        )}
+      </div>
+      
+      {/* Game save manager */}
+      <GameSaveManager 
+        gameState={getCurrentGameState()} 
+        onLoadState={handleLoadGameState} 
       />
     </div>
   );
