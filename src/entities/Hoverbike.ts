@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -68,8 +69,8 @@ export default class Hoverbike implements HoverbikeType {
     } else {
       // Track that we're not riding anymore
       this.isRiding = false;
-      // Gradually fade out thrust effect when not riding
-      this.thrustIntensity = this.p.max(0, this.thrustIntensity - 0.2);
+      // Immediately turn off thrust effect when not riding
+      this.thrustIntensity = 0;
       this.checkFuelRefill();
     }
   }
@@ -252,7 +253,7 @@ export default class Hoverbike implements HoverbikeType {
         let distance = this.p.sqrt(dx * dx + dy * dy);
         
         // If close to fuel pump, refill fuel at a reasonable rate
-        if (distance < 70 && this.fuel < this.maxFuel) { // Increased refueling range from 40 to 70
+        if (distance < 70 && this.fuel < this.maxFuel) { // Kept the extended refueling range
           const oldFuel = this.fuel;
           this.fuel = Math.min(this.maxFuel, this.fuel + 0.3);
           if (oldFuel !== this.fuel && this.p.frameCount % 10 === 0) {
@@ -329,24 +330,26 @@ export default class Hoverbike implements HoverbikeType {
       this.p.fill(50, 50, 55);
       this.p.rect(-15, -4, 4, 8, 1);
       
-      // Enhanced exhaust flame - dynamic length based on thrust intensity
-      this.p.noStroke();
-      
-      // Base glow - always present but minimal when not moving
-      const baseLength = 5; 
-      const thrustLength = baseLength + this.thrustIntensity;
-      
-      // Outer glow - yellow/orange
-      this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
-      this.p.ellipse(-22, 0, 4, Math.max(8, thrustLength));
-      
-      // Inner glow - brighter, more intense
-      this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
-      this.p.ellipse(-24, 0, 3, Math.max(5, thrustLength * 0.7));
-      
-      // Brightest core - red hot
-      this.p.fill(255, 50, 50, 200 + this.p.sin(this.p.frameCount * 0.3) * 55);
-      this.p.ellipse(-25, 0, 2, Math.max(3, thrustLength * 0.5));
+      // Only draw exhaust flame if the player is riding
+      if (this.isRiding) {
+        this.p.noStroke();
+        
+        // Base glow - always present but minimal when not moving
+        const baseLength = 10; // Increased base length from 5 to 10
+        const thrustLength = baseLength + this.thrustIntensity * 1.5; // Increased multiplier from 1 to 1.5
+        
+        // Outer glow - yellow/orange - extended further
+        this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
+        this.p.ellipse(-28, 0, 4, Math.max(12, thrustLength)); // Moved from -22 to -28, increased min width from 8 to 12
+        
+        // Inner glow - brighter, more intense
+        this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
+        this.p.ellipse(-32, 0, 3, Math.max(8, thrustLength * 0.8)); // Moved from -24 to -32, increased min width from 5 to 8
+        
+        // Brightest core - red hot - extended further
+        this.p.fill(255, 50, 50, 200 + this.p.sin(this.p.frameCount * 0.3) * 55);
+        this.p.ellipse(-35, 0, 2, Math.max(5, thrustLength * 0.6)); // Moved from -25 to -35, increased min width from 3 to 5
+      }
       
       // Side panels with makeshift repairs
       this.p.stroke(0);
