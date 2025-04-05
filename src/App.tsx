@@ -24,8 +24,8 @@ const App = () => {
       toast.error(
         "Supabase configuration missing", 
         { 
-          description: "Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.",
-          duration: 10000 
+          description: "Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables in Lovable. These values can be found in your Supabase project settings.",
+          duration: 15000 
         }
       );
     }

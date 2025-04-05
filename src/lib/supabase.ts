@@ -1,19 +1,54 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-// Use a check to provide fallback values if environment variables are undefined
+// Get environment variables with fallbacks
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Add validation to prevent the error
-if (!supabaseUrl || !supabaseAnonKey) {
+// Create a validation function to check if values are valid
+const hasValidSupabaseCredentials = () => {
+  return Boolean(supabaseUrl && supabaseAnonKey);
+};
+
+// Log error if credentials are missing
+if (!hasValidSupabaseCredentials()) {
   console.error('Supabase URL or Anonymous Key is missing. Please make sure to set the environment variables.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create a client only if valid credentials exist, otherwise create a mock client
+export const supabase = hasValidSupabaseCredentials() 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : createMockSupabaseClient();
+
+// Mock client to prevent runtime errors
+function createMockSupabaseClient() {
+  // Basic mock that returns empty data and prevents app crashes
+  return {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          single: async () => ({ data: null, error: new Error('Supabase credentials not configured') })
+        }),
+        insert: async () => ({ data: null, error: new Error('Supabase credentials not configured') }),
+        update: async () => ({ data: null, error: new Error('Supabase credentials not configured') })
+      })
+    }),
+    auth: {
+      signInWithPassword: async () => ({ data: null, error: new Error('Supabase credentials not configured') }),
+      signUp: async () => ({ data: null, error: new Error('Supabase credentials not configured') }),
+      signOut: async () => ({ error: null }),
+      getSession: async () => ({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+    }
+  };
+}
 
 // Function to save game state to Supabase
 export const saveGameState = async (userId: string, gameState: any) => {
+  if (!hasValidSupabaseCredentials()) {
+    console.error('Cannot save game: Supabase credentials not configured');
+    return { success: false, message: 'Supabase credentials not configured' };
+  }
+
   try {
     // Check if game state already exists for this user
     const { data: existingData } = await supabase
@@ -48,6 +83,11 @@ export const saveGameState = async (userId: string, gameState: any) => {
 
 // Function to load game state from Supabase
 export const loadGameState = async (userId: string) => {
+  if (!hasValidSupabaseCredentials()) {
+    console.error('Cannot load game: Supabase credentials not configured');
+    return { success: false, message: 'Supabase credentials not configured' };
+  }
+  
   try {
     const { data, error } = await supabase
       .from('game_saves')
