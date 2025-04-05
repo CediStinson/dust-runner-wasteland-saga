@@ -23,17 +23,19 @@ export const supabase = hasValidSupabaseCredentials()
 // Mock client to prevent runtime errors
 function createMockSupabaseClient() {
   // Basic mock that returns empty data and prevents app crashes
-  const mockQueryResponse = {
+  const mockErrorResponse = {
     data: null, 
     error: new Error('Supabase credentials not configured')
   };
   
+  // Create a more complete chain of methods to avoid TypeScript errors
   const mockQueryBuilder = {
     select: () => mockQueryBuilder,
     eq: () => mockQueryBuilder,
-    single: async () => mockQueryResponse,
-    insert: async () => mockQueryResponse,
-    update: async () => mockQueryResponse,
+    single: async () => mockErrorResponse,
+    insert: async () => mockErrorResponse,
+    update: async () => mockErrorResponse,
+    from: () => mockQueryBuilder,
   };
   
   return {
