@@ -196,12 +196,23 @@ export default class WorldGenerator {
       if (x === 0 && y === 0) {
         areaObstacles.push({ x: this.p.width / 2, y: this.p.height / 2 - 100, type: 'hut' });
         
+        const centerX = this.p.width / 2;
+        const centerY = this.p.height / 2;
+        const safeRadius = 200; // Safe zone radius
+        
         for (let i = 0; i < 5; i++) {
           let size = this.p.random(0.3, 2.0);
           let aspectRatio = this.p.random(0.5, 2.0);
+          
+          let x, y;
+          do {
+            x = this.p.random(this.p.width);
+            y = this.p.random(this.p.height);
+          } while (this.p.dist(x, y, centerX, centerY) < safeRadius);
+          
           areaObstacles.push({ 
-            x: this.p.random(this.p.width), 
-            y: this.p.random(this.p.height), 
+            x: x, 
+            y: y, 
             type: 'rock', 
             shape: this.generateRockShape(size, aspectRatio),
             size: size,
@@ -211,19 +222,34 @@ export default class WorldGenerator {
         
         for (let i = 0; i < 3; i++) {
           let size = this.p.random(0.5, 1.0);
+          
+          let x, y;
+          do {
+            x = this.p.random(this.p.width);
+            y = this.p.random(this.p.height);
+          } while (this.p.dist(x, y, centerX, centerY) < safeRadius);
+          
           areaObstacles.push({ 
-            x: this.p.random(this.p.width), 
-            y: this.p.random(this.p.height), 
+            x: x, 
+            y: y, 
             type: 'bush', 
             shape: this.generateBushShape(size),
             size: size
           });
         }
+        
         for (let i = 0; i < 2; i++) {
           let size = this.p.random(0.5, 1.2);
+          
+          let x, y;
+          do {
+            x = this.p.random(this.p.width);
+            y = this.p.random(this.p.height);
+          } while (this.p.dist(x, y, centerX, centerY) < safeRadius);
+          
           areaObstacles.push({ 
-            x: this.p.random(this.p.width), 
-            y: this.p.random(this.p.height), 
+            x: x, 
+            y: y, 
             type: 'cactus', 
             shape: this.generateCactusShape(size, zoneKey, i),
             size: size
@@ -273,22 +299,53 @@ export default class WorldGenerator {
   generateResources(x: number, y: number, areaObstacles: any[]) {
     let areaResources = [];
     
-    for (let i = 0; i < 5; i++) {
-      areaResources.push({ 
-        x: this.p.random(this.p.width), 
-        y: this.p.random(this.p.height), 
-        type: 'metal',
-        rotation: this.p.random(this.p.TWO_PI),
-        size: this.p.random(0.7, 1.3),
-        buried: this.p.random(0.3, 0.7)
-      });
-    }
-    
-    let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
-    
-    for (let rock of rocks) {
-      if (this.p.random() < 0.4) {
-        areaResources.push(this.generateCopperOre(`${x},${y}`, rock));
+    if (x !== 0 || y !== 0) {
+      for (let i = 0; i < 5; i++) {
+        areaResources.push({ 
+          x: this.p.random(this.p.width), 
+          y: this.p.random(this.p.height), 
+          type: 'metal',
+          rotation: this.p.random(this.p.TWO_PI),
+          size: this.p.random(0.7, 1.3),
+          buried: this.p.random(0.3, 0.7)
+        });
+      }
+      
+      let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
+      
+      for (let rock of rocks) {
+        if (this.p.random() < 0.4) {
+          areaResources.push(this.generateCopperOre(`${x},${y}`, rock));
+        }
+      }
+    } else {
+      const centerX = this.p.width / 2;
+      const centerY = this.p.height / 2;
+      const safeRadius = 200; // Safe zone radius
+      
+      for (let i = 0; i < 3; i++) {
+        let resourceX, resourceY;
+        do {
+          resourceX = this.p.random(this.p.width);
+          resourceY = this.p.random(this.p.height);
+        } while (this.p.dist(resourceX, resourceY, centerX, centerY) < safeRadius);
+        
+        areaResources.push({ 
+          x: resourceX, 
+          y: resourceY, 
+          type: 'metal',
+          rotation: this.p.random(this.p.TWO_PI),
+          size: this.p.random(0.7, 1.3),
+          buried: this.p.random(0.3, 0.7)
+        });
+      }
+      
+      let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
+      
+      for (let rock of rocks) {
+        if (this.p.dist(rock.x, rock.y, centerX, centerY) >= safeRadius && this.p.random() < 0.4) {
+          areaResources.push(this.generateCopperOre(`${x},${y}`, rock));
+        }
       }
     }
     
