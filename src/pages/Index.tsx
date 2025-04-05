@@ -19,6 +19,8 @@ const Index = () => {
   const [worldY, setWorldY] = useState(0);
   const [dayTimeIcon, setDayTimeIcon] = useState("sun");
   const [dayTimeAngle, setDayTimeAngle] = useState(0);
+  const [refueling, setRefueling] = useState(false);
+  const [refuelProgress, setRefuelProgress] = useState(0);
   
   // Subscribe to game state updates
   useEffect(() => {
@@ -27,7 +29,7 @@ const Index = () => {
       const { 
         resources, copper, health, maxHealth, fuel, maxFuel,
         playerHealth, maxPlayerHealth, worldX, worldY, baseWorldX, baseWorldY,
-        dayTimeIcon, dayTimeAngle
+        dayTimeIcon, dayTimeAngle, refueling, refuelProgress
       } = event.detail;
       
       setResources(resources);
@@ -42,6 +44,8 @@ const Index = () => {
       setWorldY(worldY || 0);
       setDayTimeIcon(dayTimeIcon || "sun");
       setDayTimeAngle(dayTimeAngle || 0);
+      setRefueling(refueling || false);
+      setRefuelProgress(refuelProgress || 0);
     };
     
     // Add event listener
@@ -71,6 +75,8 @@ const Index = () => {
         baseWorldY={0}
         dayTimeIcon={dayTimeIcon}
         dayTimeAngle={dayTimeAngle}
+        refueling={refueling}
+        refuelProgress={refuelProgress}
       />
     </div>
   );

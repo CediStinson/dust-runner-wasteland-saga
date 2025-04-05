@@ -53,7 +53,6 @@ export default class Player implements PlayerType {
         this.handleInput();
         this.applyFriction();
         
-        // Check collision with obstacles before moving
         let willCollide = false;
         let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
         let newX = this.x + this.velX;
@@ -88,8 +87,7 @@ export default class Player implements PlayerType {
             
             if (distance < hitboxWidth) {
               willCollide = true;
-              // Damage player when colliding with cactus
-              if (this.p.frameCount % 30 === 0) { // Apply damage every 30 frames (0.5 seconds)
+              if (this.p.frameCount % 30 === 0) {
                 const oldHealth = this.health;
                 this.health = this.p.max(0, this.health - 1);
                 if (oldHealth !== this.health) {
@@ -105,7 +103,6 @@ export default class Player implements PlayerType {
           this.x += this.velX;
           this.y += this.velY;
         } else {
-          // Stop movement if collision would occur
           this.velX *= -0.5;
           this.velY *= -0.5;
         }
@@ -135,8 +132,7 @@ export default class Player implements PlayerType {
     this.velX += moveX * this.speed * 0.2;
     this.velY += moveY * this.speed * 0.2;
     
-    // Check for E key to collect metal or interact with copper
-    if (this.p.keyIsDown(69)) { // 'E' key
+    if (this.p.keyIsDown(69)) {
       this.collectResource();
     }
   }
@@ -152,31 +148,23 @@ export default class Player implements PlayerType {
     this.p.rotate(this.angle + this.p.PI / 2);
     
     if (this.riding) {
-      // Player riding hoverbike
-      // Body
       this.p.fill(120, 100, 80);
       this.p.ellipse(0, -4, 8, 7);
       
-      // Arms holding handlebars
       this.p.fill(150, 130, 110);
       this.p.ellipse(-6, -1, 4, 2);
       this.p.ellipse(6, -1, 4, 2);
       
-      // Head with helmet
       this.p.fill(80, 60, 40);
       this.p.ellipse(0, -8, 7, 6);
       
-      // Helmet visor
       this.p.fill(50, 50, 50);
       this.p.arc(0, -8, 6, 4, -this.p.PI * 0.8, this.p.PI * 0.8);
       
-      // Legs
       this.p.fill(120, 100, 80);
       this.p.rect(-3, 0, 2, 4, 1);
       this.p.rect(3, 0, 2, 4, 1);
     } else {
-      // Standing player
-      // Cloak
       this.p.fill(120, 100, 80);
       this.p.beginShape();
       this.p.vertex(-8, -10);
@@ -189,7 +177,6 @@ export default class Player implements PlayerType {
       this.p.vertex(8, -10);
       this.p.endShape(this.p.CLOSE);
       
-      // Cloak details
       this.p.fill(150, 130, 110);
       this.p.ellipse(-4, 2, 4, 3);
       this.p.ellipse(4, 2, 4, 3);
@@ -197,24 +184,22 @@ export default class Player implements PlayerType {
       this.p.ellipse(-6, 0, 3, 2);
       this.p.ellipse(6, 0, 3, 2);
       
-      // Head
       this.p.fill(80, 60, 40);
       this.p.ellipse(0, -6, 8, 6);
       this.p.fill(60, 40, 20);
       this.p.ellipse(0, -5, 6, 4);
       
-      // Face
       this.p.fill(200, 180, 150);
       this.p.ellipse(0, -5, 4, 2);
       this.p.fill(50, 50, 50);
       this.p.ellipse(-1, -5, 2, 1);
       this.p.ellipse(1, -5, 2, 1);
       
-      // Shadow
       this.p.fill(80, 60, 40, 100);
       this.p.ellipse(0, 6, 12, 4);
       
-      // Show digging animation if active
+      const isNearFuelPump = this.checkIfNearFuelPump();
+      
       if (this.digging) {
         this.p.fill(120, 100, 80);
         this.p.ellipse(6, 0, 4, 4);
@@ -223,6 +208,11 @@ export default class Player implements PlayerType {
         this.p.line(6, 0, 12, this.p.sin(this.p.frameCount * 0.3) * 3);
         this.p.noStroke();
         this.displayDigProgress();
+      } else if (isNearFuelPump && this.worldX === 0 && this.worldY === 0) {
+        this.p.fill(255, 255, 100);
+        this.p.textSize(8);
+        this.p.textAlign(this.p.CENTER);
+        this.p.text("E", 0, -20);
       }
     }
     
@@ -230,13 +220,10 @@ export default class Player implements PlayerType {
   }
 
   checkForCollectableResources() {
-    // Only check for nearby resources
     let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
     
-    // Visual indicator for resources within collection range
     for (let res of currentResources) {
       if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
-        // Draw a small indicator above the resource
         this.p.push();
         this.p.fill(255, 255, 100, 150);
         this.p.ellipse(res.x, res.y - 15, 5, 5);
@@ -252,18 +239,15 @@ export default class Player implements PlayerType {
   collectResource() {
     let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
     
-    // Check for metal to collect
     for (let i = currentResources.length - 1; i >= 0; i--) {
       let res = currentResources[i];
       if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
         this.inventory.metal++;
         currentResources.splice(i, 1);
-        // Send immediate update
         emitGameStateUpdate(this, this.hoverbike);
       }
     }
     
-    // Check for copper ore to mine
     if (!this.digging) {
       for (let i = 0; i < currentResources.length; i++) {
         let res = currentResources[i];
@@ -287,16 +271,12 @@ export default class Player implements PlayerType {
     
     this.digTimer++;
     
-    // 8 seconds (60fps * 8 = 480 frames)
     if (this.digTimer >= 480) {
-      // Mining complete
       this.digging = false;
       
-      // Add 1-3 copper to inventory
       let copperAmount = this.p.floor(this.p.random(1, 4));
       this.inventory.copper += copperAmount;
       
-      // Remove the ore from resources
       let currentResources = this.resources[`${this.worldX},${this.worldY}`];
       if (currentResources) {
         let index = currentResources.indexOf(this.digTarget);
@@ -309,7 +289,6 @@ export default class Player implements PlayerType {
       emitGameStateUpdate(this, this.hoverbike);
     }
     
-    // Cancel digging if player moves or is too far from target
     if (this.p.keyIsDown(this.p.UP_ARROW) || this.p.keyIsDown(this.p.DOWN_ARROW) || 
         this.p.keyIsDown(this.p.LEFT_ARROW) || this.p.keyIsDown(this.p.RIGHT_ARROW) ||
         !this.digTarget || this.p.dist(this.x, this.y, this.digTarget.x, this.digTarget.y) > 30) {
@@ -321,9 +300,8 @@ export default class Player implements PlayerType {
   displayDigProgress() {
     let progressWidth = 30;
     let progressHeight = 4;
-    let progress = this.digTimer / 480; // 480 frames for 8 seconds
+    let progress = this.digTimer / 480;
     
-    // Draw progress bar above player
     this.p.fill(0, 0, 0, 150);
     this.p.rect(-progressWidth/2, -20, progressWidth, progressHeight, 2);
     
@@ -338,5 +316,17 @@ export default class Player implements PlayerType {
   setWorldCoordinates(x: number, y: number) {
     this.worldX = x;
     this.worldY = y;
+  }
+
+  checkIfNearFuelPump() {
+    if (this.worldX === 0 && this.worldY === 0) {
+      const currentObstacles = this.obstacles["0,0"] || [];
+      for (const obs of currentObstacles) {
+        if (obs.type === 'fuelPump') {
+          return this.p.dist(this.x, this.y, obs.x, obs.y) < 40;
+        }
+      }
+    }
+    return false;
   }
 }

@@ -23,7 +23,7 @@ const GameSketch = () => {
         game.render();
         
         // Emit game state updates including day/night cycle info
-        if (p.frameCount % 60 === 0) {  // Update UI every second
+        if (p.frameCount % 60 === 0 || game.refueling) {  // Update UI every second or during refueling
           const event = new CustomEvent('gameStateUpdate', {
             detail: {
               resources: game.player?.inventory?.metal || 0,
@@ -39,7 +39,9 @@ const GameSketch = () => {
               baseWorldX: 0,
               baseWorldY: 0,
               dayTimeIcon: game.dayTimeIcon,
-              dayTimeAngle: game.dayTimeAngle
+              dayTimeAngle: game.dayTimeAngle,
+              refueling: game.refueling,
+              refuelProgress: game.refueling ? game.refuelTimer / game.refuelDuration : 0
             }
           });
           window.dispatchEvent(event);
