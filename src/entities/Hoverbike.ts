@@ -291,6 +291,9 @@ export default class Hoverbike implements HoverbikeType {
     // Only check for refill if we have fuel less than max
     if (this.fuel >= this.maxFuel) return;
     
+    // Prevent refueling while the player is riding the hoverbike
+    if (this.player.riding) return;
+    
     let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
     for (let obs of currentObstacles) {
       if (obs.type === 'fuelPump') {
