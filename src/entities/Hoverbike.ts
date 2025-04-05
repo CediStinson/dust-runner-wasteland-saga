@@ -334,21 +334,31 @@ export default class Hoverbike implements HoverbikeType {
       if (this.isRiding) {
         this.p.noStroke();
         
-        // Base glow - always present but minimal when not moving
-        const baseLength = 10; // Increased base length from 5 to 10
-        const thrustLength = baseLength + this.thrustIntensity * 1.5; // Increased multiplier from 1 to 1.5
+        // Calculate the minimum and maximum exhaust length
+        const minExhaustLength = 5; // Short exhaust when idle
+        const maxExhaustLength = 25; // Long exhaust at max speed
         
-        // Outer glow - yellow/orange - extended further
+        // Calculate current exhaust length based on thrustIntensity
+        // Map thrustIntensity (which is based on speed) to a value between min and max
+        const exhaustLength = this.p.map(
+          this.thrustIntensity,
+          0,
+          5, // Maximum expected thrustIntensity value
+          minExhaustLength,
+          maxExhaustLength
+        );
+        
+        // Outer glow - yellow/orange (furthest back)
         this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
-        this.p.ellipse(-28, 0, 4, Math.max(12, thrustLength)); // Moved from -22 to -28, increased min width from 8 to 12
+        this.p.ellipse(-28 - exhaustLength/2, 0, 4, Math.max(8, exhaustLength));
         
-        // Inner glow - brighter, more intense
+        // Inner glow - brighter orange (middle layer)
         this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
-        this.p.ellipse(-32, 0, 3, Math.max(8, thrustLength * 0.8)); // Moved from -24 to -32, increased min width from 5 to 8
+        this.p.ellipse(-32 - exhaustLength/3, 0, 3, Math.max(6, exhaustLength * 0.8));
         
-        // Brightest core - red hot - extended further
+        // Brightest core - red hot (innermost layer)
         this.p.fill(255, 50, 50, 200 + this.p.sin(this.p.frameCount * 0.3) * 55);
-        this.p.ellipse(-35, 0, 2, Math.max(5, thrustLength * 0.6)); // Moved from -25 to -35, increased min width from 3 to 5
+        this.p.ellipse(-35 - exhaustLength/4, 0, 2, Math.max(4, exhaustLength * 0.6));
       }
       
       // Side panels with makeshift repairs
