@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -354,7 +353,7 @@ export default class GameRenderer {
   drawFuelPump(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
-    this.p.rotate(this.p.radians(125)); // Rotate 125 degrees anti-clockwise
+    this.p.rotate(this.p.radians(120)); // Rotate 120 degrees anti-clockwise
     
     // Larger, more defined shadow
     this.p.fill(0, 0, 0, 50);
