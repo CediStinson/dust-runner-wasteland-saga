@@ -353,7 +353,7 @@ export default class GameRenderer {
   drawFuelPump(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
-    this.p.rotate(this.p.radians(120)); // Rotate 120 degrees anti-clockwise
+    this.p.rotate(this.p.radians(0)); // Rotate 0 degrees
     
     // Larger, more defined shadow
     this.p.fill(0, 0, 0, 50);
