@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -104,14 +103,14 @@ export default class Hoverbike implements HoverbikeType {
   handleControls() {
     let acceleration = 0;
     
-    // Only accelerate or brake if there's fuel
+    // Increased fuel consumption rate
     if (this.p.keyIsDown(this.p.UP_ARROW) && this.fuel > 0) {
       acceleration = 0.1;
       
-      // Only consume fuel when actively accelerating
-      if (this.p.frameCount % 60 === 0) { // Every second
+      // More aggressive fuel consumption when accelerating
+      if (this.p.frameCount % 30 === 0) { // Every half second
         const oldFuel = this.fuel;
-        this.fuel = Math.max(0, this.fuel - 0.5);
+        this.fuel = Math.max(0, this.fuel - 1); // Drain 1 unit of fuel instead of 0.5
         if (oldFuel !== this.fuel) {
           emitGameStateUpdate(this.player, this);
         }
@@ -130,10 +129,10 @@ export default class Hoverbike implements HoverbikeType {
           // We're already moving backward, accelerate backward
           acceleration = -0.1;
           
-          // Consume fuel for reverse movement
-          if (this.p.frameCount % 60 === 0 && this.fuel > 0) {
+          // Slightly reduced but still significant fuel consumption when braking
+          if (this.p.frameCount % 30 === 0) {
             const oldFuel = this.fuel;
-            this.fuel = Math.max(0, this.fuel - 0.5);
+            this.fuel = Math.max(0, this.fuel - 0.75);
             if (oldFuel !== this.fuel) {
               emitGameStateUpdate(this.player, this);
             }
@@ -143,10 +142,10 @@ export default class Hoverbike implements HoverbikeType {
         // If not moving or very slow, go in reverse
         acceleration = -0.1;
         
-        // Consume fuel for reverse movement
-        if (this.p.frameCount % 60 === 0 && this.fuel > 0) {
+        // Slightly reduced but still significant fuel consumption when reversing
+        if (this.p.frameCount % 30 === 0) {
           const oldFuel = this.fuel;
-          this.fuel = Math.max(0, this.fuel - 0.5);
+          this.fuel = Math.max(0, this.fuel - 0.75);
           if (oldFuel !== this.fuel) {
             emitGameStateUpdate(this.player, this);
           }
