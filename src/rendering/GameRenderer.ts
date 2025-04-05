@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -121,6 +120,44 @@ export default class GameRenderer {
         this.drawWalkingMarks(obs);
       }
     }
+  }
+  
+  drawFuelStain(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    // Darker, more subtle ground stain - fixed in place
+    this.p.noStroke();
+    
+    // Multiple layers of translucent black/dark gray stains for depth
+    const stainColors = [
+      { color: this.p.color(0, 0, 0, 20),   size: 1.0 },  // Very transparent black base
+      { color: this.p.color(20, 20, 20, 30), size: 0.9 }, // Slightly darker layer
+      { color: this.p.color(10, 10, 10, 40), size: 0.8 }  // Darkest, smallest layer
+    ];
+    
+    for (let stain of stainColors) {
+      this.p.fill(stain.color);
+      
+      // Create irregular, organic-looking oil patches
+      this.p.beginShape();
+      const numPoints = 8;
+      const baseSize = 16 * obs.size * stain.size;
+      const baseWidth = baseSize;
+      const baseHeight = baseSize * 0.75;
+      
+      for (let i = 0; i < numPoints; i++) {
+        const angle = (i / numPoints) * this.p.TWO_PI;
+        const radiusX = baseWidth * (0.5 + this.p.noise(i * 0.3) * 0.5);
+        const radiusY = baseHeight * (0.5 + this.p.noise(i * 0.5) * 0.5);
+        const x = Math.cos(angle) * radiusX;
+        const y = Math.sin(angle) * radiusY;
+        this.p.vertex(x, y);
+      }
+      this.p.endShape(this.p.CLOSE);
+    }
+    
+    this.p.pop();
   }
   
   drawWalkingMarks(obs: any) {
@@ -309,40 +346,6 @@ export default class GameRenderer {
     this.p.fill(140, 130, 120);
     this.p.rect(14, 12, 8, 2);
     this.p.rect(18, 14, 6, 3);
-    
-    this.p.pop();
-  }
-
-  drawFuelStain(obs: any) {
-    this.p.push();
-    this.p.translate(obs.x, obs.y);
-    
-    // Darker, more subtle ground stain - fixed in place
-    this.p.noStroke();
-    this.p.fill(20, 20, 20, 40); // Even more subtle opacity
-    
-    // Main oil puddle
-    this.p.ellipse(0, 0, 16 * obs.size, 12 * obs.size);
-    
-    // Create several irregular oil patches with fixed shape
-    // Use deterministic positions based on seedAngle
-    const numPatches = 5;
-    for (let i = 0; i < numPatches; i++) {
-      // Create fixed positions based on obs.seedAngle
-      const angle = obs.seedAngle + i * (Math.PI * 2 / numPatches);
-      const distance = 5 + i * 2.5; // Fixed pattern
-      const x = Math.cos(angle) * distance;
-      const y = Math.sin(angle) * distance;
-      
-      // Size variation based on position
-      const size = 3 + ((i * 29) % 5) * obs.size;
-      
-      // Slightly different shades of black for variation
-      const alpha = 30 + (i * 5);
-      this.p.fill(15, 15, 15, alpha);
-      
-      this.p.ellipse(x, y, size, size * 0.8);
-    }
     
     this.p.pop();
   }
@@ -597,19 +600,3 @@ export default class GameRenderer {
         // Add details - rivets, bends, tears
         this.p.fill(180, 180, 185);
         this.p.ellipse(-4 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
-        this.p.ellipse(0, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
-        this.p.ellipse(4 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
-        
-        // Bent/damaged corner
-        this.p.fill(190, 190, 195);
-        this.p.beginShape();
-        this.p.vertex(-6 * res.size, -4 * res.size);
-        this.p.vertex(-4 * res.size, -5 * res.size);
-        this.p.vertex(-2 * res.size, -4 * res.size);
-        this.p.endShape(this.p.CLOSE);
-      }
-      
-      this.p.pop();
-    }
-  }
-}
