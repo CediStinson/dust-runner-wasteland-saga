@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -56,7 +55,6 @@ export default class Hoverbike implements HoverbikeType {
       this.handleControls();
       this.applyMovement();
       this.checkCollisions();
-      this.checkFuelRefill();
       this.updateSmokeParticles();
       
       if (this.collisionCooldown > 0) {
@@ -68,6 +66,7 @@ export default class Hoverbike implements HoverbikeType {
         this.isRiding = false;
       }
       this.updateSmokeParticles();
+      this.checkFuelRefill();
     }
   }
 
@@ -304,7 +303,7 @@ export default class Hoverbike implements HoverbikeType {
         // If close to fuel pump, refill fuel at a reasonable rate
         if (distance < 40 && this.fuel < this.maxFuel) {
           const oldFuel = this.fuel;
-          this.fuel = Math.min(this.maxFuel, this.fuel + 0.5);
+          this.fuel = Math.min(this.maxFuel, this.fuel + 0.3);
           if (oldFuel !== this.fuel && this.p.frameCount % 10 === 0) {
             emitGameStateUpdate(this.player, this);
           }

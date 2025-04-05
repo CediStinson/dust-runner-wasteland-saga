@@ -20,9 +20,6 @@ export default class Game {
   gameStarted: boolean;
   dayTimeIcon: string; // "sun" or "moon"
   dayTimeAngle: number; // Position on the circle
-  refueling: boolean;
-  refuelTimer: number;
-  refuelDuration: number; // frames required for refueling
 
   constructor(p: any) {
     this.p = p;
@@ -35,9 +32,6 @@ export default class Game {
     this.gameStarted = false;
     this.dayTimeIcon = "sun"; // Start with the sun
     this.dayTimeAngle = this.timeOfDay * Math.PI * 2; // Calculate initial angle
-    this.refueling = false;
-    this.refuelTimer = 0;
-    this.refuelDuration = 300; // 5 seconds at 60fps
     
     this.worldGenerator = new WorldGenerator(p);
     
@@ -188,55 +182,8 @@ export default class Game {
     this.checkBorder();
     this.worldGenerator.updateWindmillAngle();
     
-    // Update refueling process
-    this.updateRefueling();
-    
     // Update renderer with time of day
     this.renderer.setTimeOfDay(this.timeOfDay);
-  }
-
-  updateRefueling() {
-    if (this.refueling) {
-      this.refuelTimer++;
-      
-      // Create a small fuel increment per frame
-      const fuelIncrement = this.hoverbike.maxFuel / this.refuelDuration;
-      this.hoverbike.fuel = Math.min(this.hoverbike.fuel + fuelIncrement, this.hoverbike.maxFuel);
-      
-      // Update UI more frequently during refueling
-      if (this.refuelTimer % 30 === 0) {
-        emitGameStateUpdate(this.player, this.hoverbike);
-      }
-      
-      // Check if refueling is complete or player moved away
-      if (this.refuelTimer >= this.refuelDuration || 
-          !this.isPlayerNearFuelPump() || this.riding) {
-        this.refueling = false;
-        this.refuelTimer = 0;
-        emitGameStateUpdate(this.player, this.hoverbike);
-      }
-    }
-  }
-
-  isPlayerNearFuelPump() {
-    // Only check at home base (0,0) where the fuel pump is located
-    if (this.worldX !== 0 || this.worldY !== 0) {
-      return false;
-    }
-    
-    const homeAreaKey = "0,0";
-    const homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
-    
-    // Find fuel pump
-    for (const obs of homeObstacles) {
-      if (obs.type === 'fuelPump') {
-        // Check if player is close to fuel pump
-        const distance = this.p.dist(this.player.x, this.player.y, obs.x, obs.y);
-        return distance < 40; // Within 40 pixels of the fuel pump
-      }
-    }
-    
-    return false;
   }
 
   updateTimeOfDay() {
@@ -432,13 +379,7 @@ export default class Game {
       }
     }
     
-    if (key === 'e' && !this.riding && this.isPlayerNearFuelPump() && 
-        this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY &&
-        this.hoverbike.fuel < this.hoverbike.maxFuel && !this.refueling) {
-      // Start refueling process
-      this.refueling = true;
-      this.refuelTimer = 0;
-    }
+    // Removed 'e' key press refueling logic
   }
 
   resize() {
