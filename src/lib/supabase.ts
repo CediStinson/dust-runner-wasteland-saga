@@ -1,10 +1,21 @@
+
 import { createClient, PostgrestSingleResponse, PostgrestError } from '@supabase/supabase-js';
+import type { Database } from '@/integrations/supabase/types';
 
 // Import the configured client from the integrations folder
 import { supabase as configuredSupabase } from '@/integrations/supabase/client';
 
 // Export the properly configured client
 export const supabase = configuredSupabase;
+
+// Type definitions for the game save data
+type GameSave = {
+  id: string;
+  user_id: string;
+  state: any;
+  created_at: string;
+  updated_at: string;
+}
 
 // Function to save game state to Supabase
 export const saveGameState = async (userId: string, gameState: any) => {
@@ -52,7 +63,7 @@ export const loadGameState = async (userId: string) => {
       .maybeSingle();
       
     if (error && error.code !== 'PGRST116') throw error;
-    return { success: true, data: data?.state || null };
+    return { success: true, data: data ? data.state : null };
   } catch (error: any) {
     console.error('Error loading game:', error);
     return { success: false, message: error.message };
