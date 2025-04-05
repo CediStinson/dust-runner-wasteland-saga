@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -71,7 +72,7 @@ export default class Player implements PlayerType {
             } else if (obs.type === 'hut') {
               collisionRadius = 30; // Hut collision radius
             } else if (obs.type === 'fuelPump') {
-              collisionRadius = 35; // Fuel pump collision radius
+              collisionRadius = 35; // Increased fuel pump collision radius (from 25)
             }
             
             let distance = this.p.sqrt(dx * dx + dy * dy);
