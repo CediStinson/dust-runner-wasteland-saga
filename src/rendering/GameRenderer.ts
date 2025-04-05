@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -607,80 +606,4 @@ export default class GameRenderer {
         let buriedDepth = res.buried; // 0.3-0.7, higher = more buried
         
         // Shadow under the metal
-        this.p.fill(80, 80, 80, 100);
-        this.p.ellipse(2, 2, 14 * res.size, 4 * res.size);
-        
-        // Base layer - buried part
-        this.p.fill(120, 120, 120);
-        this.p.beginShape();
-        this.p.vertex(-8 * res.size, buriedDepth * 5 * res.size);
-        this.p.vertex(8 * res.size, buriedDepth * 4 * res.size);
-        this.p.vertex(7 * res.size, buriedDepth * 8 * res.size);
-        this.p.vertex(-7 * res.size, buriedDepth * 7 * res.size);
-        this.p.endShape(this.p.CLOSE);
-        
-        // Main metal sheet
-        this.p.fill(200, 200, 210);
-        this.p.rect(-6 * res.size, -4 * res.size, 12 * res.size, 8 * res.size, 1);
-        
-        // Exposed part - showing above ground
-        let exposedHeight = this.p.map(buriedDepth, 0.3, 0.7, 6, 3);
-        this.p.fill(220, 220, 225);
-        this.p.rect(-5 * res.size, -4 * res.size, 10 * res.size, exposedHeight * res.size, 1);
-        
-        // Add details - rivets, bends, tears
-        this.p.fill(180, 180, 185);
-        this.p.ellipse(-4 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
-        this.p.ellipse(0 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
-        this.p.ellipse(4 * res.size, -3 * res.size, 1.5 * res.size, 1.5 * res.size);
-        
-        // Bent/torn edge
-        this.p.fill(210, 210, 215);
-        this.p.beginShape();
-        this.p.vertex(6 * res.size, -2 * res.size);
-        this.p.vertex(7 * res.size, -1 * res.size);
-        this.p.vertex(8 * res.size, -3 * res.size);
-        this.p.vertex(7 * res.size, -4 * res.size);
-        this.p.endShape(this.p.CLOSE);
-        
-        // Rust spots
-        this.p.fill(180, 120, 90, 150);
-        this.p.ellipse(-3 * res.size, 1 * res.size, 4 * res.size, 2 * res.size);
-        this.p.ellipse(2 * res.size, 0 * res.size, 2 * res.size, 3 * res.size);
-      } else if (res.type === 'copper') {
-        // Draw copper ore deposits
-        // Reddish-brown rock base with green/blue-green copper patina
-        
-        // Base rock
-        this.p.fill(120, 80, 60);
-        this.p.beginShape();
-        for (let point of res.shape) {
-          this.p.vertex(point.x, point.y);
-        }
-        this.p.endShape(this.p.CLOSE);
-        
-        // Copper flecks and veins (greener)
-        this.p.fill(60, 120, 100);
-        this.p.noStroke();
-        
-        for (let i = 0; i < 6; i++) {
-          let angle = this.p.random(this.p.TWO_PI);
-          let dist = this.p.random(2, 4);
-          let size = this.p.random(1, 3);
-          this.p.ellipse(Math.cos(angle) * dist, Math.sin(angle) * dist, size, size);
-        }
-        
-        // Main copper deposit
-        this.p.fill(80, 160, 120);
-        let depositSize = this.p.random(3, 5);
-        this.p.ellipse(0, 0, depositSize, depositSize);
-        
-        // Shine/highlight
-        this.p.fill(180, 255, 200, 150);
-        this.p.ellipse(-depositSize/5, -depositSize/5, depositSize/3, depositSize/3);
-      }
-      
-      this.p.pop();
-    }
-  }
-}
+        this.p.fill(80, 80
