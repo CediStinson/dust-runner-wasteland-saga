@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -22,6 +23,8 @@ export default class Player implements PlayerType {
   resources: Record<string, any[]>;
   hoverbike: any;
   riding: boolean;
+  firstMetalShown: boolean;
+  firstCopperShown: boolean;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -43,6 +46,8 @@ export default class Player implements PlayerType {
     this.digTarget = null;
     this.health = 100;
     this.maxHealth = 100;
+    this.firstMetalShown = false;
+    this.firstCopperShown = false;
   }
 
   update() {
@@ -236,11 +241,27 @@ export default class Player implements PlayerType {
 
   checkForCollectableResources() {
     let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
-    let firstMetal = this.getFirstMetalScrap();
-    let firstCopper = this.getFirstCopperOre();
+    let firstMetal = null;
+    let firstCopper = null;
     
+    // Find first metal and copper resources that haven't been collected
     for (let res of currentResources) {
-      if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
+      if (res.type === 'metal' && !res.collected && !firstMetal) {
+        firstMetal = res;
+      }
+      if (res.type === 'copper' && !res.collected && !firstCopper) {
+        firstCopper = res;
+      }
+      // Once we've found one of each, we can stop searching
+      if (firstMetal && firstCopper) break;
+    }
+    
+    // Display tutorial text for resources in range
+    for (let res of currentResources) {
+      const isInRange = this.p.dist(this.x, this.y, res.x, res.y) < 30;
+      
+      if (isInRange) {
+        // Show interaction prompt for any resource in range
         this.p.push();
         this.p.fill(255, 255, 100, 150);
         this.p.ellipse(res.x, res.y - 15, 5, 5);
@@ -248,38 +269,31 @@ export default class Player implements PlayerType {
         this.p.textAlign(this.p.CENTER);
         this.p.textSize(8);
         this.p.text("E", res.x, res.y - 13);
+        this.p.pop();
         
         // Show tutorial text for the first metal scrap
-        if (res === firstMetal && !res.collected) {
+        if (res.type === 'metal' && res === firstMetal && !this.firstMetalShown) {
+          this.p.push();
           this.p.textSize(10);
           this.p.fill(0, 0, 0, 80);
           this.p.rect(res.x, res.y - 35, 200, 20, 5);
           this.p.fill(255);
+          this.p.textAlign(this.p.CENTER);
           this.p.text("Press E to gather metal scraps and other resources laying on the ground.", res.x, res.y - 30);
+          this.p.pop();
         }
-        
-        this.p.pop();
-      }
-      
-      if (res.type === 'copper' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
-        this.p.push();
-        this.p.fill(255, 255, 100, 150);
-        this.p.ellipse(res.x, res.y - 15, 5, 5);
-        this.p.fill(255);
-        this.p.textAlign(this.p.CENTER);
-        this.p.textSize(8);
-        this.p.text("E", res.x, res.y - 13);
         
         // Show tutorial text for the first copper ore
-        if (res === firstCopper && !res.collected) {
+        if (res.type === 'copper' && res === firstCopper && !this.firstCopperShown) {
+          this.p.push();
           this.p.textSize(10);
           this.p.fill(0, 0, 0, 80);
           this.p.rect(res.x, res.y - 35, 200, 20, 5);
           this.p.fill(255);
+          this.p.textAlign(this.p.CENTER);
           this.p.text("Press E to dig for rare metals.", res.x, res.y - 30);
+          this.p.pop();
         }
-        
-        this.p.pop();
       }
     }
   }
@@ -311,7 +325,13 @@ export default class Player implements PlayerType {
       let res = currentResources[i];
       if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
         this.inventory.metal++;
-        res.collected = true; // Mark as collected for tutorial purposes
+        res.collected = true;
+        
+        // Mark that we've shown the tutorial for metal
+        if (!this.firstMetalShown) {
+          this.firstMetalShown = true;
+        }
+        
         currentResources.splice(i, 1);
         emitGameStateUpdate(this, this.hoverbike);
       }
@@ -322,6 +342,12 @@ export default class Player implements PlayerType {
         let res = currentResources[i];
         if (res.type === 'copper' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
           this.startDigging(res);
+          
+          // Mark that we've shown the tutorial for copper
+          if (!this.firstCopperShown) {
+            this.firstCopperShown = true;
+          }
+          
           break;
         }
       }
