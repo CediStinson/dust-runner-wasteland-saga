@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 // Get environment variables with fallbacks
@@ -22,16 +23,21 @@ export const supabase = hasValidSupabaseCredentials()
 // Mock client to prevent runtime errors
 function createMockSupabaseClient() {
   // Basic mock that returns empty data and prevents app crashes
+  const mockQueryResponse = {
+    data: null, 
+    error: new Error('Supabase credentials not configured')
+  };
+  
+  const mockQueryBuilder = {
+    select: () => mockQueryBuilder,
+    eq: () => mockQueryBuilder,
+    single: async () => mockQueryResponse,
+    insert: async () => mockQueryResponse,
+    update: async () => mockQueryResponse,
+  };
+  
   return {
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          single: async () => ({ data: null, error: new Error('Supabase credentials not configured') })
-        }),
-        insert: async () => ({ data: null, error: new Error('Supabase credentials not configured') }),
-        update: async () => ({ data: null, error: new Error('Supabase credentials not configured') })
-      })
-    }),
+    from: () => mockQueryBuilder,
     auth: {
       signInWithPassword: async () => ({ data: null, error: new Error('Supabase credentials not configured') }),
       signUp: async () => ({ data: null, error: new Error('Supabase credentials not configured') }),
