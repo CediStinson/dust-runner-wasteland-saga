@@ -54,9 +54,17 @@ export default class GameRenderer {
     const areaSize = 3;
     for (let x = this.worldX - areaSize; x <= this.worldX + areaSize; x++) {
       for (let y = this.worldY - areaSize; y <= this.worldY + areaSize; y++) {
-        const tile = this.worldGenerator.getTile(x, y);
-        if (tile) {
-          this.p.image(tile.texture, tile.x, tile.y, tile.width, tile.height);
+        // Use the correct method from WorldGenerator
+        const zoneKey = `${x},${y}`;
+        const sandTexture = this.worldGenerator.getSandTexture(zoneKey);
+        const grassTexture = this.worldGenerator.getGrassTexture(zoneKey);
+        
+        if (sandTexture) {
+          this.p.image(sandTexture, 0, 0);
+        }
+        
+        if (grassTexture) {
+          this.p.image(grassTexture, 0, 0);
         }
       }
     }
