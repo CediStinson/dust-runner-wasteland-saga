@@ -1,4 +1,3 @@
-
 import { createClient, PostgrestSingleResponse, PostgrestError } from '@supabase/supabase-js';
 
 // Get environment variables with fallbacks
@@ -27,7 +26,8 @@ function createMockSupabaseClient() {
     message: 'Supabase credentials not configured',
     details: '',
     hint: 'Set your Supabase URL and Anonymous Key in environment variables',
-    code: 'not_configured'
+    code: 'not_configured',
+    name: 'PostgrestError'
   };
   
   // Basic mock that returns empty data and prevents app crashes
