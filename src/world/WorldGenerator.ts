@@ -11,7 +11,7 @@ export default class WorldGenerator {
   obstacles: Record<string, any[]>;
   resources: Record<string, any[]>;
   cactusProb: number;
-  windmillAngle: number;  // Add windmill angle property
+  windmillAngle: number;
 
   constructor(p: any) {
     this.p = p;
@@ -22,7 +22,7 @@ export default class WorldGenerator {
     this.generatedAreas = {};
     this.obstacles = {};
     this.resources = {};
-    this.cactusProb = 0.05; // Increased probability for cactus generation
+    this.cactusProb = 0.05; // Probability for cactus generation
     this.windmillAngle = 0; // Initialize windmill angle
   }
 
@@ -48,12 +48,25 @@ export default class WorldGenerator {
     const size = this.p.random(0.5, 1);
     const rotation = this.p.random(this.p.TWO_PI);
     
+    // Generate random points for the metal scrap shape
+    const numPoints = this.p.floor(this.p.random(4, 8));
+    const points = [];
+    
+    for (let i = 0; i < numPoints; i++) {
+      const angle = this.p.map(i, 0, numPoints, 0, this.p.TWO_PI);
+      const radius = this.p.random(5, 10);
+      const px = radius * this.p.cos(angle);
+      const py = radius * this.p.sin(angle);
+      points.push({x: px, y: py});
+    }
+    
     return {
       x,
       y,
       type: 'metal',
       size,
       rotation,
+      points,
       collected: false
     };
   }
@@ -72,7 +85,7 @@ export default class WorldGenerator {
       const r = radius + this.p.random(-1, 1);
       const px = r * this.p.cos(angle);
       const py = r * this.p.sin(angle);
-      shape.push([px, py]);
+      shape.push({x: px, y: py});
     }
     
     return {
@@ -88,15 +101,31 @@ export default class WorldGenerator {
     return {
       x: x,
       y: y,
-      type: 'fuelPump'
+      type: 'fuelPump',
+      size: 1.0
     };
   }
   
   generateHut(x: number, y: number) {
+    const shape = [];
+    const numPoints = 8;
+    
+    // Generate hut shape
+    for (let i = 0; i < numPoints; i++) {
+      const angle = this.p.map(i, 0, numPoints, 0, this.p.TWO_PI);
+      const radiusX = 30 + this.p.random(-5, 5);
+      const radiusY = 25 + this.p.random(-5, 5);
+      const px = radiusX * this.p.cos(angle);
+      const py = radiusY * this.p.sin(angle);
+      shape.push({x: px, y: py});
+    }
+    
     return {
       x: x,
       y: y,
-      type: 'hut'
+      type: 'hut',
+      size: 1.0,
+      shape: shape
     };
   }
   
@@ -104,12 +133,114 @@ export default class WorldGenerator {
     const size = this.p.random(0.5, 1.5);
     const aspectRatio = this.p.random(0.5, 2);
     
+    // Generate rock shape
+    const numPoints = this.p.floor(this.p.random(5, 9));
+    const shape = [];
+    
+    for (let i = 0; i < numPoints; i++) {
+      const angle = this.p.map(i, 0, numPoints, 0, this.p.TWO_PI);
+      const radius = 10 * size * (1 + this.p.random(-0.3, 0.3));
+      const px = radius * this.p.cos(angle) * aspectRatio;
+      const py = radius * this.p.sin(angle) / aspectRatio;
+      shape.push({x: px, y: py});
+    }
+    
     return {
       x: x,
       y: y,
       type: 'rock',
       size: size,
-      aspectRatio: aspectRatio
+      aspectRatio: aspectRatio,
+      shape: shape
+    };
+  }
+  
+  generateBush(x: number, y: number) {
+    const size = this.p.random(0.7, 1.3);
+    
+    // Generate bush shape
+    const numPoints = this.p.floor(this.p.random(6, 10));
+    const shape = [];
+    
+    for (let i = 0; i < numPoints; i++) {
+      const angle = this.p.map(i, 0, numPoints, 0, this.p.TWO_PI);
+      const radius = 8 * size * (1 + this.p.random(-0.4, 0.4));
+      const px = radius * this.p.cos(angle);
+      const py = radius * this.p.sin(angle);
+      shape.push({x: px, y: py});
+    }
+    
+    return {
+      x: x,
+      y: y,
+      type: 'bush',
+      size: size,
+      shape: shape
+    };
+  }
+  
+  generateCactus(x: number, y: number) {
+    const size = this.p.random(0.8, 1.2);
+    
+    // Create cactus shape parts
+    const shape = [];
+    
+    // Body
+    const bodyPoints = [];
+    const bodyWidth = 6 * size;
+    const bodyHeight = 25 * size;
+    
+    bodyPoints.push({x: -bodyWidth/2, y: 0});
+    bodyPoints.push({x: -bodyWidth/2, y: -bodyHeight});
+    bodyPoints.push({x: bodyWidth/2, y: -bodyHeight});
+    bodyPoints.push({x: bodyWidth/2, y: 0});
+    
+    shape.push({
+      type: 'body',
+      points: bodyPoints
+    });
+    
+    // Arms (50% chance to have arms)
+    if (this.p.random() < 0.5) {
+      // Left arm
+      const leftArmPoints = [];
+      const armWidth = 5 * size;
+      const armHeight = 10 * size;
+      const armY = -bodyHeight * this.p.random(0.5, 0.7);
+      
+      leftArmPoints.push({x: -bodyWidth/2, y: armY});
+      leftArmPoints.push({x: -bodyWidth/2 - armWidth, y: armY});
+      leftArmPoints.push({x: -bodyWidth/2 - armWidth, y: armY - armHeight});
+      leftArmPoints.push({x: -bodyWidth/2, y: armY - armHeight});
+      
+      shape.push({
+        type: 'arm',
+        points: leftArmPoints
+      });
+      
+      // Right arm (sometimes)
+      if (this.p.random() < 0.5) {
+        const rightArmPoints = [];
+        const rightArmY = -bodyHeight * this.p.random(0.4, 0.6);
+        
+        rightArmPoints.push({x: bodyWidth/2, y: rightArmY});
+        rightArmPoints.push({x: bodyWidth/2 + armWidth, y: rightArmY});
+        rightArmPoints.push({x: bodyWidth/2 + armWidth, y: rightArmY - armHeight});
+        rightArmPoints.push({x: bodyWidth/2, y: rightArmY - armHeight});
+        
+        shape.push({
+          type: 'arm',
+          points: rightArmPoints
+        });
+      }
+    }
+    
+    return {
+      x: x,
+      y: y,
+      type: 'cactus',
+      size: size,
+      shape: shape
     };
   }
   
@@ -139,13 +270,34 @@ export default class WorldGenerator {
       areaObstacles.push(...rocks);
     }
     
-    // Generate huts
+    // Generate bushes
+    const numBushes = this.p.floor(this.p.random(2, 5));
+    for (let i = 0; i < numBushes; i++) {
+      const bushX = this.p.random(this.p.width * 0.1, this.p.width * 0.9);
+      const bushY = this.p.random(this.p.height * 0.1, this.p.height * 0.9);
+      
+      // Check if too close to other objects
+      let tooClose = false;
+      for (let obs of areaObstacles) {
+        const dist = this.p.dist(bushX, bushY, obs.x, obs.y);
+        if (dist < 40) {
+          tooClose = true;
+          break;
+        }
+      }
+      
+      if (!tooClose) {
+        areaObstacles.push(this.generateBush(bushX, bushY));
+      }
+    }
+    
+    // Generate hut in specific area
     if (x === 0 && y === 1) {
       const hut = this.generateHut(this.p.width / 2, this.p.height / 2);
       areaObstacles.push(hut);
     }
     
-    // Generate fuel pump
+    // Generate fuel pump in specific area
     if (x === 1 && y === 0) {
       const fuelPump = this.generateFuelPump(this.p.width / 2, this.p.height / 2);
       areaObstacles.push(fuelPump);
@@ -170,13 +322,7 @@ export default class WorldGenerator {
           }
           
           if (!tooClose) {
-            const size = this.p.random(0.8, 1.2);
-            areaObstacles.push({
-              x: cacX,
-              y: cacY,
-              type: 'cactus',
-              size: size
-            });
+            areaObstacles.push(this.generateCactus(cacX, cacY));
           }
         }
       }
@@ -216,7 +362,7 @@ export default class WorldGenerator {
     const rocks = this.obstacles[areaKey]?.filter(obs => obs.type === 'rock') || [];
     for (let rock of rocks) {
       if (this.p.random() < 0.15) { // Decreased copper generation probability (was 0.25)
-        let copperOre = this.generateCopperOre(`${x},${y}`, rock);
+        let copperOre = this.generateCopperOre(areaKey, rock);
         areaResources.push(copperOre);
       }
     }
@@ -234,22 +380,22 @@ export default class WorldGenerator {
     this.generatedAreas[areaKey] = true;
   }
   
-  // Add this method for compatibility with Game.ts
+  // Method for compatibility with Game.ts
   generateNewArea(x: number, y: number) {
     this.generateArea(x, y);
   }
   
-  // Add this method for windmill animation
+  // Method for windmill animation
   updateWindmillAngle() {
     this.windmillAngle += 0.01;
   }
   
-  // Add this method to get the windmill angle
+  // Method to get the windmill angle
   getWindmillAngle() {
     return this.windmillAngle;
   }
   
-  // Add this method for compatibility with Game.ts
+  // Method for compatibility with Game.ts
   clearTextures() {
     // This would clear any cached textures if we had any
     // For now, it's just a stub method for compatibility
