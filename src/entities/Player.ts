@@ -71,7 +71,7 @@ export default class Player implements PlayerType {
             } else if (obs.type === 'hut') {
               collisionRadius = 30; // Hut collision radius
             } else if (obs.type === 'fuelPump') {
-              collisionRadius = 25; // Fuel pump collision radius
+              collisionRadius = 35; // Increased fuel pump collision radius (from 25)
             }
             
             let distance = this.p.sqrt(dx * dx + dy * dy);
@@ -198,8 +198,6 @@ export default class Player implements PlayerType {
       this.p.fill(80, 60, 40, 100);
       this.p.ellipse(0, 6, 12, 4);
       
-      const isNearFuelPump = this.checkIfNearFuelPump();
-      
       if (this.digging) {
         this.p.fill(120, 100, 80);
         this.p.ellipse(6, 0, 4, 4);
@@ -208,11 +206,6 @@ export default class Player implements PlayerType {
         this.p.line(6, 0, 12, this.p.sin(this.p.frameCount * 0.3) * 3);
         this.p.noStroke();
         this.displayDigProgress();
-      } else if (isNearFuelPump && this.worldX === 0 && this.worldY === 0) {
-        this.p.fill(255, 255, 100);
-        this.p.textSize(8);
-        this.p.textAlign(this.p.CENTER);
-        this.p.text("E", 0, -20);
       }
     }
     
@@ -323,7 +316,7 @@ export default class Player implements PlayerType {
       const currentObstacles = this.obstacles["0,0"] || [];
       for (const obs of currentObstacles) {
         if (obs.type === 'fuelPump') {
-          return this.p.dist(this.x, this.y, obs.x, obs.y) < 40;
+          return this.p.dist(this.x, this.y, obs.x, obs.y) < 50; // Increased refueling range from 40 to 50
         }
       }
     }

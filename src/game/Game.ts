@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -121,6 +122,23 @@ export default class Game {
         y: this.p.height / 2 - 55,
         seedAngle: 4.2,
         size: 1.0
+      });
+      
+      // Add more fuel stains in a wider area to represent the extended refueling zone
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 130,
+        y: this.p.height / 2 - 50,
+        seedAngle: 3.3,
+        size: 0.8
+      });
+      
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 85,
+        y: this.p.height / 2 - 70,
+        seedAngle: 1.7,
+        size: 0.7
       });
       
       // Add fuel pump without stains now (stains are separate objects)
