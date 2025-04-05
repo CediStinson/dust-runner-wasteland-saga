@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -228,20 +227,6 @@ export default class Player implements PlayerType {
     }
     
     this.p.pop();
-    
-    // Draw player health bar above player
-    if (!this.riding) {
-      const barWidth = 20;
-      const barHeight = 3;
-      const healthPercent = this.health / this.maxHealth;
-      
-      this.p.push();
-      this.p.fill(0, 0, 0, 150);
-      this.p.rect(this.x - barWidth/2, this.y - 20, barWidth, barHeight);
-      this.p.fill(255, 50, 50);
-      this.p.rect(this.x - barWidth/2, this.y - 20, barWidth * healthPercent, barHeight);
-      this.p.pop();
-    }
   }
 
   checkForCollectableResources() {
