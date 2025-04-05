@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -353,7 +354,7 @@ export default class GameRenderer {
   drawFuelPump(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);
-    this.p.rotate(this.p.radians(125)); // Rotate 135 degrees anti-clockwise
+    this.p.rotate(this.p.radians(125)); // Rotate 125 degrees anti-clockwise
     
     // Larger, more defined shadow
     this.p.fill(0, 0, 0, 50);
@@ -609,4 +610,142 @@ export default class GameRenderer {
           let p1 = part.points[0];
           let p2 = part.points[part.points.length - 1];
           let x = this.p.lerp(p1.x, p2.x, t);
-          let y = this.p.lerp
+          let y = this.p.lerp(p1.y, p2.y, t);
+          this.p.ellipse(x, y, 1 * obs.size, 1 * obs.size);
+        }
+      }
+    }
+
+    this.p.pop();
+  }
+
+  drawResources() {
+    let currentResources = this.worldGenerator.getResources()[`${this.worldX},${this.worldY}`] || [];
+    for (let resource of currentResources) {
+      if (resource.type === 'metal') {
+        this.drawMetal(resource);
+      } else if (resource.type === 'copper') {
+        this.drawCopper(resource);
+      } else if (resource.type === 'health') {
+        this.drawHealth(resource);
+      }
+    }
+  }
+
+  drawMetal(resource: any) {
+    this.p.push();
+    this.p.translate(resource.x, resource.y);
+    
+    // Shadow
+    this.p.fill(50, 40, 30, 50);
+    this.p.ellipse(2, 2, 16, 10);
+    
+    // Base shape - cylindrical metal chunk
+    this.p.fill(120, 120, 130);
+    this.p.beginShape();
+    for (let i = 0; i < 8; i++) {
+      let angle = i * this.p.TWO_PI / 8;
+      let radius = 6 + this.p.noise(i * 0.5) * 2;
+      let x = Math.cos(angle) * radius;
+      let y = Math.sin(angle) * radius;
+      this.p.vertex(x, y);
+    }
+    this.p.endShape(this.p.CLOSE);
+    
+    // Highlight
+    this.p.fill(180, 180, 190);
+    this.p.beginShape();
+    for (let i = 0; i < 6; i++) {
+      let angle = i * this.p.TWO_PI / 6 + 0.3;
+      let radius = 4 + this.p.noise(i * 0.8) * 1;
+      let x = Math.cos(angle) * radius * 0.8 - 1;
+      let y = Math.sin(angle) * radius * 0.8 - 1;
+      this.p.vertex(x, y);
+    }
+    this.p.endShape(this.p.CLOSE);
+    
+    // Weathering details
+    this.p.fill(90, 90, 100);
+    this.p.ellipse(-2, 3, 3, 2);
+    this.p.ellipse(3, -2, 2, 2);
+    
+    this.p.pop();
+  }
+
+  drawCopper(resource: any) {
+    this.p.push();
+    this.p.translate(resource.x, resource.y);
+    
+    // Shadow
+    this.p.fill(50, 40, 30, 50);
+    this.p.ellipse(2, 2, 14, 10);
+    
+    // Base shape - copper nugget
+    this.p.fill(210, 120, 70); // Copper color
+    this.p.beginShape();
+    for (let i = 0; i < 7; i++) {
+      let angle = i * this.p.TWO_PI / 7 + 0.2;
+      let radius = 5 + this.p.noise(i * 0.7) * 3;
+      let x = Math.cos(angle) * radius;
+      let y = Math.sin(angle) * radius;
+      this.p.vertex(x, y);
+    }
+    this.p.endShape(this.p.CLOSE);
+    
+    // Highlight
+    this.p.fill(230, 160, 100);
+    this.p.beginShape();
+    for (let i = 0; i < 5; i++) {
+      let angle = i * this.p.TWO_PI / 5 + 0.5;
+      let radius = 3 + this.p.noise(i * 0.9) * 1.5;
+      let x = Math.cos(angle) * radius * 0.7 - 0.5;
+      let y = Math.sin(angle) * radius * 0.7 - 1;
+      this.p.vertex(x, y);
+    }
+    this.p.endShape(this.p.CLOSE);
+    
+    // Oxidization details - green patches
+    this.p.fill(100, 180, 120, 180);
+    this.p.ellipse(-1, 2, 3, 2);
+    this.p.ellipse(2, -1, 2, 1.5);
+    this.p.ellipse(-2, -2, 1.5, 1.5);
+    
+    this.p.pop();
+  }
+
+  drawHealth(resource: any) {
+    this.p.push();
+    this.p.translate(resource.x, resource.y);
+    
+    // Shadow
+    this.p.fill(50, 40, 30, 50);
+    this.p.ellipse(2, 2, 15, 10);
+    
+    // Base shape - medical kit
+    this.p.fill(220, 220, 220);
+    this.p.rect(-6, -5, 12, 10, 2);
+    
+    // Red cross
+    this.p.fill(200, 50, 50);
+    this.p.rect(-4, -1, 8, 2);
+    this.p.rect(-1, -4, 2, 8);
+    
+    // Highlights
+    this.p.fill(240, 240, 240);
+    this.p.rect(-5, -4, 10, 1);
+    
+    // Clasp/latch
+    this.p.fill(150, 150, 150);
+    this.p.rect(-1, 3, 2, 1);
+    
+    // Pulsing effect
+    let pulseSize = 1 + Math.sin(this.p.frameCount * 0.1) * 0.2;
+    this.p.noFill();
+    this.p.stroke(200, 50, 50, 100 - Math.abs(Math.sin(this.p.frameCount * 0.1) * 100));
+    this.p.strokeWeight(1);
+    this.p.ellipse(0, 0, 15 * pulseSize, 13 * pulseSize);
+    this.p.noStroke();
+    
+    this.p.pop();
+  }
+}
