@@ -9,13 +9,7 @@ import { supabase as configuredSupabase } from '@/integrations/supabase/client';
 export const supabase = configuredSupabase;
 
 // Type definitions for the game save data
-type GameSave = {
-  id: string;
-  user_id: string;
-  state: any;
-  created_at: string;
-  updated_at: string;
-}
+type GameSave = Database['public']['Tables']['game_saves']['Row'];
 
 // Function to save game state to Supabase
 export const saveGameState = async (userId: string, gameState: any) => {
@@ -33,7 +27,7 @@ export const saveGameState = async (userId: string, gameState: any) => {
       // Update existing save
       const { error: updateError } = await supabase
         .from('game_saves')
-        .update({ state: gameState, updated_at: new Date() })
+        .update({ state: gameState, updated_at: new Date().toISOString() })
         .eq('user_id', userId);
         
       if (updateError) throw updateError;
