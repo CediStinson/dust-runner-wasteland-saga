@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import GameSketch from '../components/GameSketch';
@@ -26,6 +27,7 @@ const Index = () => {
   const [dayTimeIcon, setDayTimeIcon] = useState("sun");
   const [dayTimeAngle, setDayTimeAngle] = useState(0);
   const [worldData, setWorldData] = useState<any>(null);
+  const [gameStarted, setGameStarted] = useState(false);
   
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -45,7 +47,8 @@ const Index = () => {
       worldY,
       dayTimeIcon,
       dayTimeAngle,
-      worldData
+      worldData,
+      gameStarted
     };
   };
   
@@ -89,6 +92,7 @@ const Index = () => {
     setMaxPlayerHealth(savedState.maxPlayerHealth || 100);
     setWorldX(savedState.worldX || 0);
     setWorldY(savedState.worldY || 0);
+    setGameStarted(savedState.gameStarted || false);
     
     if (savedState.worldData) {
       setWorldData(savedState.worldData);
@@ -105,7 +109,7 @@ const Index = () => {
       const { 
         resources, copper, health, maxHealth, fuel, maxFuel,
         playerHealth, maxPlayerHealth, worldX, worldY, baseWorldX, baseWorldY,
-        dayTimeIcon, dayTimeAngle, worldData
+        dayTimeIcon, dayTimeAngle, worldData, gameStarted
       } = event.detail;
       
       setResources(resources);
@@ -120,6 +124,9 @@ const Index = () => {
       setWorldY(worldY || 0);
       setDayTimeIcon(dayTimeIcon || "sun");
       setDayTimeAngle(dayTimeAngle || 0);
+      if (typeof gameStarted === 'boolean') {
+        setGameStarted(gameStarted);
+      }
       if (worldData) {
         setWorldData(worldData);
       }
@@ -153,7 +160,7 @@ const Index = () => {
         onSaveGame={handleSaveGame}
       />
       
-      {!user && (
+      {!user && !gameStarted && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50 text-center">
           <Link to="/login">
             <Button variant="default" size="lg">
