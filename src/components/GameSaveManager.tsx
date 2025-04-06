@@ -5,6 +5,7 @@ import { saveGameState, loadGameState } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface GameSaveManagerProps {
   gameState: any;
@@ -13,6 +14,7 @@ interface GameSaveManagerProps {
 
 const GameSaveManager: React.FC<GameSaveManagerProps> = ({ gameState, onLoadState }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
@@ -41,6 +43,8 @@ const GameSaveManager: React.FC<GameSaveManagerProps> = ({ gameState, onLoadStat
         description: "Please log in to save your game progress.",
         variant: "destructive",
       });
+      // Redirect to login page when trying to save without being logged in
+      navigate('/login');
       return;
     }
 
@@ -61,12 +65,10 @@ const GameSaveManager: React.FC<GameSaveManagerProps> = ({ gameState, onLoadStat
   };
 
   return (
-    user ? (
-      <Button onClick={handleSaveGame} className="absolute top-4 right-4 z-50" variant="secondary">
-        <Save className="mr-2 h-4 w-4" />
-        Save Game
-      </Button>
-    ) : null
+    <Button onClick={handleSaveGame} className="absolute top-4 right-4 z-50" variant="secondary">
+      <Save className="mr-2 h-4 w-4" />
+      Save Game
+    </Button>
   );
 };
 

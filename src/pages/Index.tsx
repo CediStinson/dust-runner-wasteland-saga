@@ -8,8 +8,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut, User } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import '../styles/game.css';
+import { saveGameState } from '@/lib/supabase';
 
 const Index = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
@@ -29,6 +30,7 @@ const Index = () => {
   
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Get current game state for saving
   const getCurrentGameState = () => {
@@ -47,6 +49,34 @@ const Index = () => {
       dayTimeAngle,
       worldData // Include world data in save
     };
+  };
+  
+  // Handle saving the game state
+  const handleSaveGame = async () => {
+    if (!user) {
+      toast({
+        title: "Not logged in",
+        description: "Please log in to save your game progress.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
+    const result = await saveGameState(user.id, getCurrentGameState());
+    
+    if (result.success) {
+      toast({
+        title: "Game saved",
+        description: result.message,
+      });
+    } else {
+      toast({
+        title: "Save failed",
+        description: result.message,
+        variant: "destructive",
+      });
+    }
   };
   
   // Handle loading saved game state
@@ -131,6 +161,7 @@ const Index = () => {
         baseWorldY={0}
         dayTimeIcon={dayTimeIcon}
         dayTimeAngle={dayTimeAngle}
+        onSaveGame={handleSaveGame}
       />
       
       {/* Auth controls */}
@@ -156,7 +187,7 @@ const Index = () => {
         )}
       </div>
       
-      {/* Game save manager */}
+      {/* Game save manager - Only used for loading game now */}
       <GameSaveManager 
         gameState={getCurrentGameState()} 
         onLoadState={handleLoadGameState} 
