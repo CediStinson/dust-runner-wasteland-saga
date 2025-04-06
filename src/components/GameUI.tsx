@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Settings } from 'lucide-react';
 import DayNightIndicator from './ui/game/DayNightIndicator';
@@ -7,7 +8,7 @@ import StatusBars from './ui/game/StatusBars';
 import ControlsModal from './ui/game/ControlsModal';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface GameUIProps {
   resources?: number;
@@ -51,6 +52,7 @@ const GameUI: React.FC<GameUIProps> = ({
   const [showControls, setShowControls] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   return (
     <>
