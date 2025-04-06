@@ -225,13 +225,13 @@ export default class Player implements PlayerType {
     // Shadow
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
-    this.p.ellipse(0, 2, 15, 11);
+    this.p.ellipse(0, 2, 15, 10);
     
     // Washed out red torso underneath the head with black outline
     this.p.strokeWeight(0.5);
     this.p.stroke(0, 0, 0, 200);  // Black outline with some transparency
     this.p.fill(234, 56, 76, 100);  // Washed out red
-    this.p.ellipse(0, 0, 15, 11);  // Updated dimensions: width 8, height 10
+    this.p.ellipse(0, 0, 15, 10);  // Updated dimensions: width 8, height 10
     this.p.noStroke();  // Reset stroke for subsequent drawings
     
     // Head only - made smaller
