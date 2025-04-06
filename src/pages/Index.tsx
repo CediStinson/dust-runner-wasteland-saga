@@ -1,8 +1,8 @@
-
 import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import GameSketch from '../components/GameSketch';
 import GameUI from '../components/GameUI';
+import GameSaveManager from '../components/GameSaveManager';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,6 @@ const Index = () => {
   const [dayTimeIcon, setDayTimeIcon] = useState("sun");
   const [dayTimeAngle, setDayTimeAngle] = useState(0);
   const [worldData, setWorldData] = useState<any>(null);
-  const [gameStarted, setGameStarted] = useState(false);
   
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -100,11 +99,6 @@ const Index = () => {
     });
     window.dispatchEvent(loadEvent);
   };
-
-  // Function to start the game
-  const startGame = () => {
-    setGameStarted(true);
-  };
   
   useEffect(() => {
     const handleGameStateUpdate = (event: CustomEvent) => {
@@ -138,31 +132,6 @@ const Index = () => {
     };
   }, []);
   
-  // Display start screen if game hasn't started
-  if (!gameStarted) {
-    return (
-      <div className="game-container relative flex flex-col items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-white mb-8">Wasteland Explorer</h1>
-          <Button variant="default" size="lg" onClick={startGame} className="mb-8">
-            Start Game
-          </Button>
-          
-          {!user && (
-            <div className="mt-6">
-              <Link to="/login">
-                <Button variant="outline">
-                  <LogIn className="w-4 h-4 mr-2" />
-                  Login to Save Progress
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-  
   return (
     <div className="game-container relative" ref={gameContainerRef}>
       <GameSketch />
@@ -183,6 +152,17 @@ const Index = () => {
         dayTimeAngle={dayTimeAngle}
         onSaveGame={handleSaveGame}
       />
+      
+      {!user && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50 text-center">
+          <Link to="/login">
+            <Button variant="default" size="lg">
+              <LogIn className="w-4 h-4 mr-2" />
+              Login to Save Progress
+            </Button>
+          </Link>
+        </div>
+      )}
     </div>
   );
 };
