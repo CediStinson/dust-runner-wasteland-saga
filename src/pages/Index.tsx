@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import GameSketch from '../components/GameSketch';
@@ -27,7 +26,6 @@ const Index = () => {
   const [dayTimeIcon, setDayTimeIcon] = useState("sun");
   const [dayTimeAngle, setDayTimeAngle] = useState(0);
   const [worldData, setWorldData] = useState<any>(null);
-  const [showStartScreen, setShowStartScreen] = useState(true);
   
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -133,10 +131,6 @@ const Index = () => {
       window.removeEventListener('gameStateUpdate' as any, handleGameStateUpdate);
     };
   }, []);
-
-  const handleStartGame = () => {
-    setShowStartScreen(false);
-  };
   
   return (
     <div className="game-container relative" ref={gameContainerRef}>
@@ -157,23 +151,16 @@ const Index = () => {
         dayTimeIcon={dayTimeIcon}
         dayTimeAngle={dayTimeAngle}
         onSaveGame={handleSaveGame}
-        showStartScreen={showStartScreen}
       />
       
-      {/* Start Screen */}
-      {showStartScreen && (
-        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-white mb-8">Cosmic Explorer</h1>
-            <Button 
-              onClick={handleStartGame}
-              variant="default" 
-              size="lg" 
-              className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-6 text-xl"
-            >
-              Start Game
+      {!user && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50 text-center">
+          <Link to="/login">
+            <Button variant="default" size="lg">
+              <LogIn className="w-4 h-4 mr-2" />
+              Login to Save Progress
             </Button>
-          </div>
+          </Link>
         </div>
       )}
     </div>
