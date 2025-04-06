@@ -58,9 +58,8 @@ export default class Game {
     // Position the hoverbike under the tarp (slightly to the left of the hut)
     this.hoverbike = new Hoverbike(
       p, 
-      p.width / 2 - 50, // Position under the tarp
-      p.height / 2 - 100, // Align with the hut's y position
-      p.rotate(p.radians(30)),
+      p.width / 2 - 70, // Position under the tarp
+      p.height / 2 - 50, // Align with the hut's y position
       this.worldX, 
       this.worldY, 
       this.worldGenerator.getObstacles(),
