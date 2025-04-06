@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -181,8 +182,8 @@ export default class Player implements PlayerType {
     this.p.push();
     this.p.translate(this.x, this.y);
     
-    // For top-down view, we still rotate but the angle interpretation is different
-    this.p.rotate(this.angle);
+    // Rotate by -90 degrees (which is -PI/2 in radians)
+    this.p.rotate(this.angle - this.p.PI/2);
     
     if (this.riding) {
       this.displayRidingPlayerTopDown();
@@ -198,6 +199,10 @@ export default class Player implements PlayerType {
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
     this.p.ellipse(0, 0, 12, 8);
+    
+    // White torso underneath the head
+    this.p.fill(255);
+    this.p.ellipse(0, 4, 8, 10);
     
     // Head only - made smaller
     this.p.fill(245, 220, 190);
@@ -217,6 +222,10 @@ export default class Player implements PlayerType {
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
     this.p.ellipse(0, 2, 12, 8);
+    
+    // White torso underneath the head
+    this.p.fill(255);
+    this.p.ellipse(0, 4, 8, 10);
     
     // Head only - made smaller
     this.p.fill(245, 220, 190);
