@@ -60,6 +60,7 @@ export default class Game {
       p, 
       p.width / 2 - 50, // Position under the tarp
       p.height / 2 - 100, // Align with the hut's y position
+      p.rotate(p.radians(30)),
       this.worldX, 
       this.worldY, 
       this.worldGenerator.getObstacles(),
