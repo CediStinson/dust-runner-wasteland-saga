@@ -1,7 +1,7 @@
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
-import WorldGenerator from '../world/WorldGenerator';
+import { WorldGenerator } from '../world/WorldGenerator';
 import GameRenderer from '../rendering/GameRenderer';
 import { emitGameStateUpdate } from '../utils/gameUtils';
 
@@ -491,6 +491,46 @@ export default class Game {
         this.gameStarted = true;
       }
     }
+  }
+
+  resetGame() {
+    this.worldX = 0;
+    this.worldY = 0;
+    this.riding = false;
+    this.timeOfDay = 0.25;
+    this.exploredAreas = new Set<string>();
+    
+    // Clear world data
+    this.worldGenerator.clearObstaclesAndResources();
+    
+    // Regenerate home area
+    this.worldGenerator.generateNewArea(0, 0);
+    this.exploredAreas.add('0,0');
+    
+    // Reset player position and inventory
+    this.player.x = this.p.width / 2;
+    this.player.y = this.p.height / 2 - 50;
+    this.player.setWorldCoordinates(0, 0);
+    this.player.inventory.metal = 0;
+    this.player.inventory.copper = 0;
+    this.player.health = 100;
+    
+    // Reset hoverbike
+    this.hoverbike.x = this.p.width / 2 - 150;
+    this.hoverbike.y = this.p.height / 2 - 100;
+    this.hoverbike.setWorldCoordinates(0, 0);
+    this.hoverbike.resetSpeedUpgrades();
+    
+    // Add default structures to home base
+    this.addFuelStationAtHomeBase();
+    this.addWalkingMarksAtHomeBase();
+    this.addTarpAtHomeBase();
+    
+    // Update UI
+    emitGameStateUpdate(this.player, this.hoverbike);
+    
+    // Update renderer
+    this.renderer.setWorldCoordinates(0, 0);
   }
 
   getWorldData() {
