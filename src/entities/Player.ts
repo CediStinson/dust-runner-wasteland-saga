@@ -217,8 +217,8 @@ export default class Player implements PlayerType {
     
     // Arms as circles from top view
     this.p.fill(245, 220, 190);
-    this.p.ellipse(-6, 2, 4, 4); // Left arm circle
-    this.p.ellipse(6, 2, 4, 4);  // Right arm circle
+    this.p.ellipse(-5, 4, 4, 4); // Left arm circle
+    this.p.ellipse(5, 4, 4, 4);  // Right arm circle
   }
 
   displayStandingPlayerTopDown() {
