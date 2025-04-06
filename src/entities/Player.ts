@@ -180,185 +180,166 @@ export default class Player implements PlayerType {
   display() {
     this.p.push();
     this.p.translate(this.x, this.y);
-    this.p.rotate(this.angle + this.p.PI / 2);
+    
+    // For top-down view, we still rotate but the angle interpretation is different
+    this.p.rotate(this.angle);
     
     if (this.riding) {
-      this.displayRidingPlayer();
+      this.displayRidingPlayerTopDown();
     } else {
-      this.displayStandingPlayer();
+      this.displayStandingPlayerTopDown();
     }
     
     this.p.pop();
   }
 
-  displayRidingPlayer() {
+  displayRidingPlayerTopDown() {
+    // Shadow under player
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
     this.p.ellipse(0, 0, 12, 8);
     
-    this.p.fill(255, 255, 255); 
-    this.p.noStroke();
-    this.p.ellipse(0, 0, 9, 7);
+    // Body - smaller when riding
+    this.p.stroke(40, 40, 40);
+    this.p.strokeWeight(0.8);
+    this.p.fill(255, 255, 255);
+    this.p.ellipse(0, 0, 9, 11); // Slightly oval body shape
     
+    // Head
     this.p.fill(245, 220, 190);
-    this.p.ellipse(0, -4, 6, 5.5);
+    this.p.ellipse(0, -6, 7, 7); // Round head from top-down view
     
-    this.drawDetailedHair(true);
+    // Draw hair from top-down perspective
+    this.drawTopDownHair();
     
-    this.p.stroke(50, 50, 50, 150);
-    this.p.strokeWeight(0.5);
-    this.p.fill(255, 255, 255, 180);
-    this.p.arc(0, -4, 7, 6, -this.p.PI * 0.8, this.p.PI * 0.8, this.p.CHORD);
+    // Eyes looking downward (visible from top)
+    this.p.fill(40, 40, 40);
     this.p.noStroke();
+    this.p.ellipse(-1.5, -5, 1, 1.5);
+    this.p.ellipse(1.5, -5, 1, 1.5);
     
-    this.p.fill(150, 220, 255, 150);
-    this.p.arc(0, -3, 5, 3, -this.p.PI * 0.6, this.p.PI * 0.2);
+    // Arms gripping handlebars
+    this.p.stroke(40, 40, 40);
+    this.p.strokeWeight(0.7);
+    this.p.fill(255, 255, 255);
+    this.p.line(-5, -2, -9, 0); // Left arm
+    this.p.line(5, -2, 9, 0); // Right arm
     
-    this.p.fill(255, 255, 255, 100);
-    this.p.arc(0, -3, 3, 1.5, -this.p.PI * 0.3, this.p.PI * 0.1);
+    // Legs from top view (mostly hidden under/behind bike)
+    this.p.stroke(40, 40, 40);
+    this.p.strokeWeight(0.7);
+    this.p.line(-3, 2, -4, 8); // Left leg
+    this.p.line(3, 2, 4, 8); // Right leg
   }
 
-  displayStandingPlayer() {
+  displayStandingPlayerTopDown() {
+    // Shadow
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
     this.p.ellipse(0, 2, 14, 10);
     
+    // Body
+    this.p.stroke(40, 40, 40);
+    this.p.strokeWeight(0.8);
     this.p.fill(255, 255, 255);
-    this.p.noStroke();
-    this.p.ellipse(0, 0, 10, 8);
+    this.p.ellipse(0, 0, 11, 14); // Oval body from top-down view
     
+    // Head
     this.p.fill(245, 220, 190);
-    this.p.ellipse(0, -5, 7, 6.5);
+    this.p.ellipse(0, -6, 8, 8); // Round head from top-down view
     
-    this.drawDetailedHair(false);
+    // Draw hair from top-down perspective
+    this.drawTopDownHair();
     
+    // Eyes from top view
+    this.p.fill(40, 40, 40);
+    this.p.noStroke();
+    this.p.ellipse(-1.5, -5, 1.2, 1.5);
+    this.p.ellipse(1.5, -5, 1.2, 1.5);
+    
+    // Digging animation from top-down view
     if (this.digging) {
       this.p.fill(245, 220, 190);
       this.p.push();
       this.p.rotate(Math.sin(this.p.frameCount * 0.2) * 0.2);
       
+      // Arms extended for digging
       this.p.stroke(40, 40, 40);
-      this.p.strokeWeight(0.5);
-      this.p.ellipse(5, 0, 8, 3);
-      this.p.noStroke();
+      this.p.strokeWeight(0.7);
+      this.p.line(0, 0, 8, 6); // Right arm extended
+      this.p.line(8, 6, 10, 10); // Right hand
+      this.p.line(0, 0, -8, 6); // Left arm extended
+      this.p.line(-8, 6, -10, 10); // Left hand
       
       this.p.pop();
       this.displayDigProgress();
     } else {
+      // Arms in neutral position
       this.p.stroke(40, 40, 40);
-      this.p.strokeWeight(0.5);
-      this.p.fill(245, 220, 190);
-      this.p.ellipse(-5, 0, 3, 5);
-      this.p.ellipse(5, 0, 3, 5);
-      this.p.noStroke();
+      this.p.strokeWeight(0.7);
+      this.p.line(0, -2, 7, 0); // Right arm
+      this.p.line(7, 0, 9, 2); // Right hand
+      this.p.line(0, -2, -7, 0); // Left arm
+      this.p.line(-7, 0, -9, 2); // Left hand
     }
     
-    this.p.fill(40, 40, 40);
-    this.p.ellipse(-1.5, -4.5, 1, 1.5);
-    this.p.ellipse(1.5, -4.5, 1, 1.5);
-    
+    // Legs from top view
     this.p.stroke(40, 40, 40);
-    this.p.strokeWeight(0.5);
-    this.p.noFill();
-    this.p.arc(0, -3, 3, 2, 0.1, this.p.PI - 0.1);
-    this.p.noStroke();
+    this.p.strokeWeight(0.8);
+    this.p.line(-3, 4, -5, 10); // Left leg
+    this.p.line(3, 4, 5, 10); // Right leg
   }
 
-  drawDetailedHair(isRiding: boolean) {
+  drawTopDownHair() {
     const { r, g, b } = this.hairColor;
     
-    if (isRiding) {
-      this.p.fill(r, g, b);
+    // Add outline to hair
+    this.p.strokeWeight(0.8);
+    this.p.stroke(40, 40, 40);
+    
+    // Main hair shape (top-down view)
+    this.p.fill(r, g, b);
+    this.p.ellipse(0, -6, 10, 10); // Slightly larger than head to show hair volume
+    
+    // Create hair details and texture
+    this.p.noStroke();
+    
+    // Darker shade for texture
+    this.p.fill(r-30, g-30, b-30);
+    
+    // Hair parting line
+    this.p.strokeWeight(0.5);
+    this.p.stroke(r-40, g-40, b-40);
+    this.p.line(0, -10, 0, -2);
+    this.p.noStroke();
+    
+    // Ponytail from top view (extends backward)
+    this.p.fill(r, g, b);
+    this.p.beginShape();
+    this.p.vertex(-3, -11);
+    this.p.vertex(3, -11);
+    this.p.vertex(5, -15);
+    this.p.vertex(0, -18);  // Tip of ponytail
+    this.p.vertex(-5, -15);
+    this.p.endShape(this.p.CLOSE);
+    
+    // Add some hair strands visible from top
+    this.p.noFill();
+    this.p.stroke(r-40, g-40, b-40);
+    this.p.strokeWeight(0.7);
+    
+    // Create several curved hair strands
+    for (let i = 0; i < 5; i++) {
+      const waveOffset = Math.sin(this.p.frameCount * 0.05 + i) * 0.3;
+      const startX = -5 + i * 2.5;
+      const endY = -18 + i * 0.5;
       
-      this.p.beginShape();
-      this.p.vertex(-3, -4);
-      this.p.vertex(-4, -2);
-      this.p.vertex(-5, 0);
-      this.p.vertex(-4, 2);
-      this.p.vertex(-2, 0);
-      this.p.vertex(-2, -3);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.beginShape();
-      this.p.vertex(3, -4);
-      this.p.vertex(4, -2);
-      this.p.vertex(5, 0);
-      this.p.vertex(4, 2);
-      this.p.vertex(2, 0);
-      this.p.vertex(2, -3);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.fill(r, g, b, 200);
-      this.p.beginShape();
-      this.p.vertex(-2, -5);
-      this.p.bezierVertex(
-        -5, -3,
-        -8, -1,
-        -7 + Math.sin(this.p.frameCount * 0.1) * 2, 3 + Math.sin(this.p.frameCount * 0.08) * 1.5
+      this.p.bezier(
+        startX, -10,
+        startX - 2, -14 + waveOffset,
+        startX + 2, -16 + waveOffset,
+        0, endY
       );
-      this.p.vertex(-5, 2);
-      this.p.vertex(-1, -3);
-      this.p.endShape(this.p.CLOSE);
-    } else {
-      this.p.stroke(40, 40, 40);
-      this.p.strokeWeight(0.5);
-      this.p.fill(r, g, b);
-      this.p.ellipse(0, -5, 9, 8);
-      
-      this.p.beginShape();
-      this.p.vertex(-4, -8);
-      this.p.vertex(-6, -5);
-      this.p.vertex(-5, -2);
-      this.p.vertex(-3, -1);
-      this.p.vertex(-4, -4);
-      this.p.vertex(-3, -7);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.beginShape();
-      this.p.vertex(4, -8);
-      this.p.vertex(6, -5);
-      this.p.vertex(5, -2);
-      this.p.vertex(3, -1);
-      this.p.vertex(4, -4);
-      this.p.vertex(3, -7);
-      this.p.endShape(this.p.CLOSE);
-      
-      for (let i = 0; i < 4; i++) {
-        const waveOffset = Math.sin(this.p.frameCount * 0.05 + i) * 0.3;
-        this.p.beginShape();
-        this.p.vertex(-3 + i * 2, -7);
-        this.p.bezierVertex(
-          -3 + i * 2, -8,
-          -2 + i * 2, -8 + waveOffset,
-          -2 + i * 2, -9
-        );
-        this.p.vertex(-1 + i * 2, -8);
-        this.p.vertex(-1 + i * 2, -7);
-        this.p.endShape(this.p.CLOSE);
-      }
-      
-      this.p.fill(r, g, b);
-      this.p.beginShape();
-      this.p.vertex(-1, -7);
-      this.p.vertex(1, -7);
-      this.p.vertex(1, -9);
-      
-      const ponytailLength = 12;
-      const segments = 4;
-      
-      for (let i = 0; i <= segments; i++) {
-        const t = i / segments;
-        const xWave = Math.sin(this.p.frameCount * 0.05 + t * 3) * 1.5;
-        const yPos = -9 - ponytailLength * t;
-        
-        this.p.vertex(xWave, yPos);
-      }
-      
-      this.p.vertex(-1, -9);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.fill(r + 30, g + 20, b + 20, 100);
-      this.p.arc(0, -6, 6, 5, -this.p.PI * 0.8, this.p.PI * 0.1);
     }
   }
 
