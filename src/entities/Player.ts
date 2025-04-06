@@ -199,7 +199,7 @@ export default class Player implements PlayerType {
     // Shadow under player
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
-    this.p.ellipse(0, 0, 12, 8);
+    this.p.ellipse(0, 0, 20, 8);
     
     // Washed out red torso underneath the head with black outline
     this.p.strokeWeight(0.5);
