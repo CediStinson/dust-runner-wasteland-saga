@@ -387,6 +387,12 @@ export default class WorldGenerator {
     this.grassTextures = {};
   }
 
+  clearObstaclesAndResources() {
+    this.obstacles = {};
+    this.resources = {};
+    this.generatedAreas = new Set<string>();
+  }
+
   getWindmillAngle() {
     return this.windmillAngle;
   }

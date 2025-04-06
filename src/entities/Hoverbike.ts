@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -446,6 +447,12 @@ export default class Hoverbike implements HoverbikeType {
       this.maxHealth += 50;
       this.health += 50;
     }
+  }
+
+  // Add this new method to fix the error
+  resetSpeedUpgrades() {
+    this.speedLevel = 0;
+    this.speed = 2;
   }
 
   setWorldCoordinates(x: number, y: number) {
