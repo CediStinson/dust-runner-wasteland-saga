@@ -139,25 +139,15 @@ export default class GameRenderer {
     // Shadow underneath the tarp
     this.p.fill(0, 0, 0, 30);
     this.p.noStroke();
-    this.p.ellipse(5, 5, obs.width * 0.9, obs.height * 0.9);
+    this.p.rect(3, 3, obs.width * 0.9, obs.height * 0.9, 3);
     
-    // Set the noise seed to ensure consistent appearance
-    this.p.noiseSeed(obs.x * 1000 + obs.y);
+    // Set the noise seed based on position to ensure consistent appearance
+    const noiseSeed = obs.x * 1000 + obs.y;
+    this.p.noiseSeed(noiseSeed);
     
-    // Base tarp shape with slightly irregular edges
+    // Base tarp shape - now more squared with rounded corners
     this.p.fill(obs.color.r, obs.color.g, obs.color.b);
-    
-    // Draw main tarp body with irregular edges
-    this.p.beginShape();
-    for (let i = 0; i < 20; i++) {
-      const angle = (i / 20) * this.p.TWO_PI;
-      const radiusX = (obs.width / 2) * (0.9 + this.p.noise(angle * 2 + obs.seedAngle) * 0.2);
-      const radiusY = (obs.height / 2) * (0.9 + this.p.noise(angle * 2 + obs.seedAngle + 10) * 0.2);
-      const x = Math.cos(angle) * radiusX;
-      const y = Math.sin(angle) * radiusY;
-      this.p.vertex(x, y);
-    }
-    this.p.endShape(this.p.CLOSE);
+    this.p.rect(0, 0, obs.width, obs.height, 5);
     
     // Add fold and wrinkle details
     this.p.stroke(obs.color.r - 20, obs.color.g - 20, obs.color.b - 20, 150);
@@ -178,7 +168,7 @@ export default class GameRenderer {
         const t = i / foldLength;
         const x = this.p.lerp(fold.x1, fold.x2, t);
         const y = this.p.lerp(fold.y1, fold.y2, t);
-        const length = this.p.map(this.p.noise(x * 0.1, y * 0.1), 0, 1, 3, 8);
+        const length = this.p.map(this.p.noise(x * 0.1 + noiseSeed, y * 0.1), 0, 1, 3, 8);
         
         this.p.line(x, y, x + perpX * length, y + perpY * length);
       }
@@ -205,21 +195,9 @@ export default class GameRenderer {
     this.p.stroke(obs.color.r - 40, obs.color.g - 40, obs.color.b - 40, 100);
     this.p.strokeWeight(3);
     this.p.noFill();
-    this.p.beginShape();
-    for (let i = 0; i < 20; i++) {
-      const angle = (i / 20) * this.p.TWO_PI;
-      const radiusX = (obs.width / 2) * (0.95 + this.p.noise(angle * 3 + obs.seedAngle + 5) * 0.1);
-      const radiusY = (obs.height / 2) * (0.95 + this.p.noise(angle * 3 + obs.seedAngle + 15) * 0.1);
-      const x = Math.cos(angle) * radiusX;
-      const y = Math.sin(angle) * radiusY;
-      this.p.curveVertex(x, y);
-      if (i === 0 || i === 19) {
-        this.p.curveVertex(x, y); // Duplicate first and last points for curve
-      }
-    }
-    this.p.endShape();
+    this.p.rect(0, 0, obs.width * 0.95, obs.height * 0.95, 4);
     
-    // Draw holes in the tarp
+    // Draw holes in the tarp - using fixed positions instead of random to prevent flickering
     for (let hole of obs.holes) {
       // Dark underneath showing through holes
       this.p.fill(30, 25, 20, 200);
@@ -230,24 +208,28 @@ export default class GameRenderer {
       this.p.noFill();
       this.p.stroke(obs.color.r - 30, obs.color.g - 30, obs.color.b - 30);
       this.p.strokeWeight(1);
+      
+      // Use a consistent number of points and fixed angles to prevent flickering
       const steps = 12;
       for (let i = 0; i < steps; i++) {
         const angle = (i / steps) * this.p.TWO_PI;
         const nextAngle = ((i + 1) / steps) * this.p.TWO_PI;
         
-        // Get points on the hole's edge
-        const x1 = hole.x + Math.cos(angle) * (hole.size/2);
-        const y1 = hole.y + Math.sin(angle) * (hole.size/2);
-        const x2 = hole.x + Math.cos(nextAngle) * (hole.size/2);
-        const y2 = hole.y + Math.sin(nextAngle) * (hole.size/2);
+        // Get points on the hole's edge with consistent offsets
+        const offset = this.p.map(this.p.noise(i * 0.5 + noiseSeed), 0, 1, 0.8, 1.2);
+        const x1 = hole.x + Math.cos(angle) * (hole.size/2) * offset;
+        const y1 = hole.y + Math.sin(angle) * (hole.size/2) * offset;
+        const x2 = hole.x + Math.cos(nextAngle) * (hole.size/2) * offset;
+        const y2 = hole.y + Math.sin(nextAngle) * (hole.size/2) * offset;
         
-        // Draw frayed threads
-        const threads = this.p.random(1, 3);
+        // Draw frayed threads with consistent seed
+        const threads = Math.floor(this.p.map(this.p.noise(i + noiseSeed * 0.1), 0, 1, 1, 3));
         for (let j = 0; j < threads; j++) {
-          const tx = this.p.lerp(x1, x2, j/threads);
-          const ty = this.p.lerp(y1, y2, j/threads);
-          const length = this.p.random(1, 4);
-          const threadAngle = this.p.random(0, this.p.TWO_PI);
+          const t = j / threads;
+          const tx = this.p.lerp(x1, x2, t);
+          const ty = this.p.lerp(y1, y2, t);
+          const length = this.p.map(this.p.noise(i * 0.3 + j * 0.5 + noiseSeed), 0, 1, 1, 4);
+          const threadAngle = angle + this.p.PI/2 + this.p.map(this.p.noise(i * 0.7 + j * 0.3 + noiseSeed), 0, 1, -0.5, 0.5);
           this.p.line(tx, ty, tx + Math.cos(threadAngle) * length, ty + Math.sin(threadAngle) * length);
         }
       }
@@ -268,21 +250,24 @@ export default class GameRenderer {
       this.p.strokeWeight(1);
       this.p.rect(corner.x, corner.y, 6, 3, 1);
       
-      // Rope
+      // Rope - with fixed seed for consistent appearance
       this.p.stroke(180, 170, 150, 150);
       this.p.strokeWeight(1);
-      const ropeLength = this.p.random(8, 12);
+      const cornerSeed = corner.x * 10 + corner.y + noiseSeed;
+      const ropeLength = this.p.map(this.p.noise(cornerSeed * 0.1), 0, 1, 8, 12);
       const angle = Math.atan2(corner.y, corner.x);
       const offsetX = Math.cos(angle) * ropeLength;
       const offsetY = Math.sin(angle) * ropeLength;
       
-      // Draw rope with slight curve
+      // Draw rope with consistent curve
       this.p.noFill();
       this.p.beginShape();
       this.p.vertex(corner.x, corner.y);
+      const curveOffsetX = this.p.map(this.p.noise(cornerSeed * 0.2), 0, 1, -3, 3);
+      const curveOffsetY = this.p.map(this.p.noise(cornerSeed * 0.3), 0, 1, -3, 3);
       this.p.quadraticVertex(
-        corner.x + offsetX/2 + this.p.random(-3, 3), 
-        corner.y + offsetY/2 + this.p.random(-3, 3),
+        corner.x + offsetX/2 + curveOffsetX, 
+        corner.y + offsetY/2 + curveOffsetY,
         corner.x + offsetX, corner.y + offsetY
       );
       this.p.endShape();

@@ -118,6 +118,7 @@ const GameSketch = () => {
               // Restore player rotation angle if available
               if (savedState.playerAngle !== undefined) {
                 gameRef.current.player.angle = savedState.playerAngle;
+                gameRef.current.player.lastAngle = savedState.playerAngle; // Also set the lastAngle for smooth turning
               }
             } else {
               // Fallback to center of screen
@@ -148,8 +149,8 @@ const GameSketch = () => {
             } else {
               // For new games, place hoverbike under the tarp
               if (!savedState.gameStarted) {
-                gameRef.current.hoverbike.x = gameRef.current.p.width / 2 - 150;
-                gameRef.current.hoverbike.y = gameRef.current.p.height / 2 - 100;
+                gameRef.current.hoverbike.x = gameRef.current.p.width / 2 - 120; // Adjusted to be closer to the hut
+                gameRef.current.hoverbike.y = gameRef.current.p.height / 2 - 80;
               } else {
                 // Fallback to center of screen for existing games
                 gameRef.current.hoverbike.x = gameRef.current.p.width / 2;
