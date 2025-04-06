@@ -1,9 +1,10 @@
+
 import { useEffect, useRef } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
 
 interface GameSketchProps {
-  onResetGame?: (resetFn: () => void) => void;
+  onResetGame?: () => void;
 }
 
 const GameSketch: React.FC<GameSketchProps> = ({ onResetGame }) => {
@@ -70,10 +71,8 @@ const GameSketch: React.FC<GameSketchProps> = ({ onResetGame }) => {
       };
 
       p.windowResized = () => {
-        if (game) { // Add a null check here
-          p.resizeCanvas(p.windowWidth, p.windowHeight);
-          game.resize();
-        }
+        p.resizeCanvas(p.windowWidth, p.windowHeight);
+        game.resize();
       };
     };
 
@@ -194,13 +193,18 @@ const GameSketch: React.FC<GameSketchProps> = ({ onResetGame }) => {
     };
     
     // Connect the reset function to the prop
-    window.addEventListener('resetGame', handleResetGame);
+    if (onResetGame) {
+      window.addEventListener('resetGame', handleResetGame);
+    }
+    
     window.addEventListener('loadGameState', handleLoadGameState as EventListener);
 
     return () => {
       myP5.remove();
       window.removeEventListener('loadGameState', handleLoadGameState as EventListener);
-      window.removeEventListener('resetGame', handleResetGame);
+      if (onResetGame) {
+        window.removeEventListener('resetGame', handleResetGame);
+      }
     };
   }, [onResetGame]);
 

@@ -226,7 +226,6 @@ const Index = () => {
     };
   }, []);
 
-  // Update this function to match the expected type signature
   const setResetFunction = (resetFn: () => void) => {
     resetGameRef.current = resetFn;
   };
