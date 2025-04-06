@@ -25,6 +25,7 @@ export default class Player implements PlayerType {
   lastAngle: number;
   turnSpeed: number;
   hairColor: {r: number, g: number, b: number};
+  armAnimationOffset: number;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -49,6 +50,7 @@ export default class Player implements PlayerType {
     this.health = 100;
     this.maxHealth = 100;
     this.hairColor = {r: 255, g: 215, b: 140};
+    this.armAnimationOffset = 0;
   }
 
   update() {
@@ -203,7 +205,7 @@ export default class Player implements PlayerType {
     this.p.strokeWeight(0.5);
     this.p.stroke(0, 0, 0, 200);  // Black outline with some transparency
     this.p.fill(234, 56, 76, 100);  // Washed out red
-    this.p.ellipse(0, 0, 8, 9);  // Increased height by 1px
+    this.p.ellipse(0, 0, 8, 10);  // Updated dimensions: width 8, height 10
     this.p.noStroke();  // Reset stroke for subsequent drawings
     
     // Head only - made smaller
@@ -229,7 +231,7 @@ export default class Player implements PlayerType {
     this.p.strokeWeight(0.5);
     this.p.stroke(0, 0, 0, 200);  // Black outline with some transparency
     this.p.fill(234, 56, 76, 100);  // Washed out red
-    this.p.ellipse(0, 0, 8, 9);  // Increased height by 1px
+    this.p.ellipse(0, 0, 8, 10);  // Updated dimensions: width 8, height 10
     this.p.noStroke();  // Reset stroke for subsequent drawings
     
     // Head only - made smaller
@@ -239,10 +241,12 @@ export default class Player implements PlayerType {
     // Draw hair centered above the head
     this.drawTopDownHair();
     
-    // Arms as circles from top view
+    // Arms as circles from top view - with animation
     this.p.fill(245, 220, 190);
-    this.p.ellipse(-5, 2, 4, 4); // Left arm circle
-    this.p.ellipse(5, 2, 4, 4);  // Right arm circle
+    
+    // Animated arm positions based on walking
+    this.p.ellipse(-5, 2 + this.armAnimationOffset, 4, 4); // Left arm circle with animation
+    this.p.ellipse(5, 2 - this.armAnimationOffset, 4, 4);  // Right arm circle with animation
     
     // Digging animation from top-down view - modified to be minimal
     if (this.digging) {
