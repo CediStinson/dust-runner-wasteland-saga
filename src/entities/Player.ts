@@ -210,7 +210,7 @@ export default class Player implements PlayerType {
     
     // Head only - made smaller
     this.p.fill(245, 220, 190);
-    this.p.ellipse(0, 0, 5, 5); // Smaller head from top-down view
+    this.p.ellipse(0, 0, 6, 6); // Smaller head from top-down view
     
     // Draw hair centered above the head
     this.drawTopDownHair();
