@@ -561,8 +561,8 @@ export default class GameRenderer {
     this.p.translate(obs.x, obs.y);
 
     this.p.fill(180, 150, 100, 50);
-    let shadowOffsetX = 2 * obs.size;
-    let shadowOffsetY = 2 * obs.size;
+    let shadowOffsetX = 1 * obs.size;
+    let shadowOffsetY = 1 * obs.size;
     let shadowWidth = 8 * obs.size;
     let shadowHeight = 10 * obs.size;
     this.p.beginShape();
