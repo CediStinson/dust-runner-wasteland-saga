@@ -8,7 +8,7 @@ export default class WorldGenerator {
   sandTextures: Record<string, any>;
   grassTextures: Record<string, any>;
   windmillAngle: number;
-  edgeBuffer: number = 50; // Buffer distance from edges
+  edgeBuffer: number = 100; // Increased from 50 to 100px buffer from edges
 
   constructor(p: any) {
     this.p = p;
