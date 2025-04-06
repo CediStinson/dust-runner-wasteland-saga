@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -149,121 +148,113 @@ export default class Player implements PlayerType {
     this.p.rotate(this.angle + this.p.PI / 2);
     
     if (this.riding) {
-      // Rider on hoverbike - smaller, more feminine figure with helmet
-      // Rider body (smaller, more feminine shape)
-      this.p.fill(160, 130, 110); // Tan/sand colored clothing
-      this.p.ellipse(0, -4, 7, 6); // Smaller torso
+      // Rider on hoverbike - top-down view of female rider
       
-      // Arms on handlebars
-      this.p.fill(160, 130, 110);
-      this.p.ellipse(-5, -2, 4, 2); // Left arm
-      this.p.ellipse(5, -2, 4, 2);  // Right arm
+      // Shadow beneath rider
+      this.p.fill(0, 0, 0, 40);
+      this.p.noStroke();
+      this.p.ellipse(0, 0, 12, 8);
+      
+      // Body - torso (slim, feminine shape)
+      this.p.fill(180, 150, 130); // Desert attire color
+      this.p.noStroke();
+      this.p.ellipse(0, 0, 8, 6); // Slimmer torso
+      
+      // Arms gripping handlebars
+      this.p.fill(180, 150, 130);
+      this.p.ellipse(-5, -1, 4, 2); // Left arm
+      this.p.ellipse(5, -1, 4, 2);  // Right arm
       
       // Head with helmet
-      this.p.fill(200, 170, 150); // Skin tone
-      this.p.ellipse(0, -8, 6, 5); // Head
+      this.p.fill(210, 180, 160); // Skin tone
+      this.p.ellipse(0, -4, 6, 5); // Head
       
-      // Helmet
-      this.p.fill(70, 30, 120); // Purple helmet
-      this.p.arc(0, -8, 7, 6, -this.p.PI, this.p.PI * 0.8, this.p.CHORD);
+      // Purple helmet with visor
+      this.p.fill(140, 100, 200); // Purple helmet
+      this.p.arc(0, -4, 7, 6, -this.p.PI, this.p.PI, this.p.CHORD);
       
       // Helmet visor
-      this.p.fill(150, 200, 255, 180);
-      this.p.arc(0, -8, 5, 4, -this.p.PI * 0.6, this.p.PI * 0.2);
-      
-      // Legs
-      this.p.fill(160, 130, 110);
-      this.p.rect(-3, 0, 2, 3, 1); // Left leg
-      this.p.rect(3, 0, 2, 3, 1);  // Right leg
+      this.p.fill(150, 220, 255, 180); // Light blue visor
+      this.p.arc(0, -4, 5, 3, -this.p.PI * 0.6, this.p.PI * 0.2);
       
       // Flowing scarf/hair detail
-      this.p.fill(230, 190, 120, 200);
+      this.p.fill(230, 190, 120, 200); // Light fabric/hair color
       this.p.beginShape();
-      this.p.vertex(-2, -7);
+      this.p.vertex(-2, -5);
       this.p.bezierVertex(
-        -6, -5,
-        -8, -2,
-        -7 + Math.sin(this.p.frameCount * 0.1) * 2, 1 + Math.sin(this.p.frameCount * 0.08) * 1.5
+        -5, -3,
+        -8, 0,
+        -6 + Math.sin(this.p.frameCount * 0.1) * 2, 4 + Math.sin(this.p.frameCount * 0.08) * 1.5
       );
-      this.p.vertex(-5, 0);
-      this.p.vertex(-2, -4);
+      this.p.vertex(-4, 2);
+      this.p.vertex(-1, -3);
       this.p.endShape(this.p.CLOSE);
     } else {
-      // Standing female figure with helmet
-      // Body - more feminine shape
-      this.p.fill(160, 130, 110); // Desert clothing color
-      this.p.beginShape();
-      this.p.vertex(-7, -8);  // Upper left shoulder
-      this.p.vertex(7, -8);   // Upper right shoulder
-      this.p.vertex(8, -2);   // Right waist
-      this.p.vertex(6, 6);    // Right hip
-      this.p.vertex(-6, 6);   // Left hip
-      this.p.vertex(-8, -2);  // Left waist
-      this.p.endShape(this.p.CLOSE);
+      // Standing female figure - top-down view
       
-      // Desert garments/details
-      this.p.fill(220, 190, 160); // Lighter fabric color
-      this.p.beginShape();
-      this.p.vertex(-6, -4);
-      this.p.vertex(6, -4);
-      this.p.vertex(5, 2);
-      this.p.vertex(-5, 2);
-      this.p.endShape(this.p.CLOSE);
+      // Shadow beneath player
+      this.p.fill(0, 0, 0, 40);
+      this.p.noStroke();
+      this.p.ellipse(0, 2, 14, 10);
       
       // Legs
-      this.p.fill(160, 130, 110);
-      this.p.rect(-4, 6, 3, 6, 1);  // Left leg
-      this.p.rect(4, 6, 3, 6, 1);   // Right leg
+      this.p.fill(180, 150, 130); // Desert clothing
+      this.p.noStroke();
+      this.p.ellipse(-3, 5, 4, 3);  // Left leg
+      this.p.ellipse(3, 5, 4, 3);   // Right leg
       
       // Boots
-      this.p.fill(90, 70, 60);
-      this.p.rect(-4, 10, 3, 2, 1); // Left boot
-      this.p.rect(4, 10, 3, 2, 1);  // Right boot
+      this.p.fill(100, 80, 60); // Brown boots
+      this.p.ellipse(-3, 8, 3, 2);  // Left boot
+      this.p.ellipse(3, 8, 3, 2);   // Right boot
+      
+      // Torso - feminine figure seen from above
+      this.p.fill(200, 170, 140); // Main clothing color
+      this.p.ellipse(0, 0, 10, 8); // Torso oval
+      
+      // Desert cloak/garment details
+      this.p.fill(220, 190, 160); // Lighter fabric
+      this.p.arc(0, 0, 12, 10, -this.p.PI * 0.8, this.p.PI * 0.8);
       
       // Head
-      this.p.fill(200, 170, 150); // Skin tone
-      this.p.ellipse(0, -12, 7, 6); // Head
+      this.p.fill(210, 180, 160); // Skin tone
+      this.p.ellipse(0, -5, 7, 6); // Head
       
-      // Helmet
-      this.p.fill(70, 30, 120); // Purple helmet
-      this.p.arc(0, -12, 8, 7, -this.p.PI, this.p.PI * 0.8, this.p.CHORD);
+      // Purple helmet
+      this.p.fill(140, 100, 200); // Purple helmet
+      this.p.arc(0, -5, 8, 7, -this.p.PI, this.p.PI, this.p.CHORD);
       
       // Helmet visor/goggles
-      this.p.fill(150, 200, 255, 180);
-      this.p.arc(0, -12, 6, 4, -this.p.PI * 0.6, this.p.PI * 0.2);
+      this.p.fill(150, 220, 255, 180); // Light blue visor
+      this.p.arc(0, -5, 6, 4, -this.p.PI * 0.6, this.p.PI * 0.2);
       
-      // Hair/scarf flowing in the wind
-      this.p.fill(230, 190, 120, 200);
+      // Flowing hair/scarf from helmet
+      this.p.fill(230, 190, 120, 200); // Blonde/sand colored
       this.p.beginShape();
-      this.p.vertex(-2, -11);
+      this.p.vertex(-2, -6);
       this.p.bezierVertex(
-        -6, -9,
-        -10, -5,
-        -12 + Math.sin(this.p.frameCount * 0.1) * 2, -2 + Math.sin(this.p.frameCount * 0.08) * 1.5
+        -8, -3,
+        -12, 0,
+        -10 + Math.sin(this.p.frameCount * 0.1) * 2, 4 + Math.sin(this.p.frameCount * 0.08) * 1.5
       );
-      this.p.vertex(-9, -4);
-      this.p.vertex(-4, -8);
+      this.p.vertex(-7, 2);
+      this.p.vertex(-3, -4);
       this.p.endShape(this.p.CLOSE);
       
       if (this.digging) {
-        // Arms when digging - extended
-        this.p.fill(160, 130, 110);
-        this.p.ellipse(6, 0, 4, 4);
-        this.p.stroke(120, 100, 80);
-        this.p.strokeWeight(1);
-        this.p.line(6, 0, 12, this.p.sin(this.p.frameCount * 0.3) * 3);
-        this.p.noStroke();
+        // Arms extended when digging
+        this.p.fill(180, 150, 130);
+        this.p.push();
+        this.p.rotate(Math.sin(this.p.frameCount * 0.2) * 0.2);
+        this.p.ellipse(5, 0, 8, 3);
+        this.p.pop();
         this.displayDigProgress();
       } else {
         // Regular arms position
-        this.p.fill(160, 130, 110);
-        this.p.ellipse(-8, -4, 3, 6); // Left arm
-        this.p.ellipse(8, -4, 3, 6);  // Right arm
+        this.p.fill(180, 150, 130);
+        this.p.ellipse(-5, 0, 3, 5); // Left arm
+        this.p.ellipse(5, 0, 3, 5);  // Right arm
       }
-      
-      // Shadow effect beneath the player
-      this.p.fill(80, 60, 40, 100);
-      this.p.ellipse(0, 12, 12, 4);
     }
     
     this.p.pop();

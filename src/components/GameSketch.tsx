@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
@@ -38,17 +37,19 @@ const GameSketch = () => {
               maxPlayerHealth: game.player?.maxHealth || 100,
               worldX: game.player?.worldX || 0,
               worldY: game.player?.worldY || 0,
-              playerX: game.player?.x || 0, // Save player's local position
+              playerX: game.player?.x || 0, 
               playerY: game.player?.y || 0,
-              hoverbikeX: game.hoverbike?.x || 0, // Save hoverbike's local position
+              playerAngle: game.player?.angle || 0, // Save player rotation angle
+              hoverbikeX: game.hoverbike?.x || 0,
               hoverbikeY: game.hoverbike?.y || 0,
-              hoverbikeWorldX: game.hoverbike?.worldX || 0, // Save hoverbike's world position
+              hoverbikeAngle: game.hoverbike?.angle || 0, // Save hoverbike rotation angle
+              hoverbikeWorldX: game.hoverbike?.worldX || 0,
               hoverbikeWorldY: game.hoverbike?.worldY || 0,
               baseWorldX: 0,
               baseWorldY: 0,
               dayTimeIcon: game.dayTimeIcon,
               dayTimeAngle: game.dayTimeAngle,
-              worldData: game.getWorldData(), // Add world data to state update
+              worldData: game.getWorldData(),
               gameStarted: game.gameStarted
             }
           });
@@ -112,6 +113,11 @@ const GameSketch = () => {
             if (savedState.playerX !== undefined && savedState.playerY !== undefined) {
               gameRef.current.player.x = savedState.playerX;
               gameRef.current.player.y = savedState.playerY;
+              
+              // Restore player rotation angle if available
+              if (savedState.playerAngle !== undefined) {
+                gameRef.current.player.angle = savedState.playerAngle;
+              }
             } else {
               // Fallback to center of screen
               gameRef.current.player.x = gameRef.current.p.width / 2;
@@ -133,6 +139,11 @@ const GameSketch = () => {
             if (savedState.hoverbikeX !== undefined && savedState.hoverbikeY !== undefined) {
               gameRef.current.hoverbike.x = savedState.hoverbikeX;
               gameRef.current.hoverbike.y = savedState.hoverbikeY;
+              
+              // Restore hoverbike rotation angle if available
+              if (savedState.hoverbikeAngle !== undefined) {
+                gameRef.current.hoverbike.angle = savedState.hoverbikeAngle;
+              }
             } else {
               // Fallback to center of screen
               gameRef.current.hoverbike.x = gameRef.current.p.width / 2;
