@@ -263,11 +263,11 @@ export default class Player implements PlayerType {
   
     // Position hair above the head
     this.p.push();
-    this.p.translate(0, -3); // Move hair up above head
+    this.p.translate(0, -2); // Move hair up above head
   
     // Main hair shape (top-down view)
     this.p.fill(r, g, b);
-    this.p.ellipse(0, 0, 5, 5); // Smaller hair centered above head
+    this.p.ellipse(0, 0, 6, 6); // Smaller hair centered above head
   
     // Create hair details and texture
     this.p.noStroke();
