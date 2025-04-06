@@ -200,9 +200,9 @@ export default class Player implements PlayerType {
     this.p.noStroke();
     this.p.ellipse(0, 0, 12, 8);
     
-    // White torso underneath the head
-    this.p.fill(255);
-    this.p.ellipse(0, 4, 8, 10);
+    // Washed out green torso underneath the head
+    this.p.fill(240, 250, 230); // Very pale, desaturated green
+    this.p.ellipse(0, 4, 5, 6); // Much slimmer torso
     
     // Head only - made smaller
     this.p.fill(245, 220, 190);
@@ -223,9 +223,9 @@ export default class Player implements PlayerType {
     this.p.noStroke();
     this.p.ellipse(0, 2, 12, 8);
     
-    // White torso underneath the head
-    this.p.fill(255);
-    this.p.ellipse(0, 4, 8, 10);
+    // Washed out green torso underneath the head
+    this.p.fill(240, 250, 230); // Very pale, desaturated green
+    this.p.ellipse(0, 4, 5, 6); // Much slimmer torso
     
     // Head only - made smaller
     this.p.fill(245, 220, 190);
