@@ -24,6 +24,7 @@ export default class Player implements PlayerType {
   riding: boolean;
   lastAngle: number;
   turnSpeed: number;
+  hairColor: {r: number, g: number, b: number};
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -47,6 +48,7 @@ export default class Player implements PlayerType {
     this.digTarget = null;
     this.health = 100;
     this.maxHealth = 100;
+    this.hairColor = {r: 255, g: 215, b: 140};
   }
 
   update() {
@@ -181,18 +183,92 @@ export default class Player implements PlayerType {
     this.p.rotate(this.angle + this.p.PI / 2);
     
     if (this.riding) {
-      this.p.fill(0, 0, 0, 40);
+      this.displayRidingPlayer();
+    } else {
+      this.displayStandingPlayer();
+    }
+    
+    this.p.pop();
+  }
+
+  displayRidingPlayer() {
+    this.p.fill(0, 0, 0, 40);
+    this.p.noStroke();
+    this.p.ellipse(0, 0, 12, 8);
+    
+    this.p.fill(255, 255, 255); 
+    this.p.noStroke();
+    this.p.ellipse(0, 0, 9, 7);
+    
+    this.p.fill(245, 220, 190);
+    this.p.ellipse(0, -4, 6, 5.5);
+    
+    this.drawDetailedHair(true);
+    
+    this.p.stroke(50, 50, 50, 150);
+    this.p.strokeWeight(0.5);
+    this.p.fill(255, 255, 255, 180);
+    this.p.arc(0, -4, 7, 6, -this.p.PI * 0.8, this.p.PI * 0.8, this.p.CHORD);
+    this.p.noStroke();
+    
+    this.p.fill(150, 220, 255, 150);
+    this.p.arc(0, -3, 5, 3, -this.p.PI * 0.6, this.p.PI * 0.2);
+    
+    this.p.fill(255, 255, 255, 100);
+    this.p.arc(0, -3, 3, 1.5, -this.p.PI * 0.3, this.p.PI * 0.1);
+  }
+
+  displayStandingPlayer() {
+    this.p.fill(0, 0, 0, 40);
+    this.p.noStroke();
+    this.p.ellipse(0, 2, 14, 10);
+    
+    this.p.fill(255, 255, 255);
+    this.p.noStroke();
+    this.p.ellipse(0, 0, 10, 8);
+    
+    this.p.fill(245, 220, 190);
+    this.p.ellipse(0, -5, 7, 6.5);
+    
+    this.drawDetailedHair(false);
+    
+    if (this.digging) {
+      this.p.fill(245, 220, 190);
+      this.p.push();
+      this.p.rotate(Math.sin(this.p.frameCount * 0.2) * 0.2);
+      
+      this.p.stroke(40, 40, 40);
+      this.p.strokeWeight(0.5);
+      this.p.ellipse(5, 0, 8, 3);
       this.p.noStroke();
-      this.p.ellipse(0, 0, 12, 8);
       
-      this.p.fill(255, 255, 255); 
+      this.p.pop();
+      this.displayDigProgress();
+    } else {
+      this.p.stroke(40, 40, 40);
+      this.p.strokeWeight(0.5);
+      this.p.fill(245, 220, 190);
+      this.p.ellipse(-5, 0, 3, 5);
+      this.p.ellipse(5, 0, 3, 5);
       this.p.noStroke();
-      this.p.ellipse(0, 0, 9, 7); // Upper body with white top
-      
-      this.p.fill(245, 220, 190); // Skin tone
-      this.p.ellipse(0, -4, 6, 5.5); // Head
-      
-      this.p.fill(255, 215, 140); // Blonde color
+    }
+    
+    this.p.fill(40, 40, 40);
+    this.p.ellipse(-1.5, -4.5, 1, 1.5);
+    this.p.ellipse(1.5, -4.5, 1, 1.5);
+    
+    this.p.stroke(40, 40, 40);
+    this.p.strokeWeight(0.5);
+    this.p.noFill();
+    this.p.arc(0, -3, 3, 2, 0.1, this.p.PI - 0.1);
+    this.p.noStroke();
+  }
+
+  drawDetailedHair(isRiding: boolean) {
+    const { r, g, b } = this.hairColor;
+    
+    if (isRiding) {
+      this.p.fill(r, g, b);
       
       this.p.beginShape();
       this.p.vertex(-3, -4);
@@ -212,7 +288,7 @@ export default class Player implements PlayerType {
       this.p.vertex(2, -3);
       this.p.endShape(this.p.CLOSE);
       
-      this.p.fill(255, 215, 140, 200);
+      this.p.fill(r, g, b, 200);
       this.p.beginShape();
       this.p.vertex(-2, -5);
       this.p.bezierVertex(
@@ -223,26 +299,11 @@ export default class Player implements PlayerType {
       this.p.vertex(-5, 2);
       this.p.vertex(-1, -3);
       this.p.endShape(this.p.CLOSE);
-      
-      this.p.fill(255, 255, 255, 180); // White helmet with transparency
-      this.p.arc(0, -4, 7, 6, -this.p.PI * 0.8, this.p.PI * 0.8, this.p.CHORD);
-      
-      this.p.fill(150, 220, 255, 150); // Light blue visor
-      this.p.arc(0, -3, 5, 3, -this.p.PI * 0.6, this.p.PI * 0.2);
     } else {
-      this.p.fill(0, 0, 0, 40);
-      this.p.noStroke();
-      this.p.ellipse(0, 2, 14, 10);
-      
-      this.p.fill(255, 255, 255);
-      this.p.noStroke();
-      this.p.ellipse(0, 0, 10, 8); // White top visible from above
-      
-      this.p.fill(245, 220, 190); // Skin tone
-      this.p.ellipse(0, -5, 7, 6.5); // Head - slightly larger
-      
-      this.p.fill(255, 215, 140); // Blonde color
-      this.p.ellipse(0, -5, 9, 8); // Hair surrounding head
+      this.p.stroke(40, 40, 40);
+      this.p.strokeWeight(0.5);
+      this.p.fill(r, g, b);
+      this.p.ellipse(0, -5, 9, 8);
       
       this.p.beginShape();
       this.p.vertex(-4, -8);
@@ -262,21 +323,43 @@ export default class Player implements PlayerType {
       this.p.vertex(3, -7);
       this.p.endShape(this.p.CLOSE);
       
-      if (this.digging) {
-        this.p.fill(245, 220, 190); // Skin tone for arms
-        this.p.push();
-        this.p.rotate(Math.sin(this.p.frameCount * 0.2) * 0.2);
-        this.p.ellipse(5, 0, 8, 3);
-        this.p.pop();
-        this.displayDigProgress();
-      } else {
-        this.p.fill(245, 220, 190); // Skin tone for arms
-        this.p.ellipse(-5, 0, 3, 5); // Left arm
-        this.p.ellipse(5, 0, 3, 5);  // Right arm
+      for (let i = 0; i < 4; i++) {
+        const waveOffset = Math.sin(this.p.frameCount * 0.05 + i) * 0.3;
+        this.p.beginShape();
+        this.p.vertex(-3 + i * 2, -7);
+        this.p.bezierVertex(
+          -3 + i * 2, -8,
+          -2 + i * 2, -8 + waveOffset,
+          -2 + i * 2, -9
+        );
+        this.p.vertex(-1 + i * 2, -8);
+        this.p.vertex(-1 + i * 2, -7);
+        this.p.endShape(this.p.CLOSE);
       }
+      
+      this.p.fill(r, g, b);
+      this.p.beginShape();
+      this.p.vertex(-1, -7);
+      this.p.vertex(1, -7);
+      this.p.vertex(1, -9);
+      
+      const ponytailLength = 12;
+      const segments = 4;
+      
+      for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const xWave = Math.sin(this.p.frameCount * 0.05 + t * 3) * 1.5;
+        const yPos = -9 - ponytailLength * t;
+        
+        this.p.vertex(xWave, yPos);
+      }
+      
+      this.p.vertex(-1, -9);
+      this.p.endShape(this.p.CLOSE);
+      
+      this.p.fill(r + 30, g + 20, b + 20, 100);
+      this.p.arc(0, -6, 6, 5, -this.p.PI * 0.8, this.p.PI * 0.1);
     }
-    
-    this.p.pop();
   }
 
   checkForCollectableResources() {
@@ -383,7 +466,7 @@ export default class Player implements PlayerType {
       const currentObstacles = this.obstacles["0,0"] || [];
       for (const obs of currentObstacles) {
         if (obs.type === 'fuelPump') {
-          return this.p.dist(this.x, this.y, obs.x, obs.y) < 70; // Increased refueling range from 50 to 70
+          return this.p.dist(this.x, this.y, obs.x, obs.y) < 70;
         }
       }
     }
