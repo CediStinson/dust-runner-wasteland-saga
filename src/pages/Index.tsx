@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { LogIn } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import '../styles/game.css';
 import { saveGameState } from '@/lib/supabase';
 
@@ -154,7 +154,7 @@ const Index = () => {
       />
       
       {!user && (
-        <div className="absolute bottom-1/4 left-1/2 transform -translate-x-1/2 z-50 text-center">
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50 text-center">
           <Link to="/login">
             <Button variant="default" size="lg">
               <LogIn className="w-4 h-4 mr-2" />
@@ -163,11 +163,6 @@ const Index = () => {
           </Link>
         </div>
       )}
-      
-      <GameSaveManager 
-        gameState={getCurrentGameState()} 
-        onLoadState={handleLoadGameState} 
-      />
     </div>
   );
 };
