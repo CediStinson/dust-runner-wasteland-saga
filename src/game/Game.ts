@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -58,8 +59,8 @@ export default class Game {
     // Position the hoverbike under the tarp (slightly to the left of the hut)
     this.hoverbike = new Hoverbike(
       p, 
-      p.width / 2 - 150, // Position under the tarp
-      p.height / 2 - 100, // Align with the hut's y position
+      p.width / 2 - 120, // Position under the tarp
+      p.height / 2 - 80, // Align with the hut's y position
       this.worldX, 
       this.worldY, 
       this.worldGenerator.getObstacles(),
@@ -94,6 +95,55 @@ export default class Game {
     
     // Add the tarp at home base
     this.addTarpAtHomeBase();
+  }
+
+  resetGame() {
+    // Reset game state
+    this.worldX = 0;
+    this.worldY = 0;
+    this.riding = false;
+    this.timeOfDay = 0.25;
+    this.gameStarted = false;
+    this.dayTimeIcon = "sun";
+    this.dayTimeAngle = this.timeOfDay * Math.PI * 2;
+    this.exploredAreas = new Set<string>();
+    this.exploredAreas.add('0,0');
+    
+    // Reset world generator
+    this.worldGenerator.clearTextures();
+    this.worldGenerator.clearObstaclesAndResources();
+    this.worldGenerator.generateNewArea(0, 0);
+    
+    // Reset player
+    this.player.x = this.p.width / 2;
+    this.player.y = this.p.height / 2 - 50;
+    this.player.setWorldCoordinates(0, 0);
+    this.player.inventory = { metal: 0, copper: 0 };
+    this.player.health = this.player.maxHealth;
+    this.player.angle = 0;
+    this.player.lastAngle = 0;
+    this.player.setRiding(false);
+    
+    // Reset hoverbike
+    this.hoverbike.x = this.p.width / 2 - 120;
+    this.hoverbike.y = this.p.height / 2 - 80;
+    this.hoverbike.setWorldCoordinates(0, 0);
+    this.hoverbike.health = this.hoverbike.maxHealth;
+    this.hoverbike.fuel = this.hoverbike.maxFuel;
+    this.hoverbike.angle = 0;
+    this.hoverbike.resetSpeedUpgrades();
+    
+    // Update renderer
+    this.renderer.setWorldCoordinates(0, 0);
+    this.renderer.setTimeOfDay(this.timeOfDay);
+    
+    // Re-add home base elements
+    this.addFuelStationAtHomeBase();
+    this.addWalkingMarksAtHomeBase();
+    this.addTarpAtHomeBase();
+    
+    // Emit state update
+    emitGameStateUpdate(this.player, this.hoverbike);
   }
 
   addFuelStationAtHomeBase() {
@@ -211,47 +261,45 @@ export default class Game {
     const homeAreaKey = "0,0";
     let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
     
-    // Add tarp if it doesn't exist
-    const hasTarp = homeObstacles.some(obs => obs.type === 'tarp');
+    // Remove any existing tarps first to avoid duplication
+    homeObstacles = homeObstacles.filter(obs => obs.type !== 'tarp');
     
-    if (!hasTarp) {
-      // Position the tarp to the left of the hut
-      homeObstacles.push({
-        type: 'tarp',
-        x: this.p.width / 2 - 150, // Left of the hut
-        y: this.p.height / 2 - 100, // Same y-coordinate as the hut
-        width: 100,
-        height: 80,
-        rotation: this.p.random(0.1, 0.2), // Slight rotation for natural look
-        seedAngle: this.p.random(0, 6.28), // Random seed for hole generation
-        color: {
-          r: 140 + this.p.random(-20, 20), // Brown base color with variation
-          g: 100 + this.p.random(-20, 20),
-          b: 60 + this.p.random(-20, 20)
-        },
-        holes: [
-          // Generate a few random holes in the tarp
-          { x: this.p.random(-30, 30), y: this.p.random(-20, 20), size: this.p.random(3, 8) },
-          { x: this.p.random(-30, 30), y: this.p.random(-20, 20), size: this.p.random(5, 12) },
-          { x: this.p.random(-20, 20), y: this.p.random(-30, 30), size: this.p.random(4, 10) }
-        ],
-        sandPatches: [
-          // Add sandy patches for worn look
-          { x: this.p.random(-40, 40), y: this.p.random(-30, 30), size: this.p.random(15, 25) },
-          { x: this.p.random(-40, 40), y: this.p.random(-30, 30), size: this.p.random(10, 20) },
-          { x: this.p.random(-35, 35), y: this.p.random(-25, 25), size: this.p.random(12, 22) }
-        ],
-        foldLines: [
-          // Add fold lines for texture
-          { x1: -50, y1: -20, x2: 50, y2: -15 },
-          { x1: -45, y1: 10, x2: 45, y2: 15 },
-          { x1: -30, y1: -40, x2: -25, y2: 40 }
-        ]
-      });
-      
-      // Update the world generator's obstacles
-      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
-    }
+    // Add new tarp
+    homeObstacles.push({
+      type: 'tarp',
+      x: this.p.width / 2 - 100, // Closer to the hut
+      y: this.p.height / 2 - 80, // Same y-coordinate as the hut
+      width: 80,  // Smaller size
+      height: 60, // Smaller size
+      rotation: 0.05, // Slight rotation for natural look
+      color: {
+        r: 120, // Darker brown
+        g: 90,
+        b: 50
+      },
+      holes: [
+        // Generate a few specific holes in the tarp
+        { x: -20, y: -15, size: 6 },
+        { x: 15, y: 10, size: 8 },
+        { x: -5, y: 20, size: 4 }
+      ],
+      sandPatches: [
+        // Add sandy patches for worn look
+        { x: -25, y: -10, size: 20 },
+        { x: 20, y: 15, size: 15 },
+        { x: 0, y: -20, size: 18 }
+      ],
+      foldLines: [
+        // Add fold lines for texture
+        { x1: -40, y1: -10, x2: 40, y2: -8 },
+        { x1: -35, y1: 5, x2: 35, y2: 8 },
+        { x1: -20, y1: -30, x2: -15, y2: 30 }
+      ],
+      renderOrder: 1 // Ensure it renders before the hoverbike
+    });
+    
+    // Update the world generator's obstacles
+    this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
   }
 
   update() {

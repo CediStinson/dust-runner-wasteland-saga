@@ -24,6 +24,7 @@ export default class Player implements PlayerType {
   riding: boolean;
   lastAngle: number;
   turnSpeed: number;
+  hairColor: { r: number, g: number, b: number };
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -47,6 +48,12 @@ export default class Player implements PlayerType {
     this.digTarget = null;
     this.health = 100;
     this.maxHealth = 100;
+    
+    this.hairColor = {
+      r: 255, 
+      g: 215, 
+      b: 140
+    };
   }
 
   update() {
@@ -75,7 +82,7 @@ export default class Player implements PlayerType {
             } else if (obs.type === 'hut') {
               collisionRadius = 30; // Hut collision radius
             } else if (obs.type === 'fuelPump') {
-              collisionRadius = 35; // Increased fuel pump collision radius (from 25)
+              collisionRadius = 35; // Increased fuel pump collision radius
             }
             
             let distance = this.p.sqrt(dx * dx + dy * dy);
@@ -119,19 +126,12 @@ export default class Player implements PlayerType {
       
       const targetAngle = this.hoverbike.angle;
       
-      if (targetAngle !== this.angle) {
-        const angleDiff = targetAngle - this.angle;
-        
-        if (angleDiff > Math.PI) {
-          this.angle += (targetAngle - this.angle - 2 * Math.PI) * this.turnSpeed;
-        } else if (angleDiff < -Math.PI) {
-          this.angle += (targetAngle - this.angle + 2 * Math.PI) * this.turnSpeed;
-        } else {
-          this.angle += angleDiff * this.turnSpeed;
-        }
-        
-        this.angle = this.angle % (2 * Math.PI);
-      }
+      let angleDiff = targetAngle - this.angle;
+      if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+      if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+      
+      this.angle += angleDiff * 0.2;
+      this.angle = (this.angle + 2 * Math.PI) % (2 * Math.PI);
     }
   }
 
@@ -229,6 +229,34 @@ export default class Player implements PlayerType {
       
       this.p.fill(150, 220, 255, 150); // Light blue visor
       this.p.arc(0, -3, 5, 3, -this.p.PI * 0.6, this.p.PI * 0.2);
+      
+      this.p.fill(this.hairColor.r, this.hairColor.g, this.hairColor.b, 200);
+      
+      this.p.beginShape();
+      this.p.vertex(-3, -4);
+      this.p.vertex(-4, -2);
+      this.p.vertex(-5, 0);
+      this.p.vertex(-3, -1);
+      this.p.endShape(this.p.CLOSE);
+      
+      this.p.beginShape();
+      this.p.vertex(3, -4);
+      this.p.vertex(4, -2);
+      this.p.vertex(5, 0);
+      this.p.vertex(3, -1);
+      this.p.endShape(this.p.CLOSE);
+      
+      this.p.fill(this.hairColor.r, this.hairColor.g, this.hairColor.b, 180);
+      this.p.beginShape();
+      this.p.vertex(-2, -5);
+      this.p.bezierVertex(
+        -4, -3,
+        -6, -1,
+        -5 + Math.sin(this.p.frameCount * 0.1) * 1.5, 3 + Math.sin(this.p.frameCount * 0.08) * 1
+      );
+      this.p.vertex(-3, 2);
+      this.p.vertex(-1, -3);
+      this.p.endShape(this.p.CLOSE);
     } else {
       this.p.fill(0, 0, 0, 40);
       this.p.noStroke();
@@ -383,7 +411,7 @@ export default class Player implements PlayerType {
       const currentObstacles = this.obstacles["0,0"] || [];
       for (const obs of currentObstacles) {
         if (obs.type === 'fuelPump') {
-          return this.p.dist(this.x, this.y, obs.x, obs.y) < 70; // Increased refueling range from 50 to 70
+          return this.p.dist(this.x, this.y, obs.x, obs.y) < 70;
         }
       }
     }
