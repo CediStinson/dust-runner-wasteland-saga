@@ -91,9 +91,6 @@ export default class Game {
     
     // Add walking marks
     this.addWalkingMarksAtHomeBase();
-    
-    // Add the tarp at home base
-    this.addTarpAtHomeBase();
   }
 
   addFuelStationAtHomeBase() {
@@ -201,55 +198,6 @@ export default class Game {
           ...position
         });
       }
-      
-      // Update the world generator's obstacles
-      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
-    }
-  }
-
-  addTarpAtHomeBase() {
-    const homeAreaKey = "0,0";
-    let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
-    
-    // Add tarp if it doesn't exist
-    const hasTarp = homeObstacles.some(obs => obs.type === 'tarp');
-    
-    if (!hasTarp) {
-      // Soft, muted color palette for the tarp
-      const softColors = [
-        { r: 150, g: 110, b: 80 },   // Soft brown
-        { r: 120, g: 140, b: 90 },   // Soft olive green
-        { r: 140, g: 100, b: 70 },   // Warm terra cotta
-        { r: 100, g: 120, b: 110 },  // Muted sage green
-        { r: 130, g: 90, b: 60 }     // Dark russet
-      ];
-      
-      const selectedColor = softColors[Math.floor(this.p.random(softColors.length))];
-      
-      // Position the tarp to the left of the hut
-      homeObstacles.push({
-        type: 'tarp',
-        x: this.p.width / 2 - 150, // Left of the hut
-        y: this.p.height / 2 - 100, // Same y-coordinate as the hut
-        width: 120,  // Slightly wider
-        height: 90,  // Slightly taller
-        rotation: this.p.random(0.05, 0.25), // Slight rotation for natural look
-        seedAngle: this.p.random(0, 6.28), // Random seed for consistent texture
-        color: selectedColor,
-        holes: [
-          { x: this.p.random(-40, 40), y: this.p.random(-30, 30), size: this.p.random(4, 10) },
-          { x: this.p.random(-30, 30), y: this.p.random(-20, 20), size: this.p.random(5, 12) }
-        ],
-        sandPatches: [
-          { x: this.p.random(-50, 50), y: this.p.random(-40, 40), size: this.p.random(20, 35) },
-          { x: this.p.random(-40, 40), y: this.p.random(-30, 30), size: this.p.random(15, 25) }
-        ],
-        foldLines: [
-          { x1: -60, y1: -25, x2: 60, y2: -20 },
-          { x1: -55, y1: 15, x2: 55, y2: 20 },
-          { x1: -40, y1: -50, x2: -35, y2: 50 }
-        ]
-      });
       
       // Update the world generator's obstacles
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
