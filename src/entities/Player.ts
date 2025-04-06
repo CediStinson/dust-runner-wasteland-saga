@@ -277,7 +277,7 @@ export default class Player implements PlayerType {
   
     // Simplified ponytail from top view with black outline
     this.p.stroke('#000000e6');
-    this.p.strokeWeight(0);
+    this.p.strokeWeight(0.5);
     this.p.fill(r, g, b);
     this.p.beginShape();
     this.p.vertex(-2, -1);
