@@ -282,7 +282,7 @@ export default class Player implements PlayerType {
     this.p.beginShape();
     this.p.vertex(-2, -1);
     this.p.vertex(2, -1);
-    this.p.vertex(3, -1);
+    this.p.vertex(4, 0);
     this.p.vertex(0, -5);  // Tip of ponytail
     this.p.vertex(-3, -1);
     this.p.endShape(this.p.CLOSE);
