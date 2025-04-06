@@ -199,9 +199,12 @@ export default class Player implements PlayerType {
     this.p.noStroke();
     this.p.ellipse(0, 0, 12, 8);
     
-    // Washed out red torso underneath the head
-    this.p.fill(234, 56, 76, 100);  // Added alpha for washed out effect
-    this.p.ellipse(0, -1, 8, 8); // Updated y-coordinate to -1 and height to 8
+    // Washed out red torso underneath the head with black outline
+    this.p.strokeWeight(0.5);
+    this.p.stroke(0, 0, 0, 200);  // Black outline with some transparency
+    this.p.fill(234, 56, 76, 100);  // Washed out red
+    this.p.ellipse(0, -1, 8, 8); 
+    this.p.noStroke();  // Reset stroke for subsequent drawings
     
     // Head only - made smaller
     this.p.fill(245, 220, 190);
@@ -222,9 +225,12 @@ export default class Player implements PlayerType {
     this.p.noStroke();
     this.p.ellipse(0, 2, 12, 8);
     
-    // Washed out red torso underneath the head
-    this.p.fill(234, 56, 76, 100);  // Added alpha for washed out effect
-    this.p.ellipse(0, -1, 8, 8); // Updated y-coordinate to -1 and height to 8
+    // Washed out red torso underneath the head with black outline
+    this.p.strokeWeight(0.5);
+    this.p.stroke(0, 0, 0, 200);  // Black outline with some transparency
+    this.p.fill(234, 56, 76, 100);  // Washed out red
+    this.p.ellipse(0, -1, 8, 8); 
+    this.p.noStroke();  // Reset stroke for subsequent drawings
     
     // Head only - made smaller
     this.p.fill(245, 220, 190);
