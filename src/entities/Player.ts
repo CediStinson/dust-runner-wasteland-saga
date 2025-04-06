@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -182,185 +181,98 @@ export default class Player implements PlayerType {
     this.p.rotate(this.angle + this.p.PI / 2);
     
     if (this.riding) {
-      // Shadow beneath player
       this.p.fill(0, 0, 0, 40);
       this.p.noStroke();
       this.p.ellipse(0, 0, 12, 8);
       
-      // Player riding hoverbike - top-down view
-      
-      // White top/shoulders
-      this.p.stroke(50, 50, 50, 100);
-      this.p.strokeWeight(0.5);
       this.p.fill(255, 255, 255); 
-      this.p.ellipse(0, 0, 10, 8); // Upper body with white top
-      
-      // Skin tone for head
-      this.p.fill(245, 220, 190); // Skin tone
-      this.p.stroke(220, 190, 160);
-      this.p.strokeWeight(0.3);
-      this.p.ellipse(0, -4, 7, 6); // Head
-      
-      // Hair - blonde ponytail
-      this.p.stroke(200, 170, 90);
-      this.p.strokeWeight(0.5);
-      this.p.fill(255, 215, 130); // Blonde color
-      
-      // Side hair strands
-      this.p.beginShape();
-      this.p.vertex(-3, -7);
-      this.p.vertex(-4, -5);
-      this.p.vertex(-3.5, -3);
-      this.p.vertex(-2, -2);
-      this.p.vertex(-2, -5);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.beginShape();
-      this.p.vertex(3, -7);
-      this.p.vertex(4, -5);
-      this.p.vertex(3.5, -3);
-      this.p.vertex(2, -2);
-      this.p.vertex(2, -5);
-      this.p.endShape(this.p.CLOSE);
-      
-      // Ponytail flowing in wind while riding
-      const bobAmount = Math.sin(this.p.frameCount * 0.1) * 0.8;
-      
-      this.p.fill(255, 215, 130, 200);
-      this.p.beginShape();
-      this.p.vertex(-1, -6);
-      this.p.bezierVertex(
-        -1, -8,
-        -3, -9,
-        -6 + bobAmount, -7 + bobAmount * 0.5
-      );
-      this.p.bezierVertex(
-        -9 + bobAmount * 1.5, -5 + bobAmount,
-        -8 + bobAmount * 2, -2 + bobAmount * 0.5,
-        -7 + bobAmount * 2, 0
-      );
-      this.p.vertex(-5, -1);
-      this.p.vertex(-2, -4);
-      this.p.endShape(this.p.CLOSE);
-      
-      // Helmet - semi-transparent to show hair underneath
-      this.p.fill(255, 255, 255, 150);
-      this.p.stroke(200, 200, 200);
-      this.p.strokeWeight(0.5);
-      this.p.arc(0, -4, 7.5, 6.5, -this.p.PI * 0.8, this.p.PI * 0.8, this.p.CHORD);
-      
-      // Light blue visor
-      this.p.fill(150, 220, 255, 150); 
       this.p.noStroke();
+      this.p.ellipse(0, 0, 9, 7); // Upper body with white top
+      
+      this.p.fill(245, 220, 190); // Skin tone
+      this.p.ellipse(0, -4, 6, 5.5); // Head
+      
+      this.p.fill(255, 215, 140); // Blonde color
+      
+      this.p.beginShape();
+      this.p.vertex(-3, -4);
+      this.p.vertex(-4, -2);
+      this.p.vertex(-5, 0);
+      this.p.vertex(-4, 2);
+      this.p.vertex(-2, 0);
+      this.p.vertex(-2, -3);
+      this.p.endShape(this.p.CLOSE);
+      
+      this.p.beginShape();
+      this.p.vertex(3, -4);
+      this.p.vertex(4, -2);
+      this.p.vertex(5, 0);
+      this.p.vertex(4, 2);
+      this.p.vertex(2, 0);
+      this.p.vertex(2, -3);
+      this.p.endShape(this.p.CLOSE);
+      
+      this.p.fill(255, 215, 140, 200);
+      this.p.beginShape();
+      this.p.vertex(-2, -5);
+      this.p.bezierVertex(
+        -5, -3,
+        -8, -1,
+        -7 + Math.sin(this.p.frameCount * 0.1) * 2, 3 + Math.sin(this.p.frameCount * 0.08) * 1.5
+      );
+      this.p.vertex(-5, 2);
+      this.p.vertex(-1, -3);
+      this.p.endShape(this.p.CLOSE);
+      
+      this.p.fill(255, 255, 255, 180); // White helmet with transparency
+      this.p.arc(0, -4, 7, 6, -this.p.PI * 0.8, this.p.PI * 0.8, this.p.CHORD);
+      
+      this.p.fill(150, 220, 255, 150); // Light blue visor
       this.p.arc(0, -3, 5, 3, -this.p.PI * 0.6, this.p.PI * 0.2);
     } else {
-      // Shadow beneath player
       this.p.fill(0, 0, 0, 40);
       this.p.noStroke();
       this.p.ellipse(0, 2, 14, 10);
       
-      // Player on foot - top-down view
-      
-      // White top/shoulders with outline
-      this.p.stroke(100, 100, 100, 150);
-      this.p.strokeWeight(0.5);
       this.p.fill(255, 255, 255);
-      this.p.ellipse(0, 0, 11, 9); // White top visible from above
+      this.p.noStroke();
+      this.p.ellipse(0, 0, 10, 8); // White top visible from above
       
-      // Skin tone for head with slight outline
       this.p.fill(245, 220, 190); // Skin tone
-      this.p.stroke(230, 200, 170);
-      this.p.strokeWeight(0.3);
-      this.p.ellipse(0, -5, 8, 7); // Head
+      this.p.ellipse(0, -5, 7, 6.5); // Head - slightly larger
       
-      // Blonde hair with outline
-      this.p.stroke(210, 180, 100);
-      this.p.strokeWeight(0.5);
-      this.p.fill(255, 215, 130); // Blonde color
+      this.p.fill(255, 215, 140); // Blonde color
+      this.p.ellipse(0, -5, 9, 8); // Hair surrounding head
       
-      // Hair base
       this.p.beginShape();
       this.p.vertex(-4, -8);
-      this.p.vertex(-5, -5);
-      this.p.vertex(-4, -2);
-      this.p.vertex(4, -2);
-      this.p.vertex(5, -5);
-      this.p.vertex(4, -8);
+      this.p.vertex(-6, -5);
+      this.p.vertex(-5, -2);
+      this.p.vertex(-3, -1);
+      this.p.vertex(-4, -4);
+      this.p.vertex(-3, -7);
       this.p.endShape(this.p.CLOSE);
       
-      // Left side hair details
-      this.p.beginShape();
-      this.p.vertex(-4, -8);
-      this.p.bezierVertex(
-        -6, -7,
-        -7, -5,
-        -6, -2
-      );
-      this.p.vertex(-4, -3);
-      this.p.bezierVertex(
-        -5, -5,
-        -5, -7,
-        -4, -8
-      );
-      this.p.endShape(this.p.CLOSE);
-      
-      // Right side hair details
       this.p.beginShape();
       this.p.vertex(4, -8);
-      this.p.bezierVertex(
-        6, -7,
-        7, -5,
-        6, -2
-      );
-      this.p.vertex(4, -3);
-      this.p.bezierVertex(
-        5, -5,
-        5, -7,
-        4, -8
-      );
-      this.p.endShape(this.p.CLOSE);
-      
-      // Ponytail
-      const bobAmount = Math.sin(this.p.frameCount * 0.05) * 0.5;
-      
-      this.p.fill(255, 215, 130, 200);
-      this.p.beginShape();
-      this.p.vertex(-1, -7);
-      this.p.bezierVertex(
-        -2, -9,
-        -4, -10,
-        -5 + bobAmount, -12 + bobAmount * 0.5
-      );
-      this.p.vertex(-3 + bobAmount, -15 + bobAmount);
-      this.p.vertex(0, -13);
-      this.p.vertex(2, -9);
-      this.p.vertex(0, -7);
+      this.p.vertex(6, -5);
+      this.p.vertex(5, -2);
+      this.p.vertex(3, -1);
+      this.p.vertex(4, -4);
+      this.p.vertex(3, -7);
       this.p.endShape(this.p.CLOSE);
       
       if (this.digging) {
-        // Arms when digging
         this.p.fill(245, 220, 190); // Skin tone for arms
-        this.p.stroke(230, 200, 170);
-        this.p.strokeWeight(0.3);
-        
         this.p.push();
-        this.p.rotate(Math.sin(this.p.frameCount * 0.2) * 0.3);
-        this.p.ellipse(6, 0, 9, 3.5);
+        this.p.rotate(Math.sin(this.p.frameCount * 0.2) * 0.2);
+        this.p.ellipse(5, 0, 8, 3);
         this.p.pop();
-        
-        this.p.push();
-        this.p.rotate(Math.sin(this.p.frameCount * 0.2 + 1) * 0.2);
-        this.p.ellipse(-6, 0, 9, 3.5);
-        this.p.pop();
-        
         this.displayDigProgress();
       } else {
-        // Arms in normal stance
         this.p.fill(245, 220, 190); // Skin tone for arms
-        this.p.stroke(230, 200, 170);
-        this.p.strokeWeight(0.3);
-        this.p.ellipse(-5, 0, 4, 6); // Left arm
-        this.p.ellipse(5, 0, 4, 6);  // Right arm
+        this.p.ellipse(-5, 0, 3, 5); // Left arm
+        this.p.ellipse(5, 0, 3, 5);  // Right arm
       }
     }
     

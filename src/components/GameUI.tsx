@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Save, Settings } from 'lucide-react';
 import DayNightIndicator from './ui/game/DayNightIndicator';
@@ -28,7 +27,6 @@ interface GameUIProps {
   refueling?: boolean;
   refuelProgress?: number;
   onSaveGame?: () => void;
-  onResetGame?: () => void;
 }
 
 const GameUI: React.FC<GameUIProps> = ({ 
@@ -48,8 +46,7 @@ const GameUI: React.FC<GameUIProps> = ({
   dayTimeAngle = 0,
   refueling = false,
   refuelProgress = 0,
-  onSaveGame,
-  onResetGame
+  onSaveGame
 }) => {
   const [showControls, setShowControls] = useState(false);
   const { user } = useAuth();
@@ -106,11 +103,7 @@ const GameUI: React.FC<GameUIProps> = ({
       </div>
       
       {/* Controls modal */}
-      <ControlsModal 
-        showControls={showControls} 
-        setShowControls={setShowControls} 
-        onResetGame={onResetGame}
-      />
+      <ControlsModal showControls={showControls} setShowControls={setShowControls} />
       
       {/* Refueling indicator */}
       {refueling && (

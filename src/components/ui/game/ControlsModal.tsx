@@ -2,38 +2,22 @@
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, RefreshCw } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { LogOut } from 'lucide-react';
 
 interface ControlsModalProps {
   showControls: boolean;
   setShowControls: (show: boolean) => void;
-  onResetGame?: () => void;
 }
 
 const ControlsModal: React.FC<ControlsModalProps> = ({
   showControls,
-  setShowControls,
-  onResetGame
+  setShowControls
 }) => {
   const { signOut } = useAuth();
-  const { toast } = useToast();
 
   const handleLogout = async () => {
     await signOut();
     setShowControls(false);
-  };
-
-  const handleResetGame = () => {
-    if (onResetGame) {
-      onResetGame();
-      setShowControls(false);
-      toast({
-        title: "Game Reset",
-        description: "Your game has been reset to the starting state.",
-        variant: "default"
-      });
-    }
   };
 
   if (!showControls) return null;
@@ -49,26 +33,16 @@ const ControlsModal: React.FC<ControlsModalProps> = ({
         </ul>
         <div className="mt-6 flex flex-col space-y-2">
           <Button 
-            onClick={handleResetGame}
-            variant="destructive"
-            className="w-full"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Reset Game
-          </Button>
-          
-          <Button 
             onClick={() => setShowControls(false)}
             variant="outline"
             className="w-full"
           >
             Close
           </Button>
-          
           <Button 
             onClick={handleLogout}
             variant="destructive"
-            className="w-full bg-red-700 hover:bg-red-800"
+            className="w-full"
           >
             <LogOut className="mr-2 h-4 w-4" />
             Logout
@@ -80,3 +54,4 @@ const ControlsModal: React.FC<ControlsModalProps> = ({
 };
 
 export default ControlsModal;
+
