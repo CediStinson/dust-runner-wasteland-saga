@@ -204,7 +204,7 @@ export default class Player implements PlayerType {
     // Washed out red torso underneath the head with black outline
     this.p.strokeWeight(0.5);
     this.p.stroke(0, 0, 0, 200);  // Black outline with some transparency
-    this.p.fill(170, 240, 170, 255); //shirt color
+    this.p.fill(90, 130, 90, 255); //shirt color
     this.p.ellipse(0, 0, 14, 9);  // Updated dimensions: width 8, height 10
     this.p.noStroke();  // Reset stroke for subsequent drawings
     
@@ -230,7 +230,7 @@ export default class Player implements PlayerType {
     // Washed out red torso underneath the head with black outline
     this.p.strokeWeight(0.5);
     this.p.stroke(0, 0, 0, 200);  // Black outline with some transparency
-    this.p.fill(170, 240, 170, 255); //shirt color
+    this.p.fill(90, 130, 90, 255); //shirt color
     this.p.ellipse(0, 0, 14, 9);  // Updated dimensions: width 8, height 10
     this.p.noStroke();  // Reset stroke for subsequent drawings
     
