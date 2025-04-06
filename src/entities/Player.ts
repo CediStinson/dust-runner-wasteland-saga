@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -200,9 +199,9 @@ export default class Player implements PlayerType {
     this.p.noStroke();
     this.p.ellipse(0, 0, 12, 8);
     
-    // Washed out green torso underneath the head
-    this.p.fill(240, 250, 230); // Very pale, desaturated green
-    this.p.ellipse(0, 4, 5, 6); // Much slimmer torso
+    // Red torso underneath the head
+    this.p.fill(234, 56, 76);  // RGB values for #ea384c
+    this.p.ellipse(0, 4, 8, 6);
     
     // Head only - made smaller
     this.p.fill(245, 220, 190);
@@ -223,9 +222,9 @@ export default class Player implements PlayerType {
     this.p.noStroke();
     this.p.ellipse(0, 2, 12, 8);
     
-    // Washed out green torso underneath the head
-    this.p.fill(240, 250, 230); // Very pale, desaturated green
-    this.p.ellipse(0, 4, 5, 6); // Much slimmer torso
+    // Red torso underneath the head
+    this.p.fill(234, 56, 76);  // RGB values for #ea384c
+    this.p.ellipse(0, 4, 8, 6);
     
     // Head only - made smaller
     this.p.fill(245, 220, 190);
