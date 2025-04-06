@@ -1,5 +1,8 @@
 
 import React from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { LogOut } from 'lucide-react';
 
 interface ControlsModalProps {
   showControls: boolean;
@@ -10,6 +13,13 @@ const ControlsModal: React.FC<ControlsModalProps> = ({
   showControls,
   setShowControls
 }) => {
+  const { signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    setShowControls(false);
+  };
+
   if (!showControls) return null;
 
   return (
@@ -20,17 +30,28 @@ const ControlsModal: React.FC<ControlsModalProps> = ({
           <li className="text-gray-300">Arrow keys - Move character/control hoverbike</li>
           <li className="text-gray-300">F - Enter/exit hoverbike</li>
           <li className="text-gray-300">E - Collect metal/mine copper</li>
-          <li className="text-gray-300">S - Upgrade hoverbike speed with metal</li>
         </ul>
-        <button 
-          onClick={() => setShowControls(false)}
-          className="mt-6 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors"
-        >
-          Close
-        </button>
+        <div className="mt-6 flex flex-col space-y-2">
+          <Button 
+            onClick={() => setShowControls(false)}
+            variant="outline"
+            className="w-full"
+          >
+            Close
+          </Button>
+          <Button 
+            onClick={handleLogout}
+            variant="destructive"
+            className="w-full"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
+        </div>
       </div>
     </div>
   );
 };
 
 export default ControlsModal;
+
