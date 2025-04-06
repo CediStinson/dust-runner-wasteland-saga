@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Save, Settings } from 'lucide-react';
 import DayNightIndicator from './ui/game/DayNightIndicator';
@@ -68,7 +67,7 @@ const GameUI: React.FC<GameUIProps> = ({
 
   return (
     <>
-      <div className="absolute top-0 left-0 right-0 p-3 pointer-events-none">
+      <div className="absolute top-0 left-0 right-0 p-2.5 pointer-events-none">
         <div className="container mx-auto flex justify-between">
           {/* Settings and Save buttons */}
           <div className="pointer-events-auto flex gap-2">
@@ -76,21 +75,19 @@ const GameUI: React.FC<GameUIProps> = ({
               onClick={() => setShowControls(!showControls)}
               className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
             >
-              <Settings size={20} />
+              <Settings size={18} />
             </button>
             
-            {user && (
-              <button 
-                onClick={handleSaveGame}
-                className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
-              >
-                <Save size={20} />
-              </button>
-            )}
+            <button 
+              onClick={handleSaveGame}
+              className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
+            >
+              <Save size={18} />
+            </button>
           </div>
           
           {/* Compass and Day/Night Indicator */}
-          <div className="flex flex-col items-center scale-90 origin-top">
+          <div className="flex flex-col items-center scale-85 origin-top">
             {/* Day/Night Indicator */}
             <DayNightIndicator dayTimeIcon={dayTimeIcon} dayTimeAngle={dayTimeAngle} />
             
@@ -111,9 +108,9 @@ const GameUI: React.FC<GameUIProps> = ({
       {/* Refueling indicator */}
       {refueling && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-          <div className="bg-black/70 p-2.5 rounded-lg backdrop-blur-md border border-white/20">
-            <div className="text-white text-center mb-1.5 text-sm">Refueling...</div>
-            <div className="w-56 h-3 bg-gray-800 rounded-full overflow-hidden">
+          <div className="bg-black/70 p-2 rounded-lg backdrop-blur-md border border-white/20">
+            <div className="text-white text-center mb-1 text-sm">Refueling...</div>
+            <div className="w-48 h-2.5 bg-gray-800 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-yellow-400"
                 style={{ width: `${refuelProgress * 100}%`, transition: 'width 0.3s ease-out' }}
@@ -123,7 +120,7 @@ const GameUI: React.FC<GameUIProps> = ({
         </div>
       )}
       
-      <div className="absolute bottom-0 left-0 right-0 p-3 pointer-events-none">
+      <div className="absolute bottom-0 left-0 right-0 p-2.5 pointer-events-none">
         <div className="container mx-auto flex justify-between items-end">
           {/* Resources */}
           <ResourcesDisplay resources={resources} copper={copper} />
