@@ -194,25 +194,19 @@ export default class Player implements PlayerType {
   }
 
   displayRidingPlayerTopDown() {
-    // Shadow under player's head
+    // Smaller shadow
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
-    this.p.ellipse(0, 0, 10, 7);
+    this.p.ellipse(0, 0, 8, 5);
     
-    // Head
+    // Smaller head
     this.p.fill(245, 220, 190);
     this.p.stroke(40, 40, 40);
     this.p.strokeWeight(0.8);
-    this.p.ellipse(0, 0, 12, 12); // Round head from top-down view
+    this.p.ellipse(0, 0, 10, 10); // Reduced head size
     
     // Draw hair from top-down perspective
     this.drawTopDownHair();
-    
-    // Eyes looking downward (visible from top) - moved more to the edge
-    this.p.fill(40, 40, 40);
-    this.p.noStroke();
-    this.p.ellipse(-2.5, -1, 1, 1.5);
-    this.p.ellipse(2.5, -1, 1, 1.5);
     
     // Arms as circles seen from above
     this.p.fill(255, 255, 255);
@@ -223,25 +217,19 @@ export default class Player implements PlayerType {
   }
 
   displayStandingPlayerTopDown() {
-    // Shadow
+    // Smaller shadow
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
-    this.p.ellipse(0, 0, 12, 8);
+    this.p.ellipse(0, 0, 10, 6);
     
-    // Head
+    // Smaller head
     this.p.fill(245, 220, 190);
     this.p.stroke(40, 40, 40);
     this.p.strokeWeight(0.8);
-    this.p.ellipse(0, 0, 14, 14); // Round head from top-down view
+    this.p.ellipse(0, 0, 12, 12); // Reduced head size
     
     // Draw hair from top-down perspective
     this.drawTopDownHair();
-    
-    // Eyes from top view - moved more to the edge
-    this.p.fill(40, 40, 40);
-    this.p.noStroke();
-    this.p.ellipse(-3.5, -1, 1.2, 1.5);
-    this.p.ellipse(3.5, -1, 1.2, 1.5);
     
     // Arms as circles seen from above
     this.p.fill(255, 255, 255);
@@ -263,9 +251,9 @@ export default class Player implements PlayerType {
     this.p.strokeWeight(0.8);
     this.p.stroke(40, 40, 40);
     
-    // Main hair shape covering more of the head
+    // Main hair shape centered on head
     this.p.fill(r, g, b);
-    this.p.ellipse(0, 0, 18, 18); // Larger than head to show hair volume covering more of the head
+    this.p.ellipse(0, 0, 16, 16); // Centered, slightly smaller than before
     
     // Create hair details and texture
     this.p.noStroke();
@@ -276,37 +264,18 @@ export default class Player implements PlayerType {
     // Hair parting line
     this.p.strokeWeight(0.5);
     this.p.stroke(r-40, g-40, b-40);
-    this.p.line(-3, -5, 3, 5);
+    this.p.line(-2, -3, 2, 3);
     this.p.noStroke();
     
-    // Ponytail from top view (extends backward)
+    // Simplified ponytail from top view
     this.p.fill(r, g, b);
     this.p.beginShape();
-    this.p.vertex(-5, -6);
-    this.p.vertex(5, -6);
-    this.p.vertex(7, -12);
-    this.p.vertex(0, -16);  // Tip of ponytail
-    this.p.vertex(-7, -12);
+    this.p.vertex(-4, -5);
+    this.p.vertex(4, -5);
+    this.p.vertex(6, -10);
+    this.p.vertex(0, -13);  // Tip of ponytail
+    this.p.vertex(-6, -10);
     this.p.endShape(this.p.CLOSE);
-    
-    // Add some hair strands visible from top
-    this.p.noFill();
-    this.p.stroke(r-40, g-40, b-40);
-    this.p.strokeWeight(0.7);
-    
-    // Create several curved hair strands
-    for (let i = 0; i < 6; i++) {
-      const waveOffset = Math.sin(this.p.frameCount * 0.05 + i) * 0.3;
-      const startX = -6 + i * 2.5;
-      const endY = -15 + i * 0.5;
-      
-      this.p.bezier(
-        startX, -4,
-        startX - 2, -8 + waveOffset,
-        startX + 2, -12 + waveOffset,
-        0, endY
-      );
-    }
   }
 
   checkForCollectableResources() {
