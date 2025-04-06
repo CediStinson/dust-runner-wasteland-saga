@@ -1,14 +1,12 @@
-
 import React, { useState } from 'react';
-import { Settings, Save } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import DayNightIndicator from './ui/game/DayNightIndicator';
 import CompassIndicator from './ui/game/CompassIndicator';
 import ResourcesDisplay from './ui/game/ResourcesDisplay';
 import StatusBars from './ui/game/StatusBars';
 import ControlsModal from './ui/game/ControlsModal';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 
 interface GameUIProps {
@@ -54,39 +52,17 @@ const GameUI: React.FC<GameUIProps> = ({
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleSaveClick = () => {
-    if (!user) {
-      toast({
-        title: "Not logged in",
-        description: "Please log in to save your game progress.",
-        variant: "destructive",
-      });
-      navigate('/login');
-      return;
-    }
-    
-    if (onSaveGame) {
-      onSaveGame();
-    }
-  };
-
   return (
     <>
       <div className="absolute top-0 left-0 right-0 p-4 pointer-events-none">
         <div className="container mx-auto flex justify-between">
-          {/* Settings and Save buttons */}
+          {/* Settings button */}
           <div className="pointer-events-auto flex gap-2">
             <button 
               onClick={() => setShowControls(!showControls)}
               className="bg-black/50 p-2 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
             >
               <Settings size={24} />
-            </button>
-            <button
-              onClick={handleSaveClick}
-              className="bg-black/50 p-2 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
-            >
-              <Save size={24} />
             </button>
           </div>
           

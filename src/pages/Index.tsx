@@ -6,8 +6,8 @@ import GameSaveManager from '../components/GameSaveManager';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { LogIn, LogOut, User } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { LogIn } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import '../styles/game.css';
 import { saveGameState } from '@/lib/supabase';
 
@@ -31,7 +31,6 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Get current game state for saving
   const getCurrentGameState = () => {
     return {
       resources,
@@ -46,11 +45,10 @@ const Index = () => {
       worldY,
       dayTimeIcon,
       dayTimeAngle,
-      worldData // Include world data in save
+      worldData
     };
   };
   
-  // Handle saving the game state
   const handleSaveGame = async () => {
     if (!user) {
       toast({
@@ -78,11 +76,9 @@ const Index = () => {
     }
   };
   
-  // Handle loading saved game state
   const handleLoadGameState = (savedState: any) => {
     if (!savedState) return;
     
-    // Update state with saved values
     setResources(savedState.resources || 0);
     setCopper(savedState.copper || 0);
     setHealth(savedState.health || 100);
@@ -94,21 +90,17 @@ const Index = () => {
     setWorldX(savedState.worldX || 0);
     setWorldY(savedState.worldY || 0);
     
-    // Add worldData to the state
     if (savedState.worldData) {
       setWorldData(savedState.worldData);
     }
     
-    // Emit an event to update the game with loaded state
     const loadEvent = new CustomEvent('loadGameState', {
       detail: savedState
     });
     window.dispatchEvent(loadEvent);
   };
   
-  // Subscribe to game state updates
   useEffect(() => {
-    // Set up a message listener for game state updates
     const handleGameStateUpdate = (event: CustomEvent) => {
       const { 
         resources, copper, health, maxHealth, fuel, maxFuel,
@@ -133,10 +125,8 @@ const Index = () => {
       }
     };
     
-    // Add event listener
     window.addEventListener('gameStateUpdate' as any, handleGameStateUpdate);
     
-    // Clean up
     return () => {
       window.removeEventListener('gameStateUpdate' as any, handleGameStateUpdate);
     };
@@ -163,11 +153,10 @@ const Index = () => {
         onSaveGame={handleSaveGame}
       />
       
-      {/* Auth controls */}
       {!user && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 text-center">
+        <div className="absolute bottom-1/4 left-1/2 transform -translate-x-1/2 z-50 text-center">
           <Link to="/login">
-            <Button variant="default" size="lg" className="mb-4">
+            <Button variant="default" size="lg">
               <LogIn className="w-4 h-4 mr-2" />
               Login to Save Progress
             </Button>
@@ -175,7 +164,6 @@ const Index = () => {
         </div>
       )}
       
-      {/* Game save manager - Only used for loading game now */}
       <GameSaveManager 
         gameState={getCurrentGameState()} 
         onLoadState={handleLoadGameState} 
