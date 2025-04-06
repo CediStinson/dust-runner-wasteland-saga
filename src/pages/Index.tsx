@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import GameSketch from '../components/GameSketch';
@@ -165,27 +164,16 @@ const Index = () => {
       />
       
       {/* Auth controls */}
-      <div className="absolute top-4 left-4 z-50 flex gap-2">
-        {user ? (
-          <>
-            <div className="bg-background/80 backdrop-blur-sm rounded-md px-3 py-1 text-sm flex items-center">
-              <User className="w-4 h-4 mr-2" />
-              {user.email}
-            </div>
-            <Button variant="outline" size="sm" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </>
-        ) : (
+      {!user && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 text-center">
           <Link to="/login">
-            <Button variant="outline" size="sm">
+            <Button variant="default" size="lg" className="mb-4">
               <LogIn className="w-4 h-4 mr-2" />
-              Login
+              Login to Save Progress
             </Button>
           </Link>
-        )}
-      </div>
+        </div>
+      )}
       
       {/* Game save manager - Only used for loading game now */}
       <GameSaveManager 
