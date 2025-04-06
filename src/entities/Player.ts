@@ -217,8 +217,8 @@ export default class Player implements PlayerType {
     
     // Arms as circles from top view
     this.p.fill(245, 220, 190);
-    this.p.ellipse(-5, 4, 4, 4); // Left arm circle
-    this.p.ellipse(5, 4, 4, 4);  // Right arm circle
+    this.p.ellipse(-4, 5, 4, 4); // Left arm circle
+    this.p.ellipse(4, 5, 4, 4);  // Right arm circle
   }
 
   displayStandingPlayerTopDown() {
@@ -245,8 +245,8 @@ export default class Player implements PlayerType {
     this.p.fill(245, 220, 190);
     
     // Animated arm positions based on walking
-    this.p.ellipse(-5, 2 + this.armAnimationOffset, 4, 4); // Left arm circle with animation
-    this.p.ellipse(5, 2 - this.armAnimationOffset, 4, 4);  // Right arm circle with animation
+    this.p.ellipse(-5, 3 + this.armAnimationOffset, 4, 4); // Left arm circle with animation
+    this.p.ellipse(5, 3 - this.armAnimationOffset, 4, 4);  // Right arm circle with animation
     
     // Digging animation from top-down view - modified to be minimal
     if (this.digging) {
