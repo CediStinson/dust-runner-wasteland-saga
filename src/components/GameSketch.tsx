@@ -42,7 +42,8 @@ const GameSketch = () => {
               baseWorldY: 0,
               dayTimeIcon: game.dayTimeIcon,
               dayTimeAngle: game.dayTimeAngle,
-              worldData: game.getWorldData() // Add world data to state update
+              worldData: game.getWorldData(), // Add world data to state update
+              gameStarted: game.gameStarted
             }
           });
           window.dispatchEvent(event);
@@ -111,6 +112,11 @@ const GameSketch = () => {
           if (gameRef.current.renderer) {
             gameRef.current.renderer.setWorldCoordinates(savedState.worldX, savedState.worldY);
           }
+        }
+        
+        // Set game started state if provided
+        if (savedState.gameStarted !== undefined) {
+          gameRef.current.gameStarted = savedState.gameStarted;
         }
         
         // Load world data (explored areas, obstacles, and resources)

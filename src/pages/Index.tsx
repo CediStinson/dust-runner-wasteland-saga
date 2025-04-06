@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { LogIn } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/game.css';
-import { saveGameState } from '@/lib/supabase';
+import { saveGameState, loadGameState } from '@/lib/supabase';
 
 const Index = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
@@ -103,6 +103,24 @@ const Index = () => {
     });
     window.dispatchEvent(loadEvent);
   };
+  
+  // Load saved game data when user logs in
+  useEffect(() => {
+    const loadSavedGame = async () => {
+      if (user) {
+        const result = await loadGameState(user.id);
+        if (result.success && result.data) {
+          handleLoadGameState(result.data);
+          toast({
+            title: "Game loaded",
+            description: "Your saved game has been loaded successfully.",
+          });
+        }
+      }
+    };
+    
+    loadSavedGame();
+  }, [user]);
   
   useEffect(() => {
     const handleGameStateUpdate = (event: CustomEvent) => {
