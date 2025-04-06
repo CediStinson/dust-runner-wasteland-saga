@@ -103,6 +103,15 @@ export default class GameRenderer {
 
   drawObstacles() {
     let currentObstacles = this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`] || [];
+    
+    // First draw things that should appear below everything (like tarps)
+    for (let obs of currentObstacles) {
+      if (obs.type === 'tarp') {
+        this.drawTarp(obs);
+      }
+    }
+    
+    // Then draw the rest of the obstacles
     for (let obs of currentObstacles) {
       if (obs.type === 'rock') {
         this.drawRock(obs);
@@ -122,6 +131,166 @@ export default class GameRenderer {
     }
   }
   
+  drawTarp(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    this.p.rotate(obs.rotation || 0);
+    
+    // Shadow underneath the tarp
+    this.p.fill(0, 0, 0, 30);
+    this.p.noStroke();
+    this.p.ellipse(5, 5, obs.width * 0.9, obs.height * 0.9);
+    
+    // Set the noise seed to ensure consistent appearance
+    this.p.noiseSeed(obs.x * 1000 + obs.y);
+    
+    // Base tarp shape with slightly irregular edges
+    this.p.fill(obs.color.r, obs.color.g, obs.color.b);
+    
+    // Draw main tarp body with irregular edges
+    this.p.beginShape();
+    for (let i = 0; i < 20; i++) {
+      const angle = (i / 20) * this.p.TWO_PI;
+      const radiusX = (obs.width / 2) * (0.9 + this.p.noise(angle * 2 + obs.seedAngle) * 0.2);
+      const radiusY = (obs.height / 2) * (0.9 + this.p.noise(angle * 2 + obs.seedAngle + 10) * 0.2);
+      const x = Math.cos(angle) * radiusX;
+      const y = Math.sin(angle) * radiusY;
+      this.p.vertex(x, y);
+    }
+    this.p.endShape(this.p.CLOSE);
+    
+    // Add fold and wrinkle details
+    this.p.stroke(obs.color.r - 20, obs.color.g - 20, obs.color.b - 20, 150);
+    this.p.strokeWeight(1);
+    
+    // Draw fold lines
+    for (let fold of obs.foldLines) {
+      this.p.line(fold.x1, fold.y1, fold.x2, fold.y2);
+      
+      // Add small wrinkle lines perpendicular to main fold
+      const dx = fold.x2 - fold.x1;
+      const dy = fold.y2 - fold.y1;
+      const foldLength = Math.sqrt(dx * dx + dy * dy);
+      const perpX = -dy / foldLength;
+      const perpY = dx / foldLength;
+      
+      for (let i = 0; i < foldLength; i += 10) {
+        const t = i / foldLength;
+        const x = this.p.lerp(fold.x1, fold.x2, t);
+        const y = this.p.lerp(fold.y1, fold.y2, t);
+        const length = this.p.map(this.p.noise(x * 0.1, y * 0.1), 0, 1, 3, 8);
+        
+        this.p.line(x, y, x + perpX * length, y + perpY * length);
+      }
+    }
+    
+    // Draw sand patches for worn look
+    this.p.noStroke();
+    for (let patch of obs.sandPatches) {
+      const sandColor = this.p.color(220, 200, 150, 80); // Sandy color with transparency
+      this.p.fill(sandColor);
+      this.p.ellipse(patch.x, patch.y, patch.size, patch.size * 0.7);
+      
+      // Add some texture to the sand patches
+      for (let i = 0; i < 5; i++) {
+        const px = patch.x + this.p.random(-patch.size/3, patch.size/3);
+        const py = patch.y + this.p.random(-patch.size/4, patch.size/4);
+        const dotSize = this.p.random(1, 4);
+        this.p.fill(200 + this.p.random(-20, 20), 180 + this.p.random(-20, 20), 140 + this.p.random(-20, 20), this.p.random(50, 120));
+        this.p.ellipse(px, py, dotSize, dotSize);
+      }
+    }
+    
+    // Add darker wear marks along edges
+    this.p.stroke(obs.color.r - 40, obs.color.g - 40, obs.color.b - 40, 100);
+    this.p.strokeWeight(3);
+    this.p.noFill();
+    this.p.beginShape();
+    for (let i = 0; i < 20; i++) {
+      const angle = (i / 20) * this.p.TWO_PI;
+      const radiusX = (obs.width / 2) * (0.95 + this.p.noise(angle * 3 + obs.seedAngle + 5) * 0.1);
+      const radiusY = (obs.height / 2) * (0.95 + this.p.noise(angle * 3 + obs.seedAngle + 15) * 0.1);
+      const x = Math.cos(angle) * radiusX;
+      const y = Math.sin(angle) * radiusY;
+      this.p.curveVertex(x, y);
+      if (i === 0 || i === 19) {
+        this.p.curveVertex(x, y); // Duplicate first and last points for curve
+      }
+    }
+    this.p.endShape();
+    
+    // Draw holes in the tarp
+    for (let hole of obs.holes) {
+      // Dark underneath showing through holes
+      this.p.fill(30, 25, 20, 200);
+      this.p.noStroke();
+      this.p.ellipse(hole.x, hole.y, hole.size, hole.size * 0.8);
+      
+      // Frayed edges of holes
+      this.p.noFill();
+      this.p.stroke(obs.color.r - 30, obs.color.g - 30, obs.color.b - 30);
+      this.p.strokeWeight(1);
+      const steps = 12;
+      for (let i = 0; i < steps; i++) {
+        const angle = (i / steps) * this.p.TWO_PI;
+        const nextAngle = ((i + 1) / steps) * this.p.TWO_PI;
+        
+        // Get points on the hole's edge
+        const x1 = hole.x + Math.cos(angle) * (hole.size/2);
+        const y1 = hole.y + Math.sin(angle) * (hole.size/2);
+        const x2 = hole.x + Math.cos(nextAngle) * (hole.size/2);
+        const y2 = hole.y + Math.sin(nextAngle) * (hole.size/2);
+        
+        // Draw frayed threads
+        const threads = this.p.random(1, 3);
+        for (let j = 0; j < threads; j++) {
+          const tx = this.p.lerp(x1, x2, j/threads);
+          const ty = this.p.lerp(y1, y2, j/threads);
+          const length = this.p.random(1, 4);
+          const threadAngle = this.p.random(0, this.p.TWO_PI);
+          this.p.line(tx, ty, tx + Math.cos(threadAngle) * length, ty + Math.sin(threadAngle) * length);
+        }
+      }
+    }
+    
+    // Tie-down stakes at corners to help show it's secured
+    const corners = [
+      {x: -obs.width/2 + 10, y: -obs.height/2 + 10},
+      {x: obs.width/2 - 10, y: -obs.height/2 + 10},
+      {x: obs.width/2 - 10, y: obs.height/2 - 10},
+      {x: -obs.width/2 + 10, y: obs.height/2 - 10}
+    ];
+    
+    for (let corner of corners) {
+      // Stake
+      this.p.fill(80, 70, 60);
+      this.p.stroke(50, 40, 30);
+      this.p.strokeWeight(1);
+      this.p.rect(corner.x, corner.y, 6, 3, 1);
+      
+      // Rope
+      this.p.stroke(180, 170, 150, 150);
+      this.p.strokeWeight(1);
+      const ropeLength = this.p.random(8, 12);
+      const angle = Math.atan2(corner.y, corner.x);
+      const offsetX = Math.cos(angle) * ropeLength;
+      const offsetY = Math.sin(angle) * ropeLength;
+      
+      // Draw rope with slight curve
+      this.p.noFill();
+      this.p.beginShape();
+      this.p.vertex(corner.x, corner.y);
+      this.p.quadraticVertex(
+        corner.x + offsetX/2 + this.p.random(-3, 3), 
+        corner.y + offsetY/2 + this.p.random(-3, 3),
+        corner.x + offsetX, corner.y + offsetY
+      );
+      this.p.endShape();
+    }
+    
+    this.p.pop();
+  }
+
   drawFuelStain(obs: any) {
     this.p.push();
     this.p.translate(obs.x, obs.y);

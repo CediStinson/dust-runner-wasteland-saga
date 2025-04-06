@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
@@ -145,9 +146,15 @@ const GameSketch = () => {
                 gameRef.current.hoverbike.angle = savedState.hoverbikeAngle;
               }
             } else {
-              // Fallback to center of screen
-              gameRef.current.hoverbike.x = gameRef.current.p.width / 2;
-              gameRef.current.hoverbike.y = gameRef.current.p.height / 2;
+              // For new games, place hoverbike under the tarp
+              if (!savedState.gameStarted) {
+                gameRef.current.hoverbike.x = gameRef.current.p.width / 2 - 150;
+                gameRef.current.hoverbike.y = gameRef.current.p.height / 2 - 100;
+              } else {
+                // Fallback to center of screen for existing games
+                gameRef.current.hoverbike.x = gameRef.current.p.width / 2;
+                gameRef.current.hoverbike.y = gameRef.current.p.height / 2;
+              }
             }
           }
           
