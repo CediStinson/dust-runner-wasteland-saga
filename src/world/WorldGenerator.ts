@@ -8,6 +8,7 @@ export default class WorldGenerator {
   sandTextures: Record<string, any>;
   grassTextures: Record<string, any>;
   windmillAngle: number;
+  edgeBuffer: number = 50; // Buffer distance from edges
 
   constructor(p: any) {
     this.p = p;
@@ -182,6 +183,13 @@ export default class WorldGenerator {
     this.grassTextures[zoneKey] = texture;
   }
 
+  getValidPosition() {
+    return {
+      x: this.p.random(this.edgeBuffer, this.p.width - this.edgeBuffer),
+      y: this.p.random(this.edgeBuffer, this.p.height - this.edgeBuffer)
+    };
+  }
+
   generateNewArea(x: number, y: number) {
     let zoneKey = `${x},${y}`;
     if (!this.generatedAreas.has(zoneKey)) {
@@ -204,15 +212,14 @@ export default class WorldGenerator {
           let size = this.p.random(0.3, 2.0);
           let aspectRatio = this.p.random(0.5, 2.0);
           
-          let x, y;
+          let position;
           do {
-            x = this.p.random(this.p.width);
-            y = this.p.random(this.p.height);
-          } while (this.p.dist(x, y, centerX, centerY) < safeRadius);
+            position = this.getValidPosition();
+          } while (this.p.dist(position.x, position.y, centerX, centerY) < safeRadius);
           
           areaObstacles.push({ 
-            x: x, 
-            y: y, 
+            x: position.x, 
+            y: position.y, 
             type: 'rock', 
             shape: this.generateRockShape(size, aspectRatio),
             size: size,
@@ -223,15 +230,14 @@ export default class WorldGenerator {
         for (let i = 0; i < 3; i++) {
           let size = this.p.random(0.5, 1.0);
           
-          let x, y;
+          let position;
           do {
-            x = this.p.random(this.p.width);
-            y = this.p.random(this.p.height);
-          } while (this.p.dist(x, y, centerX, centerY) < safeRadius);
+            position = this.getValidPosition();
+          } while (this.p.dist(position.x, position.y, centerX, centerY) < safeRadius);
           
           areaObstacles.push({ 
-            x: x, 
-            y: y, 
+            x: position.x, 
+            y: position.y, 
             type: 'bush', 
             shape: this.generateBushShape(size),
             size: size
@@ -241,15 +247,14 @@ export default class WorldGenerator {
         for (let i = 0; i < 2; i++) {
           let size = this.p.random(0.5, 1.2);
           
-          let x, y;
+          let position;
           do {
-            x = this.p.random(this.p.width);
-            y = this.p.random(this.p.height);
-          } while (this.p.dist(x, y, centerX, centerY) < safeRadius);
+            position = this.getValidPosition();
+          } while (this.p.dist(position.x, position.y, centerX, centerY) < safeRadius);
           
           areaObstacles.push({ 
-            x: x, 
-            y: y, 
+            x: position.x, 
+            y: position.y, 
             type: 'cactus', 
             shape: this.generateCactusShape(size, zoneKey, i),
             size: size
@@ -259,30 +264,38 @@ export default class WorldGenerator {
         for (let i = 0; i < 10; i++) {
           let size = this.p.random(0.3, 2.0);
           let aspectRatio = this.p.random(0.5, 2.0);
+          let position = this.getValidPosition();
+          
           areaObstacles.push({ 
-            x: this.p.random(this.p.width), 
-            y: this.p.random(this.p.height), 
+            x: position.x, 
+            y: position.y, 
             type: 'rock', 
             shape: this.generateRockShape(size, aspectRatio),
             size: size,
             aspectRatio: aspectRatio
           });
         }
+        
         for (let i = 0; i < 5; i++) {
           let size = this.p.random(0.5, 1.0);
+          let position = this.getValidPosition();
+          
           areaObstacles.push({ 
-            x: this.p.random(this.p.width), 
-            y: this.p.random(this.p.height), 
+            x: position.x, 
+            y: position.y, 
             type: 'bush', 
             shape: this.generateBushShape(size),
             size: size
           });
         }
+        
         for (let i = 0; i < 3; i++) {
           let size = this.p.random(0.5, 1.2);
+          let position = this.getValidPosition();
+          
           areaObstacles.push({ 
-            x: this.p.random(this.p.width), 
-            y: this.p.random(this.p.height), 
+            x: position.x, 
+            y: position.y, 
             type: 'cactus', 
             shape: this.generateCactusShape(size, zoneKey, i),
             size: size
@@ -301,9 +314,11 @@ export default class WorldGenerator {
     
     if (x !== 0 || y !== 0) {
       for (let i = 0; i < 5; i++) {
+        let position = this.getValidPosition();
+        
         areaResources.push({ 
-          x: this.p.random(this.p.width), 
-          y: this.p.random(this.p.height), 
+          x: position.x, 
+          y: position.y, 
           type: 'metal',
           rotation: this.p.random(this.p.TWO_PI),
           size: this.p.random(0.7, 1.3),
@@ -324,15 +339,14 @@ export default class WorldGenerator {
       const safeRadius = 200; // Safe zone radius
       
       for (let i = 0; i < 3; i++) {
-        let resourceX, resourceY;
+        let position;
         do {
-          resourceX = this.p.random(this.p.width);
-          resourceY = this.p.random(this.p.height);
-        } while (this.p.dist(resourceX, resourceY, centerX, centerY) < safeRadius);
+          position = this.getValidPosition();
+        } while (this.p.dist(position.x, position.y, centerX, centerY) < safeRadius);
         
         areaResources.push({ 
-          x: resourceX, 
-          y: resourceY, 
+          x: position.x, 
+          y: position.y, 
           type: 'metal',
           rotation: this.p.random(this.p.TWO_PI),
           size: this.p.random(0.7, 1.3),
