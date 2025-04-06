@@ -194,100 +194,66 @@ export default class Player implements PlayerType {
   }
 
   displayRidingPlayerTopDown() {
-    // Shadow under player
+    // Shadow under player's head
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
-    this.p.ellipse(0, 0, 12, 8);
-    
-    // Body - smaller when riding
-    this.p.stroke(40, 40, 40);
-    this.p.strokeWeight(0.8);
-    this.p.fill(255, 255, 255);
-    this.p.ellipse(0, 0, 9, 11); // Slightly oval body shape
+    this.p.ellipse(0, 0, 10, 7);
     
     // Head
     this.p.fill(245, 220, 190);
-    this.p.ellipse(0, -6, 7, 7); // Round head from top-down view
+    this.p.stroke(40, 40, 40);
+    this.p.strokeWeight(0.8);
+    this.p.ellipse(0, 0, 12, 12); // Round head from top-down view
     
     // Draw hair from top-down perspective
     this.drawTopDownHair();
     
-    // Eyes looking downward (visible from top)
+    // Eyes looking downward (visible from top) - moved more to the edge
     this.p.fill(40, 40, 40);
     this.p.noStroke();
-    this.p.ellipse(-1.5, -5, 1, 1.5);
-    this.p.ellipse(1.5, -5, 1, 1.5);
+    this.p.ellipse(-2.5, -1, 1, 1.5);
+    this.p.ellipse(2.5, -1, 1, 1.5);
     
-    // Arms gripping handlebars
-    this.p.stroke(40, 40, 40);
-    this.p.strokeWeight(0.7);
+    // Arms as circles seen from above
     this.p.fill(255, 255, 255);
-    this.p.line(-5, -2, -9, 0); // Left arm
-    this.p.line(5, -2, 9, 0); // Right arm
-    
-    // Legs from top view (mostly hidden under/behind bike)
     this.p.stroke(40, 40, 40);
     this.p.strokeWeight(0.7);
-    this.p.line(-3, 2, -4, 8); // Left leg
-    this.p.line(3, 2, 4, 8); // Right leg
+    this.p.ellipse(-9, 0, 5, 5); // Left arm circle
+    this.p.ellipse(9, 0, 5, 5); // Right arm circle
   }
 
   displayStandingPlayerTopDown() {
     // Shadow
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
-    this.p.ellipse(0, 2, 14, 10);
-    
-    // Body
-    this.p.stroke(40, 40, 40);
-    this.p.strokeWeight(0.8);
-    this.p.fill(255, 255, 255);
-    this.p.ellipse(0, 0, 11, 14); // Oval body from top-down view
+    this.p.ellipse(0, 0, 12, 8);
     
     // Head
     this.p.fill(245, 220, 190);
-    this.p.ellipse(0, -6, 8, 8); // Round head from top-down view
+    this.p.stroke(40, 40, 40);
+    this.p.strokeWeight(0.8);
+    this.p.ellipse(0, 0, 14, 14); // Round head from top-down view
     
     // Draw hair from top-down perspective
     this.drawTopDownHair();
     
-    // Eyes from top view
+    // Eyes from top view - moved more to the edge
     this.p.fill(40, 40, 40);
     this.p.noStroke();
-    this.p.ellipse(-1.5, -5, 1.2, 1.5);
-    this.p.ellipse(1.5, -5, 1.2, 1.5);
+    this.p.ellipse(-3.5, -1, 1.2, 1.5);
+    this.p.ellipse(3.5, -1, 1.2, 1.5);
     
-    // Digging animation from top-down view
-    if (this.digging) {
-      this.p.fill(245, 220, 190);
-      this.p.push();
-      this.p.rotate(Math.sin(this.p.frameCount * 0.2) * 0.2);
-      
-      // Arms extended for digging
-      this.p.stroke(40, 40, 40);
-      this.p.strokeWeight(0.7);
-      this.p.line(0, 0, 8, 6); // Right arm extended
-      this.p.line(8, 6, 10, 10); // Right hand
-      this.p.line(0, 0, -8, 6); // Left arm extended
-      this.p.line(-8, 6, -10, 10); // Left hand
-      
-      this.p.pop();
-      this.displayDigProgress();
-    } else {
-      // Arms in neutral position
-      this.p.stroke(40, 40, 40);
-      this.p.strokeWeight(0.7);
-      this.p.line(0, -2, 7, 0); // Right arm
-      this.p.line(7, 0, 9, 2); // Right hand
-      this.p.line(0, -2, -7, 0); // Left arm
-      this.p.line(-7, 0, -9, 2); // Left hand
-    }
-    
-    // Legs from top view
+    // Arms as circles seen from above
+    this.p.fill(255, 255, 255);
     this.p.stroke(40, 40, 40);
-    this.p.strokeWeight(0.8);
-    this.p.line(-3, 4, -5, 10); // Left leg
-    this.p.line(3, 4, 5, 10); // Right leg
+    this.p.strokeWeight(0.7);
+    this.p.ellipse(-10, 0, 6, 6); // Left arm circle 
+    this.p.ellipse(10, 0, 6, 6); // Right arm circle
+    
+    // If digging, show the dig progress
+    if (this.digging) {
+      this.displayDigProgress();
+    }
   }
 
   drawTopDownHair() {
@@ -297,9 +263,9 @@ export default class Player implements PlayerType {
     this.p.strokeWeight(0.8);
     this.p.stroke(40, 40, 40);
     
-    // Main hair shape (top-down view)
+    // Main hair shape covering more of the head
     this.p.fill(r, g, b);
-    this.p.ellipse(0, -6, 10, 10); // Slightly larger than head to show hair volume
+    this.p.ellipse(0, 0, 18, 18); // Larger than head to show hair volume covering more of the head
     
     // Create hair details and texture
     this.p.noStroke();
@@ -310,17 +276,17 @@ export default class Player implements PlayerType {
     // Hair parting line
     this.p.strokeWeight(0.5);
     this.p.stroke(r-40, g-40, b-40);
-    this.p.line(0, -10, 0, -2);
+    this.p.line(-3, -5, 3, 5);
     this.p.noStroke();
     
     // Ponytail from top view (extends backward)
     this.p.fill(r, g, b);
     this.p.beginShape();
-    this.p.vertex(-3, -11);
-    this.p.vertex(3, -11);
-    this.p.vertex(5, -15);
-    this.p.vertex(0, -18);  // Tip of ponytail
-    this.p.vertex(-5, -15);
+    this.p.vertex(-5, -6);
+    this.p.vertex(5, -6);
+    this.p.vertex(7, -12);
+    this.p.vertex(0, -16);  // Tip of ponytail
+    this.p.vertex(-7, -12);
     this.p.endShape(this.p.CLOSE);
     
     // Add some hair strands visible from top
@@ -329,15 +295,15 @@ export default class Player implements PlayerType {
     this.p.strokeWeight(0.7);
     
     // Create several curved hair strands
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       const waveOffset = Math.sin(this.p.frameCount * 0.05 + i) * 0.3;
-      const startX = -5 + i * 2.5;
-      const endY = -18 + i * 0.5;
+      const startX = -6 + i * 2.5;
+      const endY = -15 + i * 0.5;
       
       this.p.bezier(
-        startX, -10,
-        startX - 2, -14 + waveOffset,
-        startX + 2, -16 + waveOffset,
+        startX, -4,
+        startX - 2, -8 + waveOffset,
+        startX + 2, -12 + waveOffset,
         0, endY
       );
     }
