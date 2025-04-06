@@ -24,6 +24,12 @@ const Index = () => {
   const [maxPlayerHealth, setMaxPlayerHealth] = useState(100);
   const [worldX, setWorldX] = useState(0);
   const [worldY, setWorldY] = useState(0);
+  const [playerX, setPlayerX] = useState(0);
+  const [playerY, setPlayerY] = useState(0);
+  const [hoverbikeX, setHoverbikeX] = useState(0);
+  const [hoverbikeY, setHoverbikeY] = useState(0);
+  const [hoverbikeWorldX, setHoverbikeWorldX] = useState(0);
+  const [hoverbikeWorldY, setHoverbikeWorldY] = useState(0);
   const [dayTimeIcon, setDayTimeIcon] = useState("sun");
   const [dayTimeAngle, setDayTimeAngle] = useState(0);
   const [worldData, setWorldData] = useState<any>(null);
@@ -45,6 +51,12 @@ const Index = () => {
       maxPlayerHealth,
       worldX,
       worldY,
+      playerX,
+      playerY,
+      hoverbikeX,
+      hoverbikeY,
+      hoverbikeWorldX,
+      hoverbikeWorldY,
       dayTimeIcon,
       dayTimeAngle,
       worldData,
@@ -92,6 +104,12 @@ const Index = () => {
     setMaxPlayerHealth(savedState.maxPlayerHealth || 100);
     setWorldX(savedState.worldX || 0);
     setWorldY(savedState.worldY || 0);
+    setPlayerX(savedState.playerX || 0);
+    setPlayerY(savedState.playerY || 0);
+    setHoverbikeX(savedState.hoverbikeX || 0);
+    setHoverbikeY(savedState.hoverbikeY || 0);
+    setHoverbikeWorldX(savedState.hoverbikeWorldX || 0);
+    setHoverbikeWorldY(savedState.hoverbikeWorldY || 0);
     setGameStarted(savedState.gameStarted || false);
     
     if (savedState.worldData) {
@@ -126,8 +144,9 @@ const Index = () => {
     const handleGameStateUpdate = (event: CustomEvent) => {
       const { 
         resources, copper, health, maxHealth, fuel, maxFuel,
-        playerHealth, maxPlayerHealth, worldX, worldY, baseWorldX, baseWorldY,
-        dayTimeIcon, dayTimeAngle, worldData, gameStarted
+        playerHealth, maxPlayerHealth, worldX, worldY, playerX, playerY,
+        hoverbikeX, hoverbikeY, hoverbikeWorldX, hoverbikeWorldY,
+        baseWorldX, baseWorldY, dayTimeIcon, dayTimeAngle, worldData, gameStarted
       } = event.detail;
       
       setResources(resources);
@@ -140,6 +159,12 @@ const Index = () => {
       setMaxPlayerHealth(maxPlayerHealth || 100);
       setWorldX(worldX || 0);
       setWorldY(worldY || 0);
+      setPlayerX(playerX || 0);
+      setPlayerY(playerY || 0);
+      setHoverbikeX(hoverbikeX || 0);
+      setHoverbikeY(hoverbikeY || 0);
+      setHoverbikeWorldX(hoverbikeWorldX || 0);
+      setHoverbikeWorldY(hoverbikeWorldY || 0);
       setDayTimeIcon(dayTimeIcon || "sun");
       setDayTimeAngle(dayTimeAngle || 0);
       if (typeof gameStarted === 'boolean') {

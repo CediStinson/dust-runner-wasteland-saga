@@ -38,6 +38,12 @@ const GameSketch = () => {
               maxPlayerHealth: game.player?.maxHealth || 100,
               worldX: game.player?.worldX || 0,
               worldY: game.player?.worldY || 0,
+              playerX: game.player?.x || 0, // Save player's local position
+              playerY: game.player?.y || 0,
+              hoverbikeX: game.hoverbike?.x || 0, // Save hoverbike's local position
+              hoverbikeY: game.hoverbike?.y || 0,
+              hoverbikeWorldX: game.hoverbike?.worldX || 0, // Save hoverbike's world position
+              hoverbikeWorldY: game.hoverbike?.worldY || 0,
               baseWorldX: 0,
               baseWorldY: 0,
               dayTimeIcon: game.dayTimeIcon,
@@ -92,20 +98,46 @@ const GameSketch = () => {
           gameRef.current.player.health = savedState.playerHealth;
         }
         
-        // Teleport player and hoverbike to saved coordinates
+        // Teleport player to saved world coordinates
         if (savedState.worldX !== undefined && savedState.worldY !== undefined) {
           // Update game coordinates
           gameRef.current.worldX = savedState.worldX;
           gameRef.current.worldY = savedState.worldY;
           
-          // Update player coordinates
+          // Update player world coordinates
           if (gameRef.current.player) {
             gameRef.current.player.setWorldCoordinates(savedState.worldX, savedState.worldY);
+            
+            // If saved local positions are available, use them
+            if (savedState.playerX !== undefined && savedState.playerY !== undefined) {
+              gameRef.current.player.x = savedState.playerX;
+              gameRef.current.player.y = savedState.playerY;
+            } else {
+              // Fallback to center of screen
+              gameRef.current.player.x = gameRef.current.p.width / 2;
+              gameRef.current.player.y = gameRef.current.p.height / 2 - 50;
+            }
           }
           
-          // Update hoverbike coordinates to match
+          // Update hoverbike coordinates
           if (gameRef.current.hoverbike) {
-            gameRef.current.hoverbike.setWorldCoordinates(savedState.worldX, savedState.worldY);
+            // If hoverbike has its own world coordinates, use them
+            if (savedState.hoverbikeWorldX !== undefined && savedState.hoverbikeWorldY !== undefined) {
+              gameRef.current.hoverbike.setWorldCoordinates(savedState.hoverbikeWorldX, savedState.hoverbikeWorldY);
+            } else {
+              // Fallback to player's world coordinates
+              gameRef.current.hoverbike.setWorldCoordinates(savedState.worldX, savedState.worldY);
+            }
+            
+            // If saved local positions are available, use them
+            if (savedState.hoverbikeX !== undefined && savedState.hoverbikeY !== undefined) {
+              gameRef.current.hoverbike.x = savedState.hoverbikeX;
+              gameRef.current.hoverbike.y = savedState.hoverbikeY;
+            } else {
+              // Fallback to center of screen
+              gameRef.current.hoverbike.x = gameRef.current.p.width / 2;
+              gameRef.current.hoverbike.y = gameRef.current.p.height / 2;
+            }
           }
           
           // Update renderer coordinates
@@ -125,7 +157,7 @@ const GameSketch = () => {
         }
         
         // Generate the area for the new coordinates - will only generate if needed
-        gameRef.current.worldGenerator.generateNewArea(savedState.worldX, savedState.worldY);
+        gameRef.current.worldGenerator.generateNewArea(gameRef.current.worldX, gameRef.current.worldY);
       }
     };
     
