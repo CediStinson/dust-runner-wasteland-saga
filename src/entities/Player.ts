@@ -257,25 +257,27 @@ export default class Player implements PlayerType {
   drawTopDownHair() {
     const { r, g, b } = this.hairColor;
     
-    // Add outline to hair
-    this.p.strokeWeight(0.5);
-    this.p.stroke(40, 40, 40);
-    
+    // Thicker black outline for hair
+    this.p.strokeWeight(1);
+    this.p.stroke('#000000e6'); // Using a semi-transparent black from the color palette
+  
     // Position hair above the head
     this.p.push();
     this.p.translate(0, -3); // Move hair up above head
-    
+  
     // Main hair shape (top-down view)
     this.p.fill(r, g, b);
     this.p.ellipse(0, 0, 5, 5); // Smaller hair centered above head
-    
+  
     // Create hair details and texture
     this.p.noStroke();
-    
+  
     // Darker shade for texture
     this.p.fill(r-30, g-30, b-30);
-    
-    // Simplified ponytail from top view
+  
+    // Simplified ponytail from top view with black outline
+    this.p.stroke('#000000e6');
+    this.p.strokeWeight(0.5);
     this.p.fill(r, g, b);
     this.p.beginShape();
     this.p.vertex(-2, -1);
@@ -284,7 +286,7 @@ export default class Player implements PlayerType {
     this.p.vertex(0, -5);  // Tip of ponytail
     this.p.vertex(-3, -3);
     this.p.endShape(this.p.CLOSE);
-    
+  
     this.p.pop();
   }
 
