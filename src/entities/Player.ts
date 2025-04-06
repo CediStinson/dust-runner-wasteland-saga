@@ -203,7 +203,7 @@ export default class Player implements PlayerType {
     this.p.strokeWeight(0.5);
     this.p.stroke(0, 0, 0, 200);  // Black outline with some transparency
     this.p.fill(234, 56, 76, 100);  // Washed out red
-    this.p.ellipse(0, -1, 8, 8); 
+    this.p.ellipse(0, 0, 8, 8);  // Moved y from -1 to 0 
     this.p.noStroke();  // Reset stroke for subsequent drawings
     
     // Head only - made smaller
@@ -229,7 +229,7 @@ export default class Player implements PlayerType {
     this.p.strokeWeight(0.5);
     this.p.stroke(0, 0, 0, 200);  // Black outline with some transparency
     this.p.fill(234, 56, 76, 100);  // Washed out red
-    this.p.ellipse(0, -1, 8, 8); 
+    this.p.ellipse(0, 0, 8, 8);  // Moved y from -1 to 0
     this.p.noStroke();  // Reset stroke for subsequent drawings
     
     // Head only - made smaller
