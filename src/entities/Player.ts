@@ -201,7 +201,7 @@ export default class Player implements PlayerType {
     
     // Washed out red torso underneath the head
     this.p.fill(234, 56, 76, 100);  // Added alpha for washed out effect
-    this.p.ellipse(0, -2, 8, 6); // Reset x to 0, move y to -2
+    this.p.ellipse(0, -1, 8, 8); // Updated y-coordinate to -1 and height to 8
     
     // Head only - made smaller
     this.p.fill(245, 220, 190);
@@ -224,7 +224,7 @@ export default class Player implements PlayerType {
     
     // Washed out red torso underneath the head
     this.p.fill(234, 56, 76, 100);  // Added alpha for washed out effect
-    this.p.ellipse(0, -2, 8, 6); // Reset x to 0, move y to -2
+    this.p.ellipse(0, -1, 8, 8); // Updated y-coordinate to -1 and height to 8
     
     // Head only - made smaller
     this.p.fill(245, 220, 190);
