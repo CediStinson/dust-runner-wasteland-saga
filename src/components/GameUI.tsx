@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Save, Settings } from 'lucide-react';
 import DayNightIndicator from './ui/game/DayNightIndicator';
@@ -27,10 +26,7 @@ interface GameUIProps {
   dayTimeAngle?: number;
   refueling?: boolean;
   refuelProgress?: number;
-  showControls?: boolean;
-  setShowControls?: (show: boolean) => void;
   onSaveGame?: () => void;
-  onResetGame?: () => void;
 }
 
 const GameUI: React.FC<GameUIProps> = ({ 
@@ -50,11 +46,9 @@ const GameUI: React.FC<GameUIProps> = ({
   dayTimeAngle = 0,
   refueling = false,
   refuelProgress = 0,
-  showControls = false,
-  setShowControls = () => {},
-  onSaveGame,
-  onResetGame
+  onSaveGame
 }) => {
+  const [showControls, setShowControls] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -68,12 +62,6 @@ const GameUI: React.FC<GameUIProps> = ({
         description: "The save function is not currently available.",
         variant: "destructive",
       });
-    }
-  };
-  
-  const handleResetGame = () => {
-    if (onResetGame) {
-      onResetGame();
     }
   };
 
@@ -115,11 +103,7 @@ const GameUI: React.FC<GameUIProps> = ({
       </div>
       
       {/* Controls modal */}
-      <ControlsModal 
-        showControls={showControls} 
-        setShowControls={setShowControls}
-        onResetGame={handleResetGame}
-      />
+      <ControlsModal showControls={showControls} setShowControls={setShowControls} />
       
       {/* Refueling indicator */}
       {refueling && (

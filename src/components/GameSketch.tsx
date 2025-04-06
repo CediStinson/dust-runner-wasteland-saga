@@ -3,11 +3,7 @@ import { useEffect, useRef } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
 
-interface GameSketchProps {
-  onResetGame?: () => void;
-}
-
-const GameSketch: React.FC<GameSketchProps> = ({ onResetGame }) => {
+const GameSketch = () => {
   const sketchRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Game | null>(null);
   
@@ -44,10 +40,10 @@ const GameSketch: React.FC<GameSketchProps> = ({ onResetGame }) => {
               worldY: game.player?.worldY || 0,
               playerX: game.player?.x || 0, 
               playerY: game.player?.y || 0,
-              playerAngle: game.player?.angle || 0, 
+              playerAngle: game.player?.angle || 0, // Save player rotation angle
               hoverbikeX: game.hoverbike?.x || 0,
               hoverbikeY: game.hoverbike?.y || 0,
-              hoverbikeAngle: game.hoverbike?.angle || 0,
+              hoverbikeAngle: game.hoverbike?.angle || 0, // Save hoverbike rotation angle
               hoverbikeWorldX: game.hoverbike?.worldX || 0,
               hoverbikeWorldY: game.hoverbike?.worldY || 0,
               baseWorldX: 0,
@@ -184,42 +180,13 @@ const GameSketch: React.FC<GameSketchProps> = ({ onResetGame }) => {
       }
     };
     
-    // Set up listener for resetting the game
-    const handleResetGame = () => {
-      if (gameRef.current) {
-        // Reset the game to initial state
-        gameRef.current.resetGame();
-      }
-    };
-    
-    // Connect the reset function to the prop
-    if (onResetGame) {
-      window.addEventListener('resetGame', handleResetGame);
-    }
-    
     window.addEventListener('loadGameState', handleLoadGameState as EventListener);
 
     return () => {
       myP5.remove();
       window.removeEventListener('loadGameState', handleLoadGameState as EventListener);
-      if (onResetGame) {
-        window.removeEventListener('resetGame', handleResetGame);
-      }
     };
-  }, [onResetGame]);
-
-  // Function to trigger game reset
-  const triggerReset = () => {
-    const event = new CustomEvent('resetGame');
-    window.dispatchEvent(event);
-  };
-
-  // Expose reset function through the prop
-  useEffect(() => {
-    if (onResetGame) {
-      onResetGame(triggerReset);
-    }
-  }, [onResetGame]);
+  }, [sketchRef]);
 
   return <div ref={sketchRef} className="w-full h-full" />;
 };
