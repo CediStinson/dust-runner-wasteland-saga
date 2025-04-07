@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import GameSketch from '../components/GameSketch';
@@ -153,31 +154,39 @@ const Index = () => {
         baseWorldX, baseWorldY, dayTimeIcon, dayTimeAngle, worldData, gameStarted
       } = event.detail;
       
-      setResources(resources);
-      setCopper(copper);
-      setHealth(health);
-      setMaxHealth(maxHealth);
-      setFuel(fuel);
-      setMaxFuel(maxFuel);
-      setPlayerHealth(playerHealth || 100);
-      setMaxPlayerHealth(maxPlayerHealth || 100);
-      setWorldX(worldX || 0);
-      setWorldY(worldY || 0);
-      setPlayerX(playerX || 0);
-      setPlayerY(playerY || 0);
-      setPlayerAngle(playerAngle || 0);
-      setHoverbikeX(hoverbikeX || 0);
-      setHoverbikeY(hoverbikeY || 0);
-      setHoverbikeAngle(hoverbikeAngle || 0);
-      setHoverbikeWorldX(hoverbikeWorldX || 0);
-      setHoverbikeWorldY(hoverbikeWorldY || 0);
+      // Set all values from the event data
+      setResources(resources !== undefined ? resources : 0);
+      setCopper(copper !== undefined ? copper : 0);
+      setHealth(health !== undefined ? health : 100);
+      setMaxHealth(maxHealth !== undefined ? maxHealth : 100);
+      setFuel(fuel !== undefined ? fuel : 100);
+      setMaxFuel(maxFuel !== undefined ? maxFuel : 100);
+      setPlayerHealth(playerHealth !== undefined ? playerHealth : 100);
+      setMaxPlayerHealth(maxPlayerHealth !== undefined ? maxPlayerHealth : 100);
+      setWorldX(worldX !== undefined ? worldX : 0);
+      setWorldY(worldY !== undefined ? worldY : 0);
+      setPlayerX(playerX !== undefined ? playerX : 0);
+      setPlayerY(playerY !== undefined ? playerY : 0);
+      setPlayerAngle(playerAngle !== undefined ? playerAngle : 0);
+      setHoverbikeX(hoverbikeX !== undefined ? hoverbikeX : 0);
+      setHoverbikeY(hoverbikeY !== undefined ? hoverbikeY : 0);
+      setHoverbikeAngle(hoverbikeAngle !== undefined ? hoverbikeAngle : 0);
+      setHoverbikeWorldX(hoverbikeWorldX !== undefined ? hoverbikeWorldX : 0);
+      setHoverbikeWorldY(hoverbikeWorldY !== undefined ? hoverbikeWorldY : 0);
       setDayTimeIcon(dayTimeIcon || "sun");
-      setDayTimeAngle(dayTimeAngle || 0);
-      if (typeof gameStarted === 'boolean') {
+      setDayTimeAngle(dayTimeAngle !== undefined ? dayTimeAngle : 0);
+      
+      // Handle game started state changes
+      if (gameStarted !== undefined) {
         setGameStarted(gameStarted);
       }
-      if (worldData) {
+      
+      // Handle world data changes
+      if (worldData !== null && worldData !== undefined) {
         setWorldData(worldData);
+      } else if (worldData === null) {
+        // Explicitly clear world data if null is passed (for reset)
+        setWorldData(null);
       }
     };
     

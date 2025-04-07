@@ -41,9 +41,38 @@ const ControlsModal: React.FC<ControlsModalProps> = ({
       }
     }
     
-    // Trigger a game reset event for the game instance
+    // Trigger a complete game reset event
     const resetEvent = new Event('resetGameState');
     window.dispatchEvent(resetEvent);
+    
+    // To ensure the UI state is completely reset too
+    const gameResetEvent = new CustomEvent('gameStateUpdate', {
+      detail: {
+        resources: 0,
+        copper: 0,
+        health: 100,
+        maxHealth: 100,
+        fuel: 100,
+        maxFuel: 100,
+        playerHealth: 100,
+        maxPlayerHealth: 100,
+        worldX: 0,
+        worldY: 0,
+        playerX: 0,
+        playerY: 0,
+        playerAngle: 0,
+        hoverbikeX: 0,
+        hoverbikeY: 0,
+        hoverbikeAngle: 0,
+        hoverbikeWorldX: 0,
+        hoverbikeWorldY: 0,
+        dayTimeIcon: "sun",
+        dayTimeAngle: 0,
+        worldData: null,
+        gameStarted: false
+      }
+    });
+    window.dispatchEvent(gameResetEvent);
     
     setShowControls(false);
   };

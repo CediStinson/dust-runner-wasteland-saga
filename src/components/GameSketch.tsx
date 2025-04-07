@@ -209,37 +209,42 @@ const GameSketch = () => {
     // Set up listener for resetting game state
     const handleResetGameState = () => {
       if (gameRef.current) {
-        // Create a new Game instance
+        console.log("Completely resetting game state");
+        
+        // Create a completely new Game instance
         const newGame = new Game(gameRef.current.p);
         gameRef.current = newGame;
         
-        // Update UI
+        // Make sure game is set to not started state to show main menu
+        newGame.gameStarted = false;
+        
+        // Update UI with clean state
         const resetEvent = new CustomEvent('gameStateUpdate', {
           detail: {
-            resources: newGame.player?.inventory?.metal || 0,
-            copper: newGame.player?.inventory?.copper || 0,
-            health: newGame.hoverbike?.health || 0,
+            resources: 0,
+            copper: 0,
+            health: newGame.hoverbike?.maxHealth || 100,
             maxHealth: newGame.hoverbike?.maxHealth || 100,
-            fuel: newGame.hoverbike?.fuel || 0,
+            fuel: newGame.hoverbike?.maxFuel || 100,
             maxFuel: newGame.hoverbike?.maxFuel || 100,
-            playerHealth: newGame.player?.health || 100,
+            playerHealth: newGame.player?.maxHealth || 100,
             maxPlayerHealth: newGame.player?.maxHealth || 100,
-            worldX: newGame.player?.worldX || 0,
-            worldY: newGame.player?.worldY || 0,
+            worldX: 0,
+            worldY: 0,
             playerX: newGame.player?.x || 0, 
             playerY: newGame.player?.y || 0,
-            playerAngle: newGame.player?.angle || 0,
+            playerAngle: 0,
             hoverbikeX: newGame.hoverbike?.x || 0,
             hoverbikeY: newGame.hoverbike?.y || 0,
-            hoverbikeAngle: newGame.hoverbike?.angle || 0,
-            hoverbikeWorldX: newGame.hoverbike?.worldX || 0,
-            hoverbikeWorldY: newGame.hoverbike?.worldY || 0,
+            hoverbikeAngle: 0,
+            hoverbikeWorldX: 0,
+            hoverbikeWorldY: 0,
             baseWorldX: 0,
             baseWorldY: 0,
-            dayTimeIcon: newGame.dayTimeIcon,
-            dayTimeAngle: newGame.dayTimeAngle,
-            worldData: newGame.getWorldData(),
-            gameStarted: newGame.gameStarted
+            dayTimeIcon: "sun",
+            dayTimeAngle: 0,
+            worldData: null,
+            gameStarted: false
           }
         });
         window.dispatchEvent(resetEvent);
