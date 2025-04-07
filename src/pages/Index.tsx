@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import GameSketch from '../components/GameSketch';
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { LogIn } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/game.css';
-import { saveGameState, loadGameState } from '@/lib/supabase';
+import { saveGameState, loadGameState, resetGameState } from '@/lib/supabase';
 
 const Index = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
@@ -26,10 +25,10 @@ const Index = () => {
   const [worldY, setWorldY] = useState(0);
   const [playerX, setPlayerX] = useState(0);
   const [playerY, setPlayerY] = useState(0);
-  const [playerAngle, setPlayerAngle] = useState(0); // Add player angle state
+  const [playerAngle, setPlayerAngle] = useState(0);
   const [hoverbikeX, setHoverbikeX] = useState(0);
   const [hoverbikeY, setHoverbikeY] = useState(0);
-  const [hoverbikeAngle, setHoverbikeAngle] = useState(0); // Add hoverbike angle state
+  const [hoverbikeAngle, setHoverbikeAngle] = useState(0);
   const [hoverbikeWorldX, setHoverbikeWorldX] = useState(0);
   const [hoverbikeWorldY, setHoverbikeWorldY] = useState(0);
   const [dayTimeIcon, setDayTimeIcon] = useState("sun");
@@ -55,10 +54,10 @@ const Index = () => {
       worldY,
       playerX,
       playerY,
-      playerAngle, // Include player angle in saved state
+      playerAngle,
       hoverbikeX,
       hoverbikeY,
-      hoverbikeAngle, // Include hoverbike angle in saved state
+      hoverbikeAngle,
       hoverbikeWorldX,
       hoverbikeWorldY,
       dayTimeIcon,
@@ -110,10 +109,10 @@ const Index = () => {
     setWorldY(savedState.worldY || 0);
     setPlayerX(savedState.playerX || 0);
     setPlayerY(savedState.playerY || 0);
-    setPlayerAngle(savedState.playerAngle || 0); // Load player angle
+    setPlayerAngle(savedState.playerAngle || 0);
     setHoverbikeX(savedState.hoverbikeX || 0);
     setHoverbikeY(savedState.hoverbikeY || 0);
-    setHoverbikeAngle(savedState.hoverbikeAngle || 0); // Load hoverbike angle
+    setHoverbikeAngle(savedState.hoverbikeAngle || 0);
     setHoverbikeWorldX(savedState.hoverbikeWorldX || 0);
     setHoverbikeWorldY(savedState.hoverbikeWorldY || 0);
     setGameStarted(savedState.gameStarted || false);
@@ -128,7 +127,6 @@ const Index = () => {
     window.dispatchEvent(loadEvent);
   };
   
-  // Load saved game data when user logs in
   useEffect(() => {
     const loadSavedGame = async () => {
       if (user) {
@@ -167,10 +165,10 @@ const Index = () => {
       setWorldY(worldY || 0);
       setPlayerX(playerX || 0);
       setPlayerY(playerY || 0);
-      setPlayerAngle(playerAngle || 0); // Update player angle
+      setPlayerAngle(playerAngle || 0);
       setHoverbikeX(hoverbikeX || 0);
       setHoverbikeY(hoverbikeY || 0);
-      setHoverbikeAngle(hoverbikeAngle || 0); // Update hoverbike angle
+      setHoverbikeAngle(hoverbikeAngle || 0);
       setHoverbikeWorldX(hoverbikeWorldX || 0);
       setHoverbikeWorldY(hoverbikeWorldY || 0);
       setDayTimeIcon(dayTimeIcon || "sun");

@@ -63,3 +63,19 @@ export const loadGameState = async (userId: string) => {
     return { success: false, message: error.message };
   }
 };
+
+// Function to reset/delete game state from Supabase
+export const resetGameState = async (userId: string) => {
+  try {
+    const { error } = await supabase
+      .from('game_saves')
+      .delete()
+      .eq('user_id', userId);
+      
+    if (error) throw error;
+    return { success: true, message: 'Game reset successfully!' };
+  } catch (error: any) {
+    console.error('Error resetting game:', error);
+    return { success: false, message: error.message };
+  }
+};
