@@ -2,7 +2,9 @@
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, RefreshCw } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { resetGameState } from '@/lib/supabase';
 
 interface ControlsModalProps {
   showControls: boolean;
@@ -13,11 +15,53 @@ const ControlsModal: React.FC<ControlsModalProps> = ({
   showControls,
   setShowControls
 }) => {
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
 
   const handleLogout = async () => {
     await signOut();
     setShowControls(false);
+  };
+
+  const handleResetGame = async () => {
+    // If logged in, delete the saved game data
+    if (user) {
+      const result = await resetGameState(user.id);
+      if (result.success) {
+        toast({
+          title: "Game Reset",
+          description: "Your game has been reset successfully.",
+        });
+      } else {
+        toast({
+          title: "Reset Failed",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    }
+    
+    // First immediately hide the controls
+    setShowControls(false);
+    
+    // Send an event to the game that it's being reset
+    // This ensures components have a chance to clean up
+    const gameResetEvent = new CustomEvent('gameStateUpdate', {
+      detail: {
+        gameStarted: false
+      }
+    });
+    window.dispatchEvent(gameResetEvent);
+    
+    // Then trigger the reset event
+    const resetEvent = new Event('resetGameState');
+    window.dispatchEvent(resetEvent);
+    
+    // Force a page reload after a short delay to ensure clean state
+    // The delay allows events to be processed first
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   if (!showControls) return null;
@@ -33,20 +77,32 @@ const ControlsModal: React.FC<ControlsModalProps> = ({
         </ul>
         <div className="mt-6 flex flex-col space-y-2">
           <Button 
+            onClick={handleResetGame}
+            variant="secondary"
+            className="w-full"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Reset Game
+          </Button>
+          
+          <Button 
             onClick={() => setShowControls(false)}
             variant="outline"
             className="w-full"
           >
             Close
           </Button>
-          <Button 
-            onClick={handleLogout}
-            variant="destructive"
-            className="w-full"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          
+          {user && (
+            <Button 
+              onClick={handleLogout}
+              variant="destructive"
+              className="w-full"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -54,4 +110,3 @@ const ControlsModal: React.FC<ControlsModalProps> = ({
 };
 
 export default ControlsModal;
-

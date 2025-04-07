@@ -100,6 +100,13 @@ const GameSketch = () => {
           gameRef.current.player.health = savedState.playerHealth;
         }
         
+        // Reset critical state variables that might be causing issues
+        if (gameRef.current.player) {
+          gameRef.current.player.digging = false;
+          gameRef.current.player.digTimer = 0;
+          gameRef.current.player.digTarget = null;
+        }
+        
         // Teleport player to saved world coordinates
         if (savedState.worldX !== undefined && savedState.worldY !== undefined) {
           // Update game coordinates
@@ -115,6 +122,10 @@ const GameSketch = () => {
               gameRef.current.player.x = savedState.playerX;
               gameRef.current.player.y = savedState.playerY;
               
+              // Ensure player is within screen bounds
+              gameRef.current.player.x = Math.max(10, Math.min(gameRef.current.p.width - 10, gameRef.current.player.x));
+              gameRef.current.player.y = Math.max(10, Math.min(gameRef.current.p.height - 10, gameRef.current.player.y));
+              
               // Restore player rotation angle if available
               if (savedState.playerAngle !== undefined) {
                 gameRef.current.player.angle = savedState.playerAngle;
@@ -129,6 +140,11 @@ const GameSketch = () => {
           
           // Update hoverbike coordinates
           if (gameRef.current.hoverbike) {
+            // Reset any active state
+            gameRef.current.hoverbike.isRiding = false;
+            gameRef.current.hoverbike.thrustIntensity = 0;
+            gameRef.current.hoverbike.flameLength = 0;
+            
             // If hoverbike has its own world coordinates, use them
             if (savedState.hoverbikeWorldX !== undefined && savedState.hoverbikeWorldY !== undefined) {
               gameRef.current.hoverbike.setWorldCoordinates(savedState.hoverbikeWorldX, savedState.hoverbikeWorldY);
@@ -141,6 +157,10 @@ const GameSketch = () => {
             if (savedState.hoverbikeX !== undefined && savedState.hoverbikeY !== undefined) {
               gameRef.current.hoverbike.x = savedState.hoverbikeX;
               gameRef.current.hoverbike.y = savedState.hoverbikeY;
+              
+              // Ensure hoverbike is within screen bounds
+              gameRef.current.hoverbike.x = Math.max(20, Math.min(gameRef.current.p.width - 20, gameRef.current.hoverbike.x));
+              gameRef.current.hoverbike.y = Math.max(20, Math.min(gameRef.current.p.height - 20, gameRef.current.hoverbike.y));
               
               // Restore hoverbike rotation angle if available
               if (savedState.hoverbikeAngle !== undefined) {
@@ -157,6 +177,12 @@ const GameSketch = () => {
                 gameRef.current.hoverbike.y = gameRef.current.p.height / 2;
               }
             }
+          }
+          
+          // Reset riding state to avoid any state inconsistencies
+          gameRef.current.riding = false;
+          if (gameRef.current.player) {
+            gameRef.current.player.riding = false;
           }
           
           // Update renderer coordinates
@@ -180,11 +206,58 @@ const GameSketch = () => {
       }
     };
     
+    // Set up listener for resetting game state
+    const handleResetGameState = () => {
+      if (gameRef.current) {
+        console.log("Completely resetting game state");
+        
+        // Create a completely new Game instance
+        const newGame = new Game(gameRef.current.p);
+        gameRef.current = newGame;
+        
+        // Make sure game is set to not started state to show main menu
+        newGame.gameStarted = false;
+        
+        // Update UI with clean state
+        const resetEvent = new CustomEvent('gameStateUpdate', {
+          detail: {
+            resources: 0,
+            copper: 0,
+            health: newGame.hoverbike?.maxHealth || 100,
+            maxHealth: newGame.hoverbike?.maxHealth || 100,
+            fuel: newGame.hoverbike?.maxFuel || 100,
+            maxFuel: newGame.hoverbike?.maxFuel || 100,
+            playerHealth: newGame.player?.maxHealth || 100,
+            maxPlayerHealth: newGame.player?.maxHealth || 100,
+            worldX: 0,
+            worldY: 0,
+            playerX: newGame.player?.x || 0, 
+            playerY: newGame.player?.y || 0,
+            playerAngle: 0,
+            hoverbikeX: newGame.hoverbike?.x || 0,
+            hoverbikeY: newGame.hoverbike?.y || 0,
+            hoverbikeAngle: 0,
+            hoverbikeWorldX: 0,
+            hoverbikeWorldY: 0,
+            baseWorldX: 0,
+            baseWorldY: 0,
+            dayTimeIcon: "sun",
+            dayTimeAngle: 0,
+            worldData: null,
+            gameStarted: false
+          }
+        });
+        window.dispatchEvent(resetEvent);
+      }
+    };
+    
     window.addEventListener('loadGameState', handleLoadGameState as EventListener);
+    window.addEventListener('resetGameState', handleResetGameState as EventListener);
 
     return () => {
       myP5.remove();
       window.removeEventListener('loadGameState', handleLoadGameState as EventListener);
+      window.removeEventListener('resetGameState', handleResetGameState as EventListener);
     };
   }, [sketchRef]);
 
