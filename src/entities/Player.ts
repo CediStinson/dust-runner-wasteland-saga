@@ -121,21 +121,7 @@ export default class Player implements PlayerType {
       this.x = this.hoverbike.x;
       this.y = this.hoverbike.y;
       
-      const targetAngle = this.hoverbike.angle;
-      
-      if (targetAngle !== this.angle) {
-        const angleDiff = targetAngle - this.angle;
-        
-        if (angleDiff > Math.PI) {
-          this.angle += (targetAngle - this.angle - 2 * Math.PI) * this.turnSpeed;
-        } else if (angleDiff < -Math.PI) {
-          this.angle += (targetAngle - this.angle + 2 * Math.PI) * this.turnSpeed;
-        } else {
-          this.angle += angleDiff * this.turnSpeed;
-        }
-        
-        this.angle = this.angle % (2 * Math.PI);
-      }
+      this.angle = this.hoverbike.angle;
     }
   }
 
@@ -183,7 +169,6 @@ export default class Player implements PlayerType {
     this.p.push();
     this.p.translate(this.x, this.y);
     
-    // Rotate by -90 degrees (which is -PI/2 in radians)
     this.p.rotate(this.angle - this.p.PI/2);
     
     if (this.riding) {
@@ -196,86 +181,58 @@ export default class Player implements PlayerType {
   }
 
   displayRidingPlayerTopDown() {
-    // Shadow under player
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
     this.p.ellipse(0, 0, 12, 9);
     
-    // Washed out red torso underneath the head with black outline
     this.p.strokeWeight(0.5);
-    this.p.stroke(0, 0, 0, 200);  // Black outline with some transparency
-    this.p.fill(90, 130, 90, 255); //shirt color
-    this.p.ellipse(0, 0, 12, 9);  // Updated dimensions: width 8, height 10
-    this.p.noStroke();  // Reset stroke for subsequent drawings
+    this.p.stroke(0, 0, 0, 200);
+    this.p.fill(90, 130, 90, 255);
+    this.p.ellipse(0, 0, 12, 9);
+    this.p.noStroke();
     
-    // Head only - made smaller
     this.p.fill(245, 220, 190);
-    this.p.ellipse(0, 0, 6, 6); // Smaller head from top-down view
+    this.p.ellipse(0, 0, 6, 6);
     
-    // Draw hair centered above the head
     this.drawTopDownHair();
     
-    // Arms as circles from top view
     this.p.fill(245, 220, 190);
-    this.p.ellipse(-4, 6, 4, 4); // Left arm circle
-    this.p.ellipse(4, 6, 4, 4);  // Right arm circle
+    this.p.ellipse(-4, 6, 4, 4);
+    this.p.ellipse(4, 6, 4, 4);
   }
 
   displayStandingPlayerTopDown() {
-    // Shadow
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
     this.p.ellipse(0, 2, 12, 9);
     
-    // Washed out red torso underneath the head with black outline
     this.p.strokeWeight(0.5);
-    this.p.stroke(0, 0, 0, 200);  // Black outline with some transparency
-    this.p.fill(90, 130, 90, 255); //shirt color
-    this.p.ellipse(0, 0, 12, 9);  // Updated dimensions: width 8, height 10
-    this.p.noStroke();  // Reset stroke for subsequent drawings
+    this.p.stroke(0, 0, 0, 200);
+    this.p.fill(90, 130, 90, 255);
+    this.p.ellipse(0, 0, 12, 9);
+    this.p.noStroke();
     
-    // Head only - made smaller
     this.p.fill(245, 220, 190);
-    this.p.ellipse(0, 0, 6, 6); // Smaller head from top-down view
+    this.p.ellipse(0, 0, 6, 6);
     
-    // Draw hair centered above the head
     this.drawTopDownHair();
     
-    // Arms as circles from top view - with animation
     this.p.fill(245, 220, 190);
-    
-    // Animated arm positions based on walking
-    this.p.ellipse(-5, 3 + this.armAnimationOffset, 4, 4); // Left arm circle with animation
-    this.p.ellipse(5, 3 - this.armAnimationOffset, 4, 4);  // Right arm circle with animation
-    
-    // Digging animation from top-down view - modified to be minimal
-    if (this.digging) {
-      this.displayDigProgress();
-    }
+    this.p.ellipse(-5, 3 + this.armAnimationOffset, 4, 4);
+    this.p.ellipse(5, 3 - this.armAnimationOffset, 4, 4);
   }
 
   drawTopDownHair() {
     const { r, g, b } = this.hairColor;
     
-    // Thicker black outline for hair
     this.p.strokeWeight(1);
-    this.p.stroke('#000000e6'); // Using a semi-transparent black from the color palette
-  
-    // Position hair above the head
+    this.p.stroke('#000000e6');
     this.p.push();
-    this.p.translate(0, -2.5); // Move hair up above head
-  
-    // Main hair shape (top-down view)
+    this.p.translate(0, -2.5);
     this.p.fill(r, g, b);
-    this.p.ellipse(0, 0, 6, 6); // Smaller hair centered above head
-  
-    // Create hair details and texture
+    this.p.ellipse(0, 0, 6, 6);
     this.p.noStroke();
-  
-    // Darker shade for texture
     this.p.fill(r-30, g-30, b-30);
-  
-    // Simplified ponytail from top view with black outline
     this.p.stroke('#000000e6');
     this.p.strokeWeight(0.5);
     this.p.fill(r, g, b);
@@ -283,10 +240,9 @@ export default class Player implements PlayerType {
     this.p.vertex(-2, -1);
     this.p.vertex(2, -1);
     this.p.vertex(3, 2);
-    this.p.vertex(3, -5);  // Tip of ponytail
+    this.p.vertex(3, -5);
     this.p.vertex(-3, -2);
     this.p.endShape(this.p.CLOSE);
-  
     this.p.pop();
   }
 
@@ -374,7 +330,7 @@ export default class Player implements PlayerType {
     let progress = this.digTimer / 480;
     
     this.p.push();
-    this.p.translate(0, -10); // Position progress bar above the head
+    this.p.translate(0, -10);
     
     this.p.fill(0, 0, 0, 150);
     this.p.rect(-progressWidth/2, 0, progressWidth, progressHeight, 2);
