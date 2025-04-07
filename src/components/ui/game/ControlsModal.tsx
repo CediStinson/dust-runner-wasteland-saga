@@ -41,7 +41,11 @@ const ControlsModal: React.FC<ControlsModalProps> = ({
       }
     }
     
-    // First set gameStarted to false to immediately show the start screen
+    // First immediately hide the controls
+    setShowControls(false);
+    
+    // Send an event to the game that it's being reset
+    // This ensures components have a chance to clean up
     const gameResetEvent = new CustomEvent('gameStateUpdate', {
       detail: {
         gameStarted: false
@@ -49,12 +53,15 @@ const ControlsModal: React.FC<ControlsModalProps> = ({
     });
     window.dispatchEvent(gameResetEvent);
     
-    // Then trigger a complete game reset event
+    // Then trigger the reset event
     const resetEvent = new Event('resetGameState');
     window.dispatchEvent(resetEvent);
     
-    // Close the controls modal
-    setShowControls(false);
+    // Force a page reload after a short delay to ensure clean state
+    // The delay allows events to be processed first
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   if (!showControls) return null;
