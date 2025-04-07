@@ -127,7 +127,7 @@ export default class Hoverbike implements HoverbikeType {
           acceleration = -0.05;
         } else {
           // We're already moving backward, accelerate backward
-          acceleration = -0.05;
+          acceleration = -0.025;
           
           // Slightly reduced but still significant fuel consumption when braking
           if (this.p.frameCount % 30 === 0) {
@@ -140,7 +140,7 @@ export default class Hoverbike implements HoverbikeType {
         }
       } else {
         // If not moving or very slow, go in reverse
-        acceleration = -0.05;
+        acceleration = -0.025;
         
         // Slightly reduced but still significant fuel consumption when reversing
         if (this.p.frameCount % 30 === 0) {
