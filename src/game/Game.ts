@@ -26,6 +26,7 @@ export default class Game {
   sleepStartTime: number;
   sleepAnimationTimer: number;
   sleepParticles: Array<{x: number, y: number, z: number, opacity: number, yOffset: number, size: number}>;
+  tarpColor: { r: number; g: number; b: number; };
 
   constructor(p: any) {
     this.p = p;
@@ -33,8 +34,8 @@ export default class Game {
     this.worldY = 0;
     this.riding = false;
     this.timeOfDay = 0.25; // Start at sunrise
-    this.dayLength = 60 * 60 * 15; // 15 minutes in frames (at 60fps)
-    this.nightLength = 60 * 60 * 7.5; // 7.5 minutes in frames
+    this.dayLength = 60 * 60 * 5; // 5 minutes in frames (at 60fps)
+    this.nightLength = 60 * 60 * 5; // 5 minutes in frames
     this.gameStarted = false;
     this.dayTimeIcon = "sun"; // Start with the sun
     this.dayTimeAngle = this.timeOfDay * Math.PI * 2; // Calculate initial angle
@@ -44,6 +45,9 @@ export default class Game {
     this.sleepStartTime = 0;
     this.sleepAnimationTimer = 0;
     this.sleepParticles = [];
+    
+    // Generate random tarp color in brown/red/green tones
+    this.tarpColor = this.generateTarpColor();
     
     this.worldGenerator = new WorldGenerator(p);
     
@@ -99,8 +103,60 @@ export default class Game {
     // Add the fuel station at home base
     this.addFuelStationAtHomeBase();
     
+    // Add the tarp at home base
+    this.addTarpAtHomeBase();
+    
     // Add walking marks
     this.addWalkingMarksAtHomeBase();
+  }
+
+  generateTarpColor() {
+    // Generate random color in brown/red/green dark tones
+    const colorType = Math.floor(Math.random() * 3); // 0: brown, 1: dark red, 2: dark green
+    
+    let r, g, b;
+    
+    switch (colorType) {
+      case 0: // Brown tones
+        r = Math.floor(Math.random() * 80) + 80; // 80-160
+        g = Math.floor(Math.random() * 60) + 40; // 40-100
+        b = Math.floor(Math.random() * 30) + 20; // 20-50
+        break;
+      case 1: // Dark red tones
+        r = Math.floor(Math.random() * 70) + 120; // 120-190
+        g = Math.floor(Math.random() * 30) + 30; // 30-60
+        b = Math.floor(Math.random() * 30) + 30; // 30-60
+        break;
+      case 2: // Dark green tones
+        r = Math.floor(Math.random() * 40) + 30; // 30-70
+        g = Math.floor(Math.random() * 50) + 70; // 70-120
+        b = Math.floor(Math.random() * 30) + 20; // 20-50
+        break;
+    }
+    
+    return { r, g, b };
+  }
+
+  addTarpAtHomeBase() {
+    const homeAreaKey = "0,0";
+    let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
+    
+    // Add tarp if it doesn't exist
+    const hasTarp = homeObstacles.some(obs => obs.type === 'tarp');
+    
+    if (!hasTarp) {
+      homeObstacles.push({
+        type: 'tarp',
+        x: this.p.width / 2 - 120, // To the left of the hut
+        y: this.p.height / 2 - 50, // Align with the hut
+        width: 100,
+        height: 80,
+        color: this.tarpColor
+      });
+      
+      // Update the world generator's obstacles
+      this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+    }
   }
 
   addFuelStationAtHomeBase() {
@@ -256,19 +312,11 @@ export default class Game {
           this.p.noStroke();
           this.p.ellipse(0, 2, 10, 6);
           
-          // Canister body
-          this.p.fill(220, 50, 50);
-          this.p.stroke(0);
-          this.p.strokeWeight(1);
-          this.p.rect(-4, -5, 8, 10, 1);
+          // Canister body with weathered look
+          this.p.fill(180, 50, 50); // Base color
           
-          // Canister cap
-          this.p.fill(50);
-          this.p.rect(-2, -7, 4, 2);
-          
-          // Canister handle
-          this.p.stroke(30);
-          this.p.line(-3, -5, 3, -5);
+          // Render the canister with weathered appearance
+          this.renderWeatheredCanister(obstacle.x, obstacle.y);
           
           this.p.pop();
         }
@@ -277,6 +325,75 @@ export default class Game {
     
     // Update renderer with time of day
     this.renderer.setTimeOfDay(this.timeOfDay);
+  }
+  
+  renderWeatheredCanister(x: number, y: number) {
+    // Draw the canister body with weathered details
+    this.p.push();
+    this.p.translate(x, y);
+    
+    // Draw shadow under the canister
+    this.p.fill(0, 0, 0, 50);
+    this.p.noStroke();
+    this.p.ellipse(0, 2, 10, 6);
+    
+    // Canister base color (slightly darker red for worn look)
+    this.p.fill(190, 45, 45);
+    this.p.stroke(0);
+    this.p.strokeWeight(1);
+    this.p.rect(-4, -5, 8, 10, 1);
+    
+    // Weathered scratches and details
+    this.p.stroke(120, 30, 30);
+    this.p.strokeWeight(0.5);
+    this.p.line(-3, -3, -1, -1);
+    this.p.line(1, 2, 3, 4);
+    this.p.line(-2, 3, 0, 3);
+    
+    // Rust spots
+    this.p.noStroke();
+    this.p.fill(130, 70, 40, 180);
+    this.p.ellipse(-2, 2, 2, 1);
+    this.p.ellipse(3, -2, 1.5, 1);
+    this.p.ellipse(0, 0, 1, 2);
+    
+    // Dirt streaks
+    this.p.fill(80, 60, 40, 120);
+    this.p.rect(2, -3, 1, 5, 0.5);
+    this.p.rect(-3, 0, 4, 1, 0.5);
+    
+    // Worn metal highlights
+    this.p.fill(220, 170, 170, 100);
+    this.p.rect(-3, -4, 2, 1, 0.5);
+    this.p.rect(2, 2, 1, 2, 0.5);
+    
+    // Canister cap (darker and worn looking)
+    this.p.fill(40);
+    this.p.stroke(0);
+    this.p.strokeWeight(1);
+    this.p.rect(-2, -7, 4, 2);
+    
+    // Worn cap details
+    this.p.stroke(100);
+    this.p.strokeWeight(0.5);
+    this.p.line(-1, -6.5, 1, -6.5);
+    
+    // Canister handle (worn metal)
+    this.p.stroke(80, 80, 90);
+    this.p.strokeWeight(1);
+    this.p.line(-3, -5, 3, -5);
+    
+    // Fuel level indicator (faded)
+    this.p.noStroke();
+    this.p.fill(150, 150, 150, 180);
+    this.p.rect(3, -4, 0.5, 7);
+    
+    // Safety warnings (faded text)
+    this.p.fill(240, 220, 0, 100);
+    this.p.rect(-3.5, -2, 2, 0.5);
+    this.p.rect(-3.5, -1, 2, 0.5);
+    
+    this.p.pop();
   }
   
   isNightTime() {
@@ -709,5 +826,26 @@ export default class Game {
     }
     this.sleepingInHut = false;
     this.gameStarted = false;
+  }
+
+  isPlayerUnderTarp() {
+    if (this.worldX !== 0 || this.worldY !== 0) {
+      return false; // Only at home base
+    }
+    
+    const homeObstacles = this.worldGenerator.getObstacles()["0,0"] || [];
+    const tarp = homeObstacles.find(obs => obs.type === 'tarp');
+    
+    if (!tarp) {
+      return false;
+    }
+    
+    // Check if player is under the tarp
+    return (
+      this.player.x >= tarp.x - tarp.width / 2 &&
+      this.player.x <= tarp.x + tarp.width / 2 &&
+      this.player.y >= tarp.y - tarp.height / 2 &&
+      this.player.y <= tarp.y + tarp.height / 2
+    );
   }
 }

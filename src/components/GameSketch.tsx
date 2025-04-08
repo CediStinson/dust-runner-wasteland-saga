@@ -53,7 +53,8 @@ const GameSketch = () => {
               dayTimeAngle: game.dayTimeAngle,
               worldData: game.getWorldData(),
               gameStarted: game.gameStarted,
-              sleepingInHut: game.sleepingInHut // Add sleeping state to gameStateUpdate
+              sleepingInHut: game.sleepingInHut, // Add sleeping state to gameStateUpdate
+              isUnderTarp: game.isPlayerUnderTarp() // Add tarp status to gameStateUpdate
             }
           });
           window.dispatchEvent(event);
@@ -76,6 +77,27 @@ const GameSketch = () => {
 
     const myP5 = new p5(sketch, sketchRef.current);
 
+    // Helper function to clean up any active actions
+    const cleanupActiveActions = () => {
+      if (gameRef.current?.player) {
+        if (gameRef.current.player.isDigging) {
+          gameRef.current.player.cancelDigging();
+        }
+        gameRef.current.player.isCollectingCanister = false;
+        gameRef.current.player.isRefuelingHoverbike = false;
+        gameRef.current.player.isRepairingHoverbike = false;
+        
+        // Clear any dropped canister
+        if (gameRef.current.player.droppingCanister) {
+          gameRef.current.player.droppingCanister = false;
+        }
+      }
+      
+      if (gameRef.current) {
+        gameRef.current.sleepingInHut = false;
+      }
+    };
+    
     // Set up listener for loading game state
     const handleLoadGameState = (event: CustomEvent) => {
       if (gameRef.current && event.detail) {
@@ -220,18 +242,6 @@ const GameSketch = () => {
       }
     };
     
-    // Helper function to clean up any active actions
-    const cleanupActiveActions = () => {
-      if (gameRef.current?.player) {
-        gameRef.current.player.isCollectingCanister = false;
-        gameRef.current.player.isRefuelingHoverbike = false;
-        gameRef.current.player.isRepairingHoverbike = false;
-      }
-      if (gameRef.current) {
-        gameRef.current.sleepingInHut = false;
-      }
-    };
-    
     // Set up listener for resetting game state
     const handleResetGameState = () => {
       if (gameRef.current) {
@@ -314,9 +324,13 @@ const GameSketch = () => {
       }
     };
     
+    // Add event listeners
     window.addEventListener('loadGameState', handleLoadGameState as EventListener);
     window.addEventListener('resetGameState', handleResetGameState as EventListener);
     window.addEventListener('logoutUser', handleLogout as EventListener);
+    
+    // Add a beforeunload event listener to clean up active states
+    window.addEventListener('beforeunload', cleanupActiveActions);
 
     return () => {
       // Clean up any active actions before unmounting
@@ -326,6 +340,7 @@ const GameSketch = () => {
       window.removeEventListener('loadGameState', handleLoadGameState as EventListener);
       window.removeEventListener('resetGameState', handleResetGameState as EventListener);
       window.removeEventListener('logoutUser', handleLogout as EventListener);
+      window.removeEventListener('beforeunload', cleanupActiveActions);
     };
   }, [sketchRef]);
 

@@ -15,7 +15,6 @@ export default class Hoverbike implements HoverbikeType {
   fuel: number;
   maxFuel: number;
   speed: number;
-  speedLevel: number;
   durabilityLevel: number;
   collisionCooldown: number;
   p: any;
@@ -25,6 +24,11 @@ export default class Hoverbike implements HoverbikeType {
   isRiding: boolean;
   thrustIntensity: number;
   flameLength: number;
+  repairAnimation: {
+    active: boolean;
+    sparks: Array<{x: number, y: number, opacity: number, vx: number, vy: number}>;
+    timer: number;
+  };
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -42,13 +46,17 @@ export default class Hoverbike implements HoverbikeType {
     this.fuel = 100;
     this.maxFuel = 100;
     this.speed = 2;
-    this.speedLevel = 0;
     this.durabilityLevel = 0;
     this.collisionCooldown = 0;
     this.previousAcceleration = 0;
     this.isRiding = false;
     this.thrustIntensity = 0;
     this.flameLength = 0;
+    this.repairAnimation = {
+      active: false,
+      sparks: [],
+      timer: 0
+    };
   }
 
   update() {
@@ -61,8 +69,8 @@ export default class Hoverbike implements HoverbikeType {
         this.applyMovement();
       } else {
         // Gradually slow down when out of fuel - even more gradual now
-        this.velocityX *= 0.99; // Even more gradual slowdown (was 0.98)
-        this.velocityY *= 0.99;
+        this.velocityX *= 0.995; // Even more gradual slowdown
+        this.velocityY *= 0.995;
       }
       
       this.checkCollisions();
@@ -99,8 +107,13 @@ export default class Hoverbike implements HoverbikeType {
       this.checkFuelRefill();
       
       // Apply even more gradual slowdown when not riding
-      this.velocityX *= 0.995; // Even more inertia (was 0.99)
-      this.velocityY *= 0.995;
+      this.velocityX *= 0.997; // Even more inertia
+      this.velocityY *= 0.997;
+    }
+    
+    // Update repair animation if active
+    if (this.repairAnimation.active) {
+      this.updateRepairAnimation();
     }
   }
 
@@ -109,7 +122,7 @@ export default class Hoverbike implements HoverbikeType {
     
     // Increased fuel consumption rate
     if (this.p.keyIsDown(this.p.UP_ARROW) && this.fuel > 0) {
-      acceleration = 0.1;
+      acceleration = 0.05; // Reduced from 0.1 to make forward movement slower
       
       // More aggressive fuel consumption when accelerating
       if (this.p.frameCount % 30 === 0) { // Every half second
@@ -131,7 +144,7 @@ export default class Hoverbike implements HoverbikeType {
           acceleration = -0.05;
         } else {
           // We're already moving backward, accelerate backward but slower
-          acceleration = -0.01; // Even more reduced (was -0.015)
+          acceleration = -0.005; // Further reduced from -0.01 to make backward movement even slower
           
           // Slightly reduced but still significant fuel consumption when braking
           if (this.p.frameCount % 30 === 0) {
@@ -144,7 +157,7 @@ export default class Hoverbike implements HoverbikeType {
         }
       } else {
         // If not moving or very slow, go in reverse (slower than before)
-        acceleration = -0.01; // Even more reduced (was -0.015)
+        acceleration = -0.005; // Further reduced from -0.01 to make backward movement even slower
         
         // Slightly reduced but still significant fuel consumption when reversing
         if (this.p.frameCount % 30 === 0) {
@@ -178,8 +191,8 @@ export default class Hoverbike implements HoverbikeType {
     }
     
     // Apply less friction for more inertia
-    this.velocityX *= 0.99; // Even more inertia (was 0.98)
-    this.velocityY *= 0.99;
+    this.velocityX *= 0.995; // Even more inertia (was 0.99)
+    this.velocityY *= 0.995;
   }
 
   applyMovement() {
@@ -307,6 +320,124 @@ export default class Hoverbike implements HoverbikeType {
     }
   }
 
+  startRepairAnimation() {
+    this.repairAnimation.active = true;
+    this.repairAnimation.timer = 0;
+    this.repairAnimation.sparks = [];
+  }
+  
+  updateRepairAnimation() {
+    this.repairAnimation.timer++;
+    
+    // Create new sparks periodically
+    if (this.repairAnimation.timer % 5 === 0) {
+      // Create 3 new sparks at random positions around the hoverbike
+      for (let i = 0; i < 3; i++) {
+        const angle = this.p.random(0, Math.PI * 2);
+        const distance = this.p.random(5, 15);
+        this.repairAnimation.sparks.push({
+          x: this.p.random(-10, 10), // Random position relative to hoverbike center
+          y: this.p.random(-10, 10),
+          opacity: 255,
+          vx: Math.cos(angle) * this.p.random(0.5, 2),
+          vy: Math.sin(angle) * this.p.random(0.5, 2) - this.p.random(0.5, 1.5) // Upward bias
+        });
+      }
+    }
+    
+    // Update existing sparks
+    for (let i = this.repairAnimation.sparks.length - 1; i >= 0; i--) {
+      const spark = this.repairAnimation.sparks[i];
+      spark.x += spark.vx;
+      spark.y += spark.vy;
+      spark.opacity -= this.p.random(5, 15);
+      
+      if (spark.opacity <= 0) {
+        this.repairAnimation.sparks.splice(i, 1);
+      }
+    }
+    
+    // Stop the animation after a while
+    if (this.repairAnimation.timer >= 120) { // 2 seconds at 60fps
+      this.repairAnimation.active = false;
+    }
+  }
+  
+  displayRepairEffects() {
+    if (!this.repairAnimation.active) return;
+    
+    this.p.push();
+    this.p.noStroke();
+    
+    // Draw hammer/wrench animation
+    const toolAngle = Math.sin(this.repairAnimation.timer * 0.2) * 0.5;
+    const toolDistance = 20;
+    
+    this.p.push();
+    this.p.translate(this.x, this.y);
+    
+    // Alternate between hammer and wrench for different repair actions
+    if (this.repairAnimation.timer % 30 < 15) {
+      // Draw hammer
+      this.p.push();
+      this.p.rotate(toolAngle);
+      this.p.translate(toolDistance, 0);
+      
+      // Handle
+      this.p.stroke(60, 40, 20);
+      this.p.strokeWeight(2);
+      this.p.line(0, 0, 0, -15);
+      
+      // Hammer head
+      this.p.fill(150);
+      this.p.noStroke();
+      this.p.rect(-5, -20, 10, 8, 1);
+      
+      this.p.pop();
+    } else {
+      // Draw wrench
+      this.p.push();
+      this.p.rotate(-toolAngle);
+      this.p.translate(-toolDistance, 0);
+      
+      // Wrench body
+      this.p.fill(170, 170, 190);
+      this.p.rotate(-Math.PI/4);
+      this.p.rect(-3, -15, 6, 20, 1);
+      
+      // Wrench head
+      this.p.ellipse(0, -17, 12, 8);
+      this.p.fill(0);
+      this.p.ellipse(0, -17, 6, 4);
+      
+      this.p.pop();
+    }
+    
+    // Draw welding effect occasionally
+    if (this.repairAnimation.timer % 15 < 5) {
+      const weldX = this.p.random(-15, 15);
+      const weldY = this.p.random(-10, 10);
+      
+      // Bright welding spot
+      this.p.fill(255, 255, 200, 220);
+      this.p.ellipse(weldX, weldY, 4, 4);
+      
+      // Outer glow
+      this.p.fill(255, 200, 50, 150);
+      this.p.ellipse(weldX, weldY, 8, 8);
+    }
+    
+    this.p.pop();
+    
+    // Draw individual sparks
+    for (const spark of this.repairAnimation.sparks) {
+      this.p.fill(255, this.p.random(100, 200), 50, spark.opacity);
+      this.p.ellipse(this.x + spark.x, this.y + spark.y, this.p.random(1, 3), this.p.random(1, 3));
+    }
+    
+    this.p.pop();
+  }
+  
   display() {
     if (this.worldX === this.player.worldX && this.worldY === this.player.worldY) {
       this.p.push();
@@ -435,12 +566,10 @@ export default class Hoverbike implements HoverbikeType {
       this.p.ellipse(0, 0, 25, 20);
       
       this.p.pop();
+      
+      // Display repair effects (must be outside the translate/rotate to avoid affecting spark positions)
+      this.displayRepairEffects();
     }
-  }
-
-  upgradeSpeed() {
-    // Remove speed upgrade functionality
-    // This method is kept for backwards compatibility but does nothing now
   }
 
   upgradeDurability() {

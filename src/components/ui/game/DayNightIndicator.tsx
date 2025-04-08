@@ -11,26 +11,11 @@ const DayNightIndicator: React.FC<DayNightIndicatorProps> = ({
   dayTimeIcon,
   dayTimeAngle
 }) => {
-  const prevAngleRef = useRef(dayTimeAngle);
   const iconWrapperRef = useRef<HTMLDivElement>(null);
   
-  // Use a ref to hold the previous angle to prevent jumping
   useEffect(() => {
-    // Calculate the difference between the current and previous angle
-    let angleDiff = Math.abs(dayTimeAngle - prevAngleRef.current);
-    
-    // Handle wrapping around (when going from 2π to 0 or vice versa)
-    if (angleDiff > Math.PI * 1.5) {
-      angleDiff = Math.abs(angleDiff - Math.PI * 2);
-    }
-    
-    // Only update the angle if the change is small (to avoid jumps)
-    // or if it's the first render
-    if (angleDiff < 0.2 || prevAngleRef.current === 0) {
-      if (iconWrapperRef.current) {
-        iconWrapperRef.current.style.transform = `rotate(${dayTimeAngle}rad)`;
-      }
-      prevAngleRef.current = dayTimeAngle;
+    if (iconWrapperRef.current) {
+      iconWrapperRef.current.style.transform = `rotate(${dayTimeAngle}rad)`;
     }
   }, [dayTimeAngle]);
   
@@ -45,7 +30,6 @@ const DayNightIndicator: React.FC<DayNightIndicatorProps> = ({
       <div 
         ref={iconWrapperRef}
         className="absolute w-full h-full flex items-center justify-center"
-        style={{ transform: `rotate(${prevAngleRef.current}rad)` }}
       >
         <div className="w-0.5 h-14 flex flex-col items-center">
           <div className="flex-1"></div>
