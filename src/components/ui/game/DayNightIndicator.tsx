@@ -14,13 +14,19 @@ const DayNightIndicator: React.FC<DayNightIndicatorProps> = ({
   const prevAngleRef = useRef(dayTimeAngle);
   const iconWrapperRef = useRef<HTMLDivElement>(null);
   
-  // Use a ref to hold the previous angle to prevent jumping when buttons are pressed
+  // Use a ref to hold the previous angle to prevent jumping
   useEffect(() => {
-    // Prevent large jumps in angle by detecting them
-    const angleDiff = Math.abs(dayTimeAngle - prevAngleRef.current);
+    // Calculate the difference between the current and previous angle
+    let angleDiff = Math.abs(dayTimeAngle - prevAngleRef.current);
     
-    // Only update the angle if the change is small or it's the first render
-    if (angleDiff < 0.1 || prevAngleRef.current === 0) {
+    // Handle wrapping around (when going from 2π to 0 or vice versa)
+    if (angleDiff > Math.PI * 1.5) {
+      angleDiff = Math.abs(angleDiff - Math.PI * 2);
+    }
+    
+    // Only update the angle if the change is small (to avoid jumps)
+    // or if it's the first render
+    if (angleDiff < 0.2 || prevAngleRef.current === 0) {
       if (iconWrapperRef.current) {
         iconWrapperRef.current.style.transform = `rotate(${dayTimeAngle}rad)`;
       }

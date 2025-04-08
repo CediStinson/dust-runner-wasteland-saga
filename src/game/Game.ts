@@ -22,6 +22,10 @@ export default class Game {
   dayTimeAngle: number; // Position on the circle
   exploredAreas: Set<string>; // Track explored areas
   dayTint: { r: number; g: number; b: number; a: number };
+  sleepingInHut: boolean;
+  sleepStartTime: number;
+  sleepAnimationTimer: number;
+  sleepParticles: Array<{x: number, y: number, z: number, opacity: number, yOffset: number, size: number}>;
 
   constructor(p: any) {
     this.p = p;
@@ -36,6 +40,10 @@ export default class Game {
     this.dayTimeAngle = this.timeOfDay * Math.PI * 2; // Calculate initial angle
     this.exploredAreas = new Set<string>(); // Initialize empty set of explored areas
     this.dayTint = { r: 255, g: 255, b: 255, a: 0 }; // Default tint (no tint)
+    this.sleepingInHut = false;
+    this.sleepStartTime = 0;
+    this.sleepAnimationTimer = 0;
+    this.sleepParticles = [];
     
     this.worldGenerator = new WorldGenerator(p);
     
@@ -214,11 +222,25 @@ export default class Game {
     // Update time of day
     this.updateTimeOfDay();
     
+    // Handle sleeping in hut logic
+    if (this.sleepingInHut) {
+      this.updateSleeping();
+      return; // Skip other updates while sleeping
+    }
+    
     if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
       this.hoverbike.update();
     }
     
     this.player.update();
+    
+    // Check if player is entering the hut at night
+    if (!this.riding && this.worldX === 0 && this.worldY === 0) {
+      if (this.player.checkForHutSleeping() && this.isNightTime()) {
+        this.startSleeping();
+      }
+    }
+    
     this.checkBorder();
     this.worldGenerator.updateWindmillAngle();
     
@@ -255,6 +277,80 @@ export default class Game {
     
     // Update renderer with time of day
     this.renderer.setTimeOfDay(this.timeOfDay);
+  }
+  
+  isNightTime() {
+    // Return true if it's night (between sunset and sunrise)
+    return this.timeOfDay < 0.25 || this.timeOfDay > 0.75;
+  }
+  
+  startSleeping() {
+    this.sleepingInHut = true;
+    this.sleepStartTime = this.timeOfDay;
+    this.sleepAnimationTimer = 0;
+    this.sleepParticles = [];
+    
+    // Create initial sleep particles (Zs)
+    this.createSleepParticles();
+  }
+  
+  createSleepParticles() {
+    // Create Z particles
+    for (let i = 0; i < 3; i++) {
+      this.sleepParticles.push({
+        x: this.p.width / 2,
+        y: this.p.height / 2 - 20,
+        z: i * 30,
+        opacity: 255,
+        yOffset: 0,
+        size: 16 + i * 4
+      });
+    }
+  }
+  
+  updateSleeping() {
+    // Accelerate time while sleeping
+    this.timeOfDay += 0.005; // Much faster time progression (x20 normal speed)
+    if (this.timeOfDay > 1) this.timeOfDay -= 1; // Wrap around if needed
+    
+    // Update sleep animation
+    this.sleepAnimationTimer++;
+    
+    // Update Z particles
+    for (let i = this.sleepParticles.length - 1; i >= 0; i--) {
+      const particle = this.sleepParticles[i];
+      particle.z += 0.5;
+      particle.yOffset -= 0.5;
+      particle.opacity -= 1;
+      
+      // Remove faded particles and create new ones periodically
+      if (particle.opacity <= 0) {
+        this.sleepParticles.splice(i, 1);
+      }
+    }
+    
+    // Create new particles periodically
+    if (this.sleepAnimationTimer % 40 === 0) {
+      this.createSleepParticles();
+    }
+    
+    // End sleeping when it's morning
+    if (this.timeOfDay > 0.25 && this.timeOfDay < 0.3) {
+      this.endSleeping();
+    }
+  }
+  
+  endSleeping() {
+    this.sleepingInHut = false;
+    // Position the player in front of the hut
+    this.player.x = this.p.width / 2;
+    this.player.y = this.p.height / 2 + 30; // In front of the hut
+    
+    // Restore some health to the player
+    this.player.health = Math.min(this.player.health + 30, this.player.maxHealth);
+    
+    // Update UI
+    emitGameStateUpdate(this.player, this.hoverbike);
   }
 
   updateTimeOfDay() {
@@ -333,6 +429,11 @@ export default class Game {
       // Render the world first
       this.renderer.render();
       
+      // Render sleep animation if sleeping
+      if (this.sleepingInHut) {
+        this.renderSleepAnimation();
+      }
+      
       // Apply the day/night tint as an overlay
       this.p.push();
       this.p.fill(this.dayTint.r, this.dayTint.g, this.dayTint.b, this.dayTint.a);
@@ -342,6 +443,35 @@ export default class Game {
     }
   }
   
+  renderSleepAnimation() {
+    // Darken the screen
+    this.p.push();
+    this.p.fill(0, 0, 0, 150);
+    this.p.noStroke();
+    this.p.rect(0, 0, this.p.width, this.p.height);
+    
+    // Render Z particles
+    this.p.textSize(24);
+    this.p.textAlign(this.p.CENTER, this.p.CENTER);
+    this.p.fill(255);
+    this.p.noStroke();
+    
+    for (const particle of this.sleepParticles) {
+      this.p.push();
+      this.p.textSize(particle.size);
+      this.p.fill(255, 255, 255, particle.opacity);
+      this.p.text("Z", particle.x + particle.z, particle.y + particle.yOffset);
+      this.p.pop();
+    }
+    
+    // Show sleeping message
+    this.p.textSize(18);
+    this.p.fill(255);
+    this.p.text("Sleeping until morning...", this.p.width/2, this.p.height/2 + 150);
+    
+    this.p.pop();
+  }
+
   renderMainMenu() {
     // Draw background
     this.p.background(20, 18, 24);
@@ -495,20 +625,8 @@ export default class Game {
     
     if (key === 'r' && !this.riding && this.p.dist(this.player.x, this.player.y, this.hoverbike.x, this.hoverbike.y) < 30 && 
         this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
-      if (this.player.inventory.metal >= 1 && this.hoverbike.health < this.hoverbike.maxHealth) {
-        this.player.inventory.metal--;
-        this.hoverbike.health = this.p.min(this.hoverbike.health + 20, this.hoverbike.maxHealth);
-        emitGameStateUpdate(this.player, this.hoverbike);
-      }
-    }
-    
-    if (key === 's' && !this.riding && this.p.dist(this.player.x, this.player.y, this.hoverbike.x, this.hoverbike.y) < 30 && 
-        this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
-      if (this.player.inventory.metal >= 5) {
-        this.player.inventory.metal -= 5;
-        this.hoverbike.upgradeSpeed();
-        emitGameStateUpdate(this.player, this.hoverbike);
-      }
+      // Start the repair process
+      this.player.startHoverbikeRepair();
     }
   }
 
@@ -583,6 +701,13 @@ export default class Game {
   }
   
   resetToStartScreen() {
+    // Clean up any active events or intervals
+    if (this.player) {
+      this.player.isCollectingCanister = false;
+      this.player.isRefuelingHoverbike = false;
+      this.player.isRepairingHoverbike = false;
+    }
+    this.sleepingInHut = false;
     this.gameStarted = false;
   }
 }

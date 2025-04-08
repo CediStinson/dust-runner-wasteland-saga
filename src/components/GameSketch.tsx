@@ -34,7 +34,7 @@ const GameSketch = () => {
               maxHealth: game.hoverbike?.maxHealth || 100,
               fuel: game.hoverbike?.fuel || 0,
               maxFuel: game.hoverbike?.maxFuel || 100,
-              playerHealth: game.player?.health || 100,
+              playerHealth: game.player?.health || 0,
               maxPlayerHealth: game.player?.maxHealth || 100,
               worldX: game.player?.worldX || 0,
               worldY: game.player?.worldY || 0,
@@ -52,7 +52,8 @@ const GameSketch = () => {
               dayTimeIcon: game.dayTimeIcon,
               dayTimeAngle: game.dayTimeAngle,
               worldData: game.getWorldData(),
-              gameStarted: game.gameStarted
+              gameStarted: game.gameStarted,
+              sleepingInHut: game.sleepingInHut // Add sleeping state to gameStateUpdate
             }
           });
           window.dispatchEvent(event);
@@ -78,6 +79,9 @@ const GameSketch = () => {
     // Set up listener for loading game state
     const handleLoadGameState = (event: CustomEvent) => {
       if (gameRef.current && event.detail) {
+        // Cancel any active actions before loading state
+        cleanupActiveActions();
+        
         const savedState = event.detail;
         
         // Update game state with saved values
@@ -106,6 +110,10 @@ const GameSketch = () => {
           gameRef.current.player.digging = false;
           gameRef.current.player.digTimer = 0;
           gameRef.current.player.digTarget = null;
+          gameRef.current.player.isCollectingCanister = false;
+          gameRef.current.player.isRefuelingHoverbike = false;
+          gameRef.current.player.isRepairingHoverbike = false;
+          gameRef.current.sleepingInHut = false;
         }
         
         // Teleport player to saved world coordinates
@@ -212,12 +220,27 @@ const GameSketch = () => {
       }
     };
     
+    // Helper function to clean up any active actions
+    const cleanupActiveActions = () => {
+      if (gameRef.current?.player) {
+        gameRef.current.player.isCollectingCanister = false;
+        gameRef.current.player.isRefuelingHoverbike = false;
+        gameRef.current.player.isRepairingHoverbike = false;
+      }
+      if (gameRef.current) {
+        gameRef.current.sleepingInHut = false;
+      }
+    };
+    
     // Set up listener for resetting game state
     const handleResetGameState = () => {
       if (gameRef.current) {
         console.log("Completely resetting game state");
         
-        // First, set the game to not started state to show main menu
+        // First, clean up any active actions
+        cleanupActiveActions();
+        
+        // Set the game to not started state to show main menu
         gameRef.current.resetToStartScreen();
         
         // Create a completely new Game instance
@@ -254,16 +277,25 @@ const GameSketch = () => {
             dayTimeIcon: "sun",
             dayTimeAngle: 0,
             worldData: null,
-            gameStarted: false
+            gameStarted: false,
+            sleepingInHut: false
           }
         });
         window.dispatchEvent(resetEvent);
+        
+        // Reload the page after a short delay to ensure a clean state
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
       }
     };
     
     // Set up listener for logout
     const handleLogout = () => {
       if (gameRef.current) {
+        // Clean up any active actions
+        cleanupActiveActions();
+        
         // Set the game to not started state to show main menu
         gameRef.current.resetToStartScreen();
         
@@ -278,7 +310,7 @@ const GameSketch = () => {
         // Wait a moment, then reload page to ensure a clean state
         setTimeout(() => {
           window.location.reload();
-        }, 500);
+        }, 100);
       }
     };
     
@@ -287,6 +319,9 @@ const GameSketch = () => {
     window.addEventListener('logoutUser', handleLogout as EventListener);
 
     return () => {
+      // Clean up any active actions before unmounting
+      cleanupActiveActions();
+      
       myP5.remove();
       window.removeEventListener('loadGameState', handleLoadGameState as EventListener);
       window.removeEventListener('resetGameState', handleResetGameState as EventListener);

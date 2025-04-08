@@ -33,6 +33,9 @@ export default class Player implements PlayerType {
   canisterCollectionTarget: any;
   isRefuelingHoverbike: boolean;
   refuelingProgress: number;
+  isRepairingHoverbike: boolean;
+  repairProgress: number;
+  cactusDamageCooldown: number = 0;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -65,6 +68,8 @@ export default class Player implements PlayerType {
     this.canisterCollectionTarget = null;
     this.isRefuelingHoverbike = false;
     this.refuelingProgress = 0;
+    this.isRepairingHoverbike = false;
+    this.repairProgress = 0;
   }
 
   update() {
@@ -106,7 +111,7 @@ export default class Player implements PlayerType {
             } else if (obs.type === 'hut') {
               collisionRadius = 30; // Hut collision radius
             } else if (obs.type === 'fuelPump') {
-              collisionRadius = 35; // Increased fuel pump collision radius (from 25)
+              collisionRadius = 35; // Increased fuel pump collision radius
             }
             
             let distance = this.p.sqrt(dx * dx + dy * dy);
@@ -122,12 +127,8 @@ export default class Player implements PlayerType {
             
             if (distance < hitboxWidth) {
               willCollide = true;
-              // Apply damage immediately on touch, not just on certain frames
-              const oldHealth = this.health;
-              this.health = this.p.max(0, this.health - 1); // Small continuous damage
-              if (oldHealth !== this.health && this.p.frameCount % 10 === 0) { // Update UI less frequently to avoid spam
-                emitGameStateUpdate(this, this.hoverbike);
-              }
+              // Apply cactus damage with cooldown
+              this.applyCactusDamage();
               break;
             }
           } else if (obs.type === 'fuelCanister' && !obs.collected) {
@@ -152,7 +153,11 @@ export default class Player implements PlayerType {
           this.velY *= -0.5;
         }
         
+        // Check for any nearby cactuses that might damage the player even without collision
+        this.checkForCactusDamage();
+        
         this.checkForCollectableResources();
+        this.checkForHutSleeping();
       }
     } else {
       // When riding, ensure the player's position and angle match the hoverbike
@@ -500,11 +505,14 @@ export default class Player implements PlayerType {
           obs.collected = true;
           this.carryingFuelCanister = true;
           this.canisterCollectCooldown = 30;
+          
+          // Remove the canister from the ground
+          currentObstacles.splice(i, 1);
           return;
         }
       }
     } else {
-      // Remove canister if near fuel pump (new functionality)
+      // Remove canister if near fuel pump
       let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
       let nearFuelPump = false;
       
@@ -565,7 +573,7 @@ export default class Player implements PlayerType {
         return;
       }
       
-      this.canisterCollectionProgress += 0.025; // Collect over ~1.5 seconds
+      this.canisterCollectionProgress += 0.0125; // Reduced speed - takes ~3 seconds now (doubled from 0.025)
       
       if (this.canisterCollectionProgress >= 1) {
         this.carryingFuelCanister = true;
@@ -595,7 +603,7 @@ export default class Player implements PlayerType {
         return;
       }
       
-      this.refuelingProgress += 0.025; // Refuel over ~1.5 seconds
+      this.refuelingProgress += 0.0125; // Slower refueling (doubled from 0.025)
       
       if (this.refuelingProgress >= 1) {
         // Refuel the hoverbike with half its max fuel
@@ -606,6 +614,40 @@ export default class Player implements PlayerType {
         this.canisterCollectCooldown = 30;
         emitGameStateUpdate(this, this.hoverbike);
         clearInterval(refuelInterval);
+      }
+    }, 40);
+  }
+  
+  startHoverbikeRepair() {
+    if (this.inventory.metal < 1 || this.hoverbike.health >= this.hoverbike.maxHealth) {
+      return;
+    }
+    
+    this.isRepairingHoverbike = true;
+    this.repairProgress = 0;
+    
+    // Set a timer to complete the repair
+    const repairInterval = setInterval(() => {
+      if (!this.isRepairingHoverbike) {
+        clearInterval(repairInterval);
+        return;
+      }
+      
+      // Check if player moved away
+      if (this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) > 30) {
+        this.isRepairingHoverbike = false;
+        clearInterval(repairInterval);
+        return;
+      }
+      
+      this.repairProgress += 0.015; // Repair over ~2.5 seconds
+      
+      if (this.repairProgress >= 1) {
+        this.inventory.metal--;
+        this.hoverbike.health = this.p.min(this.hoverbike.health + 20, this.hoverbike.maxHealth);
+        this.isRepairingHoverbike = false;
+        emitGameStateUpdate(this, this.hoverbike);
+        clearInterval(repairInterval);
       }
     }, 40);
   }
@@ -652,6 +694,91 @@ export default class Player implements PlayerType {
       
       this.p.pop();
     }
+    
+    if (this.isRepairingHoverbike) {
+      this.p.push();
+      this.p.translate(this.hoverbike.x, this.hoverbike.y - 25);
+      
+      // Background of the progress bar
+      this.p.fill(0, 0, 0, 150);
+      this.p.rect(-15, 0, 30, 4, 2);
+      
+      // Progress fill
+      this.p.fill(60, 180, 60);
+      this.p.rect(-15, 0, 30 * this.repairProgress, 4, 2);
+      
+      // Text showing action
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(8);
+      this.p.text("Repairing", 0, -5);
+      
+      // Draw repair animation - sparks/tools effect
+      if (this.p.frameCount % 5 === 0) {
+        const sparkX = this.hoverbike.x + this.p.random(-10, 10);
+        const sparkY = this.hoverbike.y + this.p.random(-5, 5);
+        this.p.fill(255, 255, 100);
+        this.p.noStroke();
+        this.p.ellipse(sparkX - this.hoverbike.x, sparkY - this.hoverbike.y, 2, 2);
+      }
+      
+      this.p.pop();
+    }
+  }
+
+  applyCactusDamage() {
+    if (this.cactusDamageCooldown <= 0) {
+      const oldHealth = this.health;
+      this.health = this.p.max(0, this.health - 5); // Increased damage from cactus
+      if (oldHealth !== this.health) {
+        emitGameStateUpdate(this, this.hoverbike);
+      }
+      this.cactusDamageCooldown = 60; // 1 second cooldown (at 60fps)
+    }
+  }
+  
+  checkForCactusDamage() {
+    // Decrement cooldown
+    if (this.cactusDamageCooldown > 0) {
+      this.cactusDamageCooldown--;
+      return;
+    }
+    
+    // Check for nearby cactuses
+    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+    for (let obs of currentObstacles) {
+      if (obs.type === 'cactus') {
+        let dx = this.x - obs.x;
+        let dy = this.y - obs.y;
+        let hitboxWidth = 20 * obs.size; // Slightly wider detection than collision
+        let distance = this.p.sqrt(dx * dx + dy * dy);
+        
+        if (distance < hitboxWidth) {
+          this.applyCactusDamage();
+          break;
+        }
+      }
+    }
+  }
+  
+  checkForHutSleeping() {
+    // Only check when it's night time (gameState will be checked by the game class)
+    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+    for (let obs of currentObstacles) {
+      if (obs.type === 'hut') {
+        // Check if player is in front of the hut (southern side)
+        let dx = this.x - obs.x;
+        let dy = this.y - (obs.y + 25); // Check slightly in front of the hut (south side)
+        let distance = this.p.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 15) {
+          // The game class will handle the actual sleep action
+          // by checking if the player is near a hut and it's night time
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   setRiding(value: boolean) {

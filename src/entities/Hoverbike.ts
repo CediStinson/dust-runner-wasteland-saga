@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -61,9 +60,9 @@ export default class Hoverbike implements HoverbikeType {
       if (this.fuel > 0) {
         this.applyMovement();
       } else {
-        // Gradually slow down when out of fuel - still with inertia
-        this.velocityX *= 0.98; // More gradual slowdown (was 0.95)
-        this.velocityY *= 0.98;
+        // Gradually slow down when out of fuel - even more gradual now
+        this.velocityX *= 0.99; // Even more gradual slowdown (was 0.98)
+        this.velocityY *= 0.99;
       }
       
       this.checkCollisions();
@@ -100,8 +99,8 @@ export default class Hoverbike implements HoverbikeType {
       this.checkFuelRefill();
       
       // Apply even more gradual slowdown when not riding
-      this.velocityX *= 0.99;
-      this.velocityY *= 0.99;
+      this.velocityX *= 0.995; // Even more inertia (was 0.99)
+      this.velocityY *= 0.995;
     }
   }
 
@@ -132,7 +131,7 @@ export default class Hoverbike implements HoverbikeType {
           acceleration = -0.05;
         } else {
           // We're already moving backward, accelerate backward but slower
-          acceleration = -0.015; // Reduced from -0.025 to make backwards movement slower
+          acceleration = -0.01; // Even more reduced (was -0.015)
           
           // Slightly reduced but still significant fuel consumption when braking
           if (this.p.frameCount % 30 === 0) {
@@ -145,7 +144,7 @@ export default class Hoverbike implements HoverbikeType {
         }
       } else {
         // If not moving or very slow, go in reverse (slower than before)
-        acceleration = -0.015; // Reduced from -0.025
+        acceleration = -0.01; // Even more reduced (was -0.015)
         
         // Slightly reduced but still significant fuel consumption when reversing
         if (this.p.frameCount % 30 === 0) {
@@ -178,9 +177,9 @@ export default class Hoverbike implements HoverbikeType {
       this.velocityY += this.p.sin(this.angle) * acceleration;
     }
     
-    // Apply less friction for more inertia - was 0.95
-    this.velocityX *= 0.98;
-    this.velocityY *= 0.98;
+    // Apply less friction for more inertia
+    this.velocityX *= 0.99; // Even more inertia (was 0.98)
+    this.velocityY *= 0.99;
   }
 
   applyMovement() {
@@ -440,10 +439,8 @@ export default class Hoverbike implements HoverbikeType {
   }
 
   upgradeSpeed() {
-    if (this.speedLevel < 3) {
-      this.speedLevel++;
-      this.speed += 0.5;
-    }
+    // Remove speed upgrade functionality
+    // This method is kept for backwards compatibility but does nothing now
   }
 
   upgradeDurability() {
