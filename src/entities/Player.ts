@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -26,6 +27,8 @@ export default class Player implements PlayerType {
   turnSpeed: number;
   hairColor: {r: number, g: number, b: number};
   armAnimationOffset: number;
+  carryingFuelCanister: boolean;
+  canisterCollectCooldown: number;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -51,15 +54,30 @@ export default class Player implements PlayerType {
     this.maxHealth = 100;
     this.hairColor = {r: 255, g: 215, b: 140};
     this.armAnimationOffset = 0;
+    this.carryingFuelCanister = false;
+    this.canisterCollectCooldown = 0;
   }
 
   update() {
+    if (this.canisterCollectCooldown > 0) {
+      this.canisterCollectCooldown--;
+    }
+    
     if (!this.riding) {
       if (this.digging) {
         this.updateDigging();
+        // Animate arms while digging
+        this.armAnimationOffset = this.p.sin(this.p.frameCount * 0.2) * 1.5;
       } else {
         this.handleInput();
         this.applyFriction();
+        
+        // Animate walking movement
+        if (this.p.abs(this.velX) > 0.1 || this.p.abs(this.velY) > 0.1) {
+          this.armAnimationOffset = this.p.sin(this.p.frameCount * 0.2) * 1.2;
+        } else {
+          this.armAnimationOffset = 0;
+        }
         
         let willCollide = false;
         let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
@@ -97,19 +115,30 @@ export default class Player implements PlayerType {
               willCollide = true;
               if (this.p.frameCount % 30 === 0) {
                 const oldHealth = this.health;
-                this.health = this.p.max(0, this.health - 1);
+                this.health = this.p.max(0, this.health - 5); // Increased damage from 1 to 5
                 if (oldHealth !== this.health) {
                   emitGameStateUpdate(this, this.hoverbike);
                 }
               }
               break;
             }
+          } else if (obs.type === 'fuelCanister' && !obs.collected) {
+            let dx = newX - obs.x;
+            let dy = newY - obs.y;
+            let distance = this.p.sqrt(dx * dx + dy * dy);
+            
+            if (distance < 15) { // Canister collision radius
+              willCollide = true;
+              break;
+            }
           }
         }
         
         if (!willCollide) {
-          this.x += this.velX;
-          this.y += this.velY;
+          // Apply slower speed when carrying a fuel canister
+          const speedMultiplier = this.carryingFuelCanister ? 0.7 : 1;
+          this.x += this.velX * speedMultiplier;
+          this.y += this.velY * speedMultiplier;
         } else {
           this.velX *= -0.5;
           this.velY *= -0.5;
@@ -118,9 +147,9 @@ export default class Player implements PlayerType {
         this.checkForCollectableResources();
       }
     } else {
+      // When riding, ensure the player's position and angle match the hoverbike
       this.x = this.hoverbike.x;
       this.y = this.hoverbike.y;
-      
       this.angle = this.hoverbike.angle;
     }
   }
@@ -155,8 +184,9 @@ export default class Player implements PlayerType {
     this.velX += moveX * this.speed * 0.2;
     this.velY += moveY * this.speed * 0.2;
     
-    if (this.p.keyIsDown(69)) {
+    if (this.p.keyIsDown(69)) { // E key
       this.collectResource();
+      this.handleFuelCanister();
     }
   }
 
@@ -175,7 +205,43 @@ export default class Player implements PlayerType {
       this.displayRidingPlayerTopDown();
     } else {
       this.displayStandingPlayerTopDown();
+      
+      // Display fuel canister if carrying one
+      if (this.carryingFuelCanister) {
+        this.displayFuelCanister();
+      }
     }
+    
+    this.p.pop();
+    
+    // Display digging progress if currently digging
+    if (this.digging) {
+      this.p.push();
+      this.p.translate(this.x, this.y);
+      this.displayDigProgress();
+      this.p.pop();
+    }
+  }
+
+  displayFuelCanister() {
+    // Draw fuel canister on player's back
+    this.p.push();
+    // Position the canister behind the player
+    this.p.translate(0, 5);
+    
+    // Canister body
+    this.p.fill(220, 50, 50);
+    this.p.stroke(0);
+    this.p.strokeWeight(0.5);
+    this.p.rect(-3, -3, 6, 6, 1);
+    
+    // Canister cap
+    this.p.fill(50);
+    this.p.rect(-1, -4, 2, 1);
+    
+    // Canister handle
+    this.p.stroke(30);
+    this.p.line(-2, -3, 2, -3);
     
     this.p.pop();
   }
@@ -250,7 +316,7 @@ export default class Player implements PlayerType {
     let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
     
     for (let res of currentResources) {
-      if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
+      if ((res.type === 'metal' || res.type === 'copper') && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
         this.p.push();
         this.p.fill(255, 255, 100, 150);
         this.p.ellipse(res.x, res.y - 15, 5, 5);
@@ -260,6 +326,58 @@ export default class Player implements PlayerType {
         this.p.text("E", res.x, res.y - 13);
         this.p.pop();
       }
+    }
+    
+    // Check for fuel pump to show interaction prompt for fuel canister
+    if (!this.carryingFuelCanister && this.canisterCollectCooldown === 0) {
+      let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+      for (let obs of currentObstacles) {
+        if (obs.type === 'fuelPump' && this.p.dist(this.x, this.y, obs.x, obs.y) < 60) {
+          this.p.push();
+          this.p.fill(255, 255, 100, 150);
+          this.p.ellipse(obs.x, obs.y - 35, 5, 5);
+          this.p.fill(255);
+          this.p.textAlign(this.p.CENTER);
+          this.p.textSize(8);
+          this.p.text("E", obs.x, obs.y - 33);
+          this.p.textSize(6);
+          this.p.text("Get Fuel", obs.x, obs.y - 25);
+          this.p.pop();
+        }
+      }
+    }
+    
+    // Check for ground fuel canisters
+    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+    for (let obs of currentObstacles) {
+      if (obs.type === 'fuelCanister' && !obs.collected && this.p.dist(this.x, this.y, obs.x, obs.y) < 30) {
+        this.p.push();
+        this.p.fill(255, 255, 100, 150);
+        this.p.ellipse(obs.x, obs.y - 15, 5, 5);
+        this.p.fill(255);
+        this.p.textAlign(this.p.CENTER);
+        this.p.textSize(8);
+        this.p.text("E", obs.x, obs.y - 13);
+        this.p.pop();
+      }
+    }
+    
+    // Check for hoverbike when carrying canister
+    if (this.carryingFuelCanister && 
+        this.hoverbike.worldX === this.worldX && 
+        this.hoverbike.worldY === this.worldY &&
+        this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) < 30 &&
+        this.hoverbike.fuel < this.hoverbike.maxFuel) {
+      this.p.push();
+      this.p.fill(255, 255, 100, 150);
+      this.p.ellipse(this.hoverbike.x, this.hoverbike.y - 15, 5, 5);
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(8);
+      this.p.text("E", this.hoverbike.x, this.hoverbike.y - 13);
+      this.p.textSize(6);
+      this.p.text("Refuel", this.hoverbike.x, this.hoverbike.y - 5);
+      this.p.pop();
     }
   }
 
@@ -330,15 +448,91 @@ export default class Player implements PlayerType {
     let progress = this.digTimer / 480;
     
     this.p.push();
-    this.p.translate(0, -10);
+    this.p.translate(0, -20); // Move up above player's head
     
+    // Background of the progress bar
     this.p.fill(0, 0, 0, 150);
     this.p.rect(-progressWidth/2, 0, progressWidth, progressHeight, 2);
     
+    // Progress fill
     this.p.fill(50, 200, 50);
     this.p.rect(-progressWidth/2, 0, progressWidth * progress, progressHeight, 2);
     
+    // Text showing copper
+    this.p.fill(255);
+    this.p.textAlign(this.p.CENTER);
+    this.p.textSize(8);
+    this.p.text("Mining Copper", 0, -5);
+    
     this.p.pop();
+  }
+
+  handleFuelCanister() {
+    if (this.canisterCollectCooldown > 0) return;
+    
+    // Check if we're near the fuel pump and don't have a canister
+    if (!this.carryingFuelCanister) {
+      // Try to pick up from fuel pump
+      let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+      for (let obs of currentObstacles) {
+        if (obs.type === 'fuelPump' && this.p.dist(this.x, this.y, obs.x, obs.y) < 60) {
+          this.carryingFuelCanister = true;
+          this.canisterCollectCooldown = 30; // Prevent instant interactions
+          return;
+        }
+      }
+      
+      // Try to pick up ground canister
+      for (let i = 0; i < currentObstacles.length; i++) {
+        let obs = currentObstacles[i];
+        if (obs.type === 'fuelCanister' && !obs.collected && this.p.dist(this.x, this.y, obs.x, obs.y) < 30) {
+          obs.collected = true;
+          this.carryingFuelCanister = true;
+          this.canisterCollectCooldown = 30;
+          return;
+        }
+      }
+    } else {
+      // Already carrying a canister - check if near hoverbike to refuel
+      if (this.hoverbike.worldX === this.worldX && 
+          this.hoverbike.worldY === this.worldY &&
+          this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) < 30 &&
+          this.hoverbike.fuel < this.hoverbike.maxFuel) {
+        // Refuel the hoverbike with half its max fuel
+        const fuelAmount = this.hoverbike.maxFuel / 2;
+        this.hoverbike.fuel = Math.min(this.hoverbike.fuel + fuelAmount, this.hoverbike.maxFuel);
+        this.carryingFuelCanister = false;
+        this.canisterCollectCooldown = 30;
+        emitGameStateUpdate(this, this.hoverbike);
+        return;
+      }
+      
+      // Drop the canister if not near the fuel pump or hoverbike
+      let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+      let nearFuelPump = false;
+      let nearHoverbike = (this.hoverbike.worldX === this.worldX && 
+                          this.hoverbike.worldY === this.worldY &&
+                          this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) < 30);
+      
+      for (let obs of currentObstacles) {
+        if (obs.type === 'fuelPump' && this.p.dist(this.x, this.y, obs.x, obs.y) < 60) {
+          nearFuelPump = true;
+          break;
+        }
+      }
+      
+      if (!nearFuelPump && !nearHoverbike) {
+        // Drop the canister at player's position
+        currentObstacles.push({
+          type: 'fuelCanister',
+          x: this.x,
+          y: this.y,
+          collected: false
+        });
+        this.carryingFuelCanister = false;
+        this.canisterCollectCooldown = 30;
+      }
+    }
   }
 
   setRiding(value: boolean) {

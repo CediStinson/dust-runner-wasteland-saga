@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -60,9 +61,9 @@ export default class Hoverbike implements HoverbikeType {
       if (this.fuel > 0) {
         this.applyMovement();
       } else {
-        // Gradually slow down when out of fuel
-        this.velocityX *= 0.95;
-        this.velocityY *= 0.95;
+        // Gradually slow down when out of fuel - still with inertia
+        this.velocityX *= 0.98; // More gradual slowdown (was 0.95)
+        this.velocityY *= 0.98;
       }
       
       this.checkCollisions();
@@ -97,6 +98,10 @@ export default class Hoverbike implements HoverbikeType {
       this.thrustIntensity = 0;
       this.flameLength = 0;
       this.checkFuelRefill();
+      
+      // Apply even more gradual slowdown when not riding
+      this.velocityX *= 0.99;
+      this.velocityY *= 0.99;
     }
   }
 
@@ -126,8 +131,8 @@ export default class Hoverbike implements HoverbikeType {
           // We're moving forward, apply braking
           acceleration = -0.05;
         } else {
-          // We're already moving backward, accelerate backward
-          acceleration = -0.025;
+          // We're already moving backward, accelerate backward but slower
+          acceleration = -0.015; // Reduced from -0.025 to make backwards movement slower
           
           // Slightly reduced but still significant fuel consumption when braking
           if (this.p.frameCount % 30 === 0) {
@@ -139,8 +144,8 @@ export default class Hoverbike implements HoverbikeType {
           }
         }
       } else {
-        // If not moving or very slow, go in reverse
-        acceleration = -0.025;
+        // If not moving or very slow, go in reverse (slower than before)
+        acceleration = -0.015; // Reduced from -0.025
         
         // Slightly reduced but still significant fuel consumption when reversing
         if (this.p.frameCount % 30 === 0) {
@@ -173,8 +178,9 @@ export default class Hoverbike implements HoverbikeType {
       this.velocityY += this.p.sin(this.angle) * acceleration;
     }
     
-    this.velocityX *= 0.95;
-    this.velocityY *= 0.95;
+    // Apply less friction for more inertia - was 0.95
+    this.velocityX *= 0.98;
+    this.velocityY *= 0.98;
   }
 
   applyMovement() {
@@ -193,7 +199,7 @@ export default class Hoverbike implements HoverbikeType {
         if (obs.type === 'rock') {
           let hitboxWidth = 28 * obs.size * (obs.aspectRatio > 1 ? obs.aspectRatio : 1);
           let hitboxHeight = 28 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
-          collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.5;
+          collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.2; // Fixed hitbox size for rocks (was 1.5)
         } else if (obs.type === 'hut') {
           collisionRadius = 30; // Hut collision radius
         } else if (obs.type === 'fuelPump') {

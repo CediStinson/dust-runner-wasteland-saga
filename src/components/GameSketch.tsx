@@ -40,10 +40,11 @@ const GameSketch = () => {
               worldY: game.player?.worldY || 0,
               playerX: game.player?.x || 0, 
               playerY: game.player?.y || 0,
-              playerAngle: game.player?.angle || 0, // Save player rotation angle
+              playerAngle: game.player?.angle || 0,
+              carryingFuelCanister: game.player?.carryingFuelCanister || false,
               hoverbikeX: game.hoverbike?.x || 0,
               hoverbikeY: game.hoverbike?.y || 0,
-              hoverbikeAngle: game.hoverbike?.angle || 0, // Save hoverbike rotation angle
+              hoverbikeAngle: game.hoverbike?.angle || 0,
               hoverbikeWorldX: game.hoverbike?.worldX || 0,
               hoverbikeWorldY: game.hoverbike?.worldY || 0,
               baseWorldX: 0,
@@ -131,6 +132,11 @@ const GameSketch = () => {
                 gameRef.current.player.angle = savedState.playerAngle;
                 gameRef.current.player.lastAngle = savedState.playerAngle; // Also set the lastAngle for smooth turning
               }
+              
+              // Restore fuel canister state if available
+              if (savedState.carryingFuelCanister !== undefined) {
+                gameRef.current.player.carryingFuelCanister = savedState.carryingFuelCanister;
+              }
             } else {
               // Fallback to center of screen
               gameRef.current.player.x = gameRef.current.p.width / 2;
@@ -211,6 +217,9 @@ const GameSketch = () => {
       if (gameRef.current) {
         console.log("Completely resetting game state");
         
+        // First, set the game to not started state to show main menu
+        gameRef.current.resetToStartScreen();
+        
         // Create a completely new Game instance
         const newGame = new Game(gameRef.current.p);
         gameRef.current = newGame;
@@ -234,6 +243,7 @@ const GameSketch = () => {
             playerX: newGame.player?.x || 0, 
             playerY: newGame.player?.y || 0,
             playerAngle: 0,
+            carryingFuelCanister: false,
             hoverbikeX: newGame.hoverbike?.x || 0,
             hoverbikeY: newGame.hoverbike?.y || 0,
             hoverbikeAngle: 0,
@@ -251,13 +261,36 @@ const GameSketch = () => {
       }
     };
     
+    // Set up listener for logout
+    const handleLogout = () => {
+      if (gameRef.current) {
+        // Set the game to not started state to show main menu
+        gameRef.current.resetToStartScreen();
+        
+        // Update UI to reflect the change
+        const logoutEvent = new CustomEvent('gameStateUpdate', {
+          detail: {
+            gameStarted: false
+          }
+        });
+        window.dispatchEvent(logoutEvent);
+        
+        // Wait a moment, then reload page to ensure a clean state
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
+    };
+    
     window.addEventListener('loadGameState', handleLoadGameState as EventListener);
     window.addEventListener('resetGameState', handleResetGameState as EventListener);
+    window.addEventListener('logoutUser', handleLogout as EventListener);
 
     return () => {
       myP5.remove();
       window.removeEventListener('loadGameState', handleLoadGameState as EventListener);
       window.removeEventListener('resetGameState', handleResetGameState as EventListener);
+      window.removeEventListener('logoutUser', handleLogout as EventListener);
     };
   }, [sketchRef]);
 

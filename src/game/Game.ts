@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -219,6 +220,37 @@ export default class Game {
     this.player.update();
     this.checkBorder();
     this.worldGenerator.updateWindmillAngle();
+    
+    // Render fuel canisters in the current area
+    if (this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`]) {
+      for (const obstacle of this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`]) {
+        if (obstacle.type === 'fuelCanister' && !obstacle.collected) {
+          this.p.push();
+          this.p.translate(obstacle.x, obstacle.y);
+          
+          // Draw shadow
+          this.p.fill(0, 0, 0, 50);
+          this.p.noStroke();
+          this.p.ellipse(0, 2, 10, 6);
+          
+          // Canister body
+          this.p.fill(220, 50, 50);
+          this.p.stroke(0);
+          this.p.strokeWeight(1);
+          this.p.rect(-4, -5, 8, 10, 1);
+          
+          // Canister cap
+          this.p.fill(50);
+          this.p.rect(-2, -7, 4, 2);
+          
+          // Canister handle
+          this.p.stroke(30);
+          this.p.line(-3, -5, 3, -5);
+          
+          this.p.pop();
+        }
+      }
+    }
     
     // Update renderer with time of day
     this.renderer.setTimeOfDay(this.timeOfDay);
@@ -490,5 +522,9 @@ export default class Game {
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
       this.exploredAreas.add(currentAreaKey);
     }
+  }
+  
+  resetToStartScreen() {
+    this.gameStarted = false;
   }
 }

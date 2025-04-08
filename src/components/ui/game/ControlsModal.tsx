@@ -1,8 +1,7 @@
 
 import React from 'react';
+import { X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { LogOut, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { resetGameState } from '@/lib/supabase';
 
@@ -11,98 +10,99 @@ interface ControlsModalProps {
   setShowControls: (show: boolean) => void;
 }
 
-const ControlsModal: React.FC<ControlsModalProps> = ({
-  showControls,
-  setShowControls
-}) => {
-  const { user, signOut } = useAuth();
+const ControlsModal: React.FC<ControlsModalProps> = ({ showControls, setShowControls }) => {
+  const { user } = useAuth();
   const { toast } = useToast();
 
-  const handleLogout = async () => {
-    await signOut();
-    setShowControls(false);
-  };
-
-  const handleResetGame = async () => {
-    // If logged in, delete the saved game data
+  const handleReset = async () => {
+    // First dispatch event to reset the game in the canvas
+    const event = new CustomEvent('resetGameState');
+    window.dispatchEvent(event);
+    
+    // If user is logged in, also clear their saved game data
     if (user) {
-      const result = await resetGameState(user.id);
-      if (result.success) {
+      try {
+        const result = await resetGameState(user.id);
+        
+        if (result.success) {
+          toast({
+            title: "Game reset",
+            description: "Your saved game has been reset successfully."
+          });
+        } else {
+          toast({
+            title: "Reset failed",
+            description: result.message,
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
         toast({
-          title: "Game Reset",
-          description: "Your game has been reset successfully.",
-        });
-      } else {
-        toast({
-          title: "Reset Failed",
-          description: result.message,
-          variant: "destructive",
+          title: "Reset failed",
+          description: "There was a problem resetting your game.",
+          variant: "destructive"
         });
       }
     }
     
-    // First immediately hide the controls
+    // Close the controls modal
     setShowControls(false);
-    
-    // Send an event to the game that it's being reset
-    // This ensures components have a chance to clean up
-    const gameResetEvent = new CustomEvent('gameStateUpdate', {
-      detail: {
-        gameStarted: false
-      }
-    });
-    window.dispatchEvent(gameResetEvent);
-    
-    // Then trigger the reset event
-    const resetEvent = new Event('resetGameState');
-    window.dispatchEvent(resetEvent);
-    
-    // Force a page reload after a short delay to ensure clean state
-    // The delay allows events to be processed first
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
   };
 
   if (!showControls) return null;
-
+  
   return (
-    <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-      <div className="bg-black/80 rounded-lg p-6 border border-white/20 backdrop-blur-md pointer-events-auto max-w-md w-full">
-        <h2 className="text-xl font-bold text-white mb-4">Game Controls</h2>
-        <ul className="space-y-2 text-left">
-          <li className="text-gray-300">Arrow keys - Move character/control hoverbike</li>
-          <li className="text-gray-300">F - Enter/exit hoverbike</li>
-          <li className="text-gray-300">E - Collect metal/mine copper</li>
-        </ul>
-        <div className="mt-6 flex flex-col space-y-2">
-          <Button 
-            onClick={handleResetGame}
-            variant="secondary"
-            className="w-full"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Reset Game
-          </Button>
-          
-          <Button 
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center pointer-events-auto">
+      <div className="bg-gray-900 p-6 rounded-lg border border-gray-700 shadow-xl w-full max-w-lg">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-white">Game Controls</h2>
+          <button 
             onClick={() => setShowControls(false)}
-            variant="outline"
-            className="w-full"
+            className="text-gray-400 hover:text-white"
           >
-            Close
-          </Button>
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="space-y-4 text-gray-300">
+          <div>
+            <h3 className="text-lg font-medium text-white mb-2">Movement</h3>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><span className="text-white font-mono">Arrow Keys</span> - Move your character or hoverbike</li>
+            </ul>
+          </div>
           
-          {user && (
-            <Button 
-              onClick={handleLogout}
-              variant="destructive"
-              className="w-full"
+          <div>
+            <h3 className="text-lg font-medium text-white mb-2">Interactions</h3>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><span className="text-white font-mono">E</span> - Interact (collect resources, mine copper)</li>
+              <li><span className="text-white font-mono">F</span> - Get on/off hoverbike</li>
+              <li><span className="text-white font-mono">R</span> - Repair hoverbike (costs 1 metal)</li>
+              <li><span className="text-white font-mono">S</span> - Upgrade hoverbike speed (costs 5 metal)</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-medium text-white mb-2">Tips</h3>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Collect metal scraps to repair your hoverbike</li>
+              <li>Mine copper deposits for crafting upgrades</li>
+              <li>Return to base when low on fuel</li>
+              <li>Avoid cacti - they damage you</li>
+              <li>Carry fuel canisters from the fuel pump to refuel your hoverbike</li>
+              <li>The world is procedurally generated - explore freely!</li>
+            </ul>
+          </div>
+          
+          <div className="pt-4 border-t border-gray-700">
+            <button
+              onClick={handleReset}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium transition-colors"
             >
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
-          )}
+              Reset Game
+            </button>
+            <p className="text-xs text-gray-500 mt-1">This will reset all progress.</p>
+          </div>
         </div>
       </div>
     </div>

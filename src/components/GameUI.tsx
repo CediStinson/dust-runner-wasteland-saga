@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Save, Settings } from 'lucide-react';
+import { Save, Settings, LogOut } from 'lucide-react';
 import DayNightIndicator from './ui/game/DayNightIndicator';
 import CompassIndicator from './ui/game/CompassIndicator';
 import ResourcesDisplay from './ui/game/ResourcesDisplay';
@@ -27,6 +28,7 @@ interface GameUIProps {
   refueling?: boolean;
   refuelProgress?: number;
   onSaveGame?: () => void;
+  onLogout?: () => void;
 }
 
 const GameUI: React.FC<GameUIProps> = ({ 
@@ -46,7 +48,8 @@ const GameUI: React.FC<GameUIProps> = ({
   dayTimeAngle = 0,
   refueling = false,
   refuelProgress = 0,
-  onSaveGame
+  onSaveGame,
+  onLogout
 }) => {
   const [showControls, setShowControls] = useState(false);
   const { user } = useAuth();
@@ -64,16 +67,23 @@ const GameUI: React.FC<GameUIProps> = ({
       });
     }
   };
+  
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    }
+  };
 
   return (
     <>
       <div className="absolute top-0 left-0 right-0 p-2.5 pointer-events-none">
         <div className="container mx-auto flex justify-between">
-          {/* Settings and Save buttons */}
+          {/* Settings, Save, and Logout buttons */}
           <div className="pointer-events-auto flex gap-2">
             <button 
               onClick={() => setShowControls(!showControls)}
               className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
+              aria-label="Settings"
             >
               <Settings size={18} />
             </button>
@@ -81,9 +91,20 @@ const GameUI: React.FC<GameUIProps> = ({
             <button 
               onClick={handleSaveGame}
               className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
+              aria-label="Save"
             >
               <Save size={18} />
             </button>
+            
+            {user && (
+              <button 
+                onClick={handleLogout}
+                className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
+                aria-label="Logout"
+              >
+                <LogOut size={18} />
+              </button>
+            )}
           </div>
           
           {/* Compass and Day/Night Indicator */}

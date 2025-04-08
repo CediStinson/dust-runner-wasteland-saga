@@ -27,6 +27,7 @@ const Index = () => {
   const [playerX, setPlayerX] = useState(0);
   const [playerY, setPlayerY] = useState(0);
   const [playerAngle, setPlayerAngle] = useState(0);
+  const [carryingFuelCanister, setCarryingFuelCanister] = useState(false);
   const [hoverbikeX, setHoverbikeX] = useState(0);
   const [hoverbikeY, setHoverbikeY] = useState(0);
   const [hoverbikeAngle, setHoverbikeAngle] = useState(0);
@@ -56,6 +57,7 @@ const Index = () => {
       playerX,
       playerY,
       playerAngle,
+      carryingFuelCanister,
       hoverbikeX,
       hoverbikeY,
       hoverbikeAngle,
@@ -111,6 +113,7 @@ const Index = () => {
     setPlayerX(savedState.playerX || 0);
     setPlayerY(savedState.playerY || 0);
     setPlayerAngle(savedState.playerAngle || 0);
+    setCarryingFuelCanister(savedState.carryingFuelCanister || false);
     setHoverbikeX(savedState.hoverbikeX || 0);
     setHoverbikeY(savedState.hoverbikeY || 0);
     setHoverbikeAngle(savedState.hoverbikeAngle || 0);
@@ -126,6 +129,30 @@ const Index = () => {
       detail: savedState
     });
     window.dispatchEvent(loadEvent);
+  };
+  
+  const handleLogout = async () => {
+    if (user) {
+      try {
+        // Dispatch a logout event to reset the game
+        const event = new CustomEvent('logoutUser');
+        window.dispatchEvent(event);
+        
+        // Sign out the user
+        await signOut();
+        
+        toast({
+          title: "Logged out",
+          description: "You have been logged out successfully.",
+        });
+      } catch (error) {
+        toast({
+          title: "Logout failed",
+          description: "There was a problem logging you out.",
+          variant: "destructive",
+        });
+      }
+    }
   };
   
   useEffect(() => {
@@ -150,6 +177,7 @@ const Index = () => {
       const { 
         resources, copper, health, maxHealth, fuel, maxFuel,
         playerHealth, maxPlayerHealth, worldX, worldY, playerX, playerY, playerAngle,
+        carryingFuelCanister,
         hoverbikeX, hoverbikeY, hoverbikeAngle, hoverbikeWorldX, hoverbikeWorldY,
         baseWorldX, baseWorldY, dayTimeIcon, dayTimeAngle, worldData, gameStarted
       } = event.detail;
@@ -168,6 +196,7 @@ const Index = () => {
       setPlayerX(playerX !== undefined ? playerX : 0);
       setPlayerY(playerY !== undefined ? playerY : 0);
       setPlayerAngle(playerAngle !== undefined ? playerAngle : 0);
+      setCarryingFuelCanister(carryingFuelCanister !== undefined ? carryingFuelCanister : false);
       setHoverbikeX(hoverbikeX !== undefined ? hoverbikeX : 0);
       setHoverbikeY(hoverbikeY !== undefined ? hoverbikeY : 0);
       setHoverbikeAngle(hoverbikeAngle !== undefined ? hoverbikeAngle : 0);
@@ -216,6 +245,7 @@ const Index = () => {
         dayTimeIcon={dayTimeIcon}
         dayTimeAngle={dayTimeAngle}
         onSaveGame={handleSaveGame}
+        onLogout={handleLogout}
       />
       
       {!user && !gameStarted && (
