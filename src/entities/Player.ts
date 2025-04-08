@@ -11,6 +11,7 @@ export default class Player implements PlayerType {
   inventory: { [key: string]: number };
   angle: number;
   digging: boolean;
+  isDigging: boolean;
   digTimer: number;
   digTarget: any;
   health: number;
@@ -36,6 +37,7 @@ export default class Player implements PlayerType {
   isRepairingHoverbike: boolean;
   repairProgress: number;
   cactusDamageCooldown: number = 0;
+  droppingCanister: boolean;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -55,6 +57,7 @@ export default class Player implements PlayerType {
     this.lastAngle = 0;
     this.turnSpeed = 0.15;
     this.digging = false;
+    this.isDigging = false;
     this.digTimer = 0;
     this.digTarget = null;
     this.health = 100;
@@ -70,6 +73,7 @@ export default class Player implements PlayerType {
     this.refuelingProgress = 0;
     this.isRepairingHoverbike = false;
     this.repairProgress = 0;
+    this.droppingCanister = false;
   }
 
   update() {
@@ -80,13 +84,11 @@ export default class Player implements PlayerType {
     if (!this.riding) {
       if (this.digging) {
         this.updateDigging();
-        // Animate arms while digging
         this.armAnimationOffset = this.p.sin(this.p.frameCount * 0.2) * 1.5;
       } else {
         this.handleInput();
         this.applyFriction();
         
-        // Animate walking movement
         if (this.p.abs(this.velX) > 0.1 || this.p.abs(this.velY) > 0.1) {
           this.armAnimationOffset = this.p.sin(this.p.frameCount * 0.2) * 1.2;
         } else {
@@ -109,9 +111,9 @@ export default class Player implements PlayerType {
               let hitboxHeight = 28 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
               collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.5;
             } else if (obs.type === 'hut') {
-              collisionRadius = 30; // Hut collision radius
+              collisionRadius = 30;
             } else if (obs.type === 'fuelPump') {
-              collisionRadius = 35; // Increased fuel pump collision radius
+              collisionRadius = 35;
             }
             
             let distance = this.p.sqrt(dx * dx + dy * dy);
@@ -127,7 +129,6 @@ export default class Player implements PlayerType {
             
             if (distance < hitboxWidth) {
               willCollide = true;
-              // Apply cactus damage with cooldown
               this.applyCactusDamage();
               break;
             }
@@ -136,7 +137,7 @@ export default class Player implements PlayerType {
             let dy = newY - obs.y;
             let distance = this.p.sqrt(dx * dx + dy * dy);
             
-            if (distance < 15) { // Canister collision radius
+            if (distance < 15) {
               willCollide = true;
               break;
             }
@@ -144,7 +145,6 @@ export default class Player implements PlayerType {
         }
         
         if (!willCollide) {
-          // Apply slower speed when carrying a fuel canister
           const speedMultiplier = this.carryingFuelCanister ? 0.7 : 1;
           this.x += this.velX * speedMultiplier;
           this.y += this.velY * speedMultiplier;
@@ -153,14 +153,12 @@ export default class Player implements PlayerType {
           this.velY *= -0.5;
         }
         
-        // Check for any nearby cactuses that might damage the player even without collision
         this.checkForCactusDamage();
         
         this.checkForCollectableResources();
         this.checkForHutSleeping();
       }
     } else {
-      // When riding, ensure the player's position and angle match the hoverbike
       this.x = this.hoverbike.x;
       this.y = this.hoverbike.y;
       this.angle = this.hoverbike.angle;
@@ -197,7 +195,7 @@ export default class Player implements PlayerType {
     this.velX += moveX * this.speed * 0.2;
     this.velY += moveY * this.speed * 0.2;
     
-    if (this.p.keyIsDown(69)) { // E key
+    if (this.p.keyIsDown(69)) {
       this.collectResource();
       this.handleFuelCanister();
     }
@@ -219,7 +217,6 @@ export default class Player implements PlayerType {
     } else {
       this.displayStandingPlayerTopDown();
       
-      // Display fuel canister if carrying one
       if (this.carryingFuelCanister) {
         this.displayFuelCanister();
       }
@@ -227,7 +224,6 @@ export default class Player implements PlayerType {
     
     this.p.pop();
     
-    // Display digging progress if currently digging
     if (this.digging) {
       this.p.push();
       this.p.translate(this.x, this.y);
@@ -235,27 +231,21 @@ export default class Player implements PlayerType {
       this.p.pop();
     }
     
-    // Display fuel-related progress bars
     this.displayFuelProgressBars();
   }
 
   displayFuelCanister() {
-    // Draw fuel canister on player's back
     this.p.push();
-    // Position the canister behind the player
     this.p.translate(0, 5);
     
-    // Canister body
     this.p.fill(220, 50, 50);
     this.p.stroke(0);
     this.p.strokeWeight(0.5);
     this.p.rect(-3, -3, 6, 6, 1);
     
-    // Canister cap
     this.p.fill(50);
     this.p.rect(-1, -4, 2, 1);
     
-    // Canister handle
     this.p.stroke(30);
     this.p.line(-2, -3, 2, -3);
     
@@ -344,7 +334,6 @@ export default class Player implements PlayerType {
       }
     }
     
-    // Check for fuel pump to show interaction prompt for fuel canister
     if (!this.carryingFuelCanister && this.canisterCollectCooldown === 0) {
       let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
       for (let obs of currentObstacles) {
@@ -363,7 +352,6 @@ export default class Player implements PlayerType {
       }
     }
     
-    // Check for ground fuel canisters
     let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
     for (let i = 0; i < currentObstacles.length; i++) {
       let obs = currentObstacles[i];
@@ -379,7 +367,6 @@ export default class Player implements PlayerType {
       }
     }
     
-    // Check for hoverbike when carrying canister
     if (this.carryingFuelCanister && 
         this.hoverbike.worldX === this.worldX && 
         this.hoverbike.worldY === this.worldY &&
@@ -423,6 +410,7 @@ export default class Player implements PlayerType {
   
   startDigging(target: any) {
     this.digging = true;
+    this.isDigging = true;
     this.digTimer = 0;
     this.digTarget = target;
     emitGameStateUpdate(this, this.hoverbike);
@@ -435,6 +423,7 @@ export default class Player implements PlayerType {
     
     if (this.digTimer >= 480) {
       this.digging = false;
+      this.isDigging = false;
       
       let copperAmount = this.p.floor(this.p.random(1, 4));
       this.inventory.copper += copperAmount;
@@ -455,6 +444,7 @@ export default class Player implements PlayerType {
         this.p.keyIsDown(this.p.LEFT_ARROW) || this.p.keyIsDown(this.p.RIGHT_ARROW) ||
         !this.digTarget || this.p.dist(this.x, this.y, this.digTarget.x, this.digTarget.y) > 30) {
       this.digging = false;
+      this.isDigging = false;
       this.digTarget = null;
     }
   }
@@ -465,17 +455,14 @@ export default class Player implements PlayerType {
     let progress = this.digTimer / 480;
     
     this.p.push();
-    this.p.translate(0, -20); // Move up above player's head
+    this.p.translate(0, -20);
     
-    // Background of the progress bar
     this.p.fill(0, 0, 0, 150);
     this.p.rect(-progressWidth/2, 0, progressWidth, progressHeight, 2);
     
-    // Progress fill
     this.p.fill(50, 200, 50);
     this.p.rect(-progressWidth/2, 0, progressWidth * progress, progressHeight, 2);
     
-    // Text showing copper
     this.p.fill(255);
     this.p.textAlign(this.p.CENTER);
     this.p.textSize(8);
@@ -487,9 +474,7 @@ export default class Player implements PlayerType {
   handleFuelCanister() {
     if (this.canisterCollectCooldown > 0) return;
     
-    // Check if we're near the fuel pump and don't have a canister
     if (!this.carryingFuelCanister) {
-      // Try to pick up from fuel pump
       let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
       for (let obs of currentObstacles) {
         if (obs.type === 'fuelPump' && this.p.dist(this.x, this.y, obs.x, obs.y) < 60) {
@@ -498,7 +483,6 @@ export default class Player implements PlayerType {
         }
       }
       
-      // Try to pick up ground canister
       for (let i = 0; i < currentObstacles.length; i++) {
         let obs = currentObstacles[i];
         if (obs.type === 'fuelCanister' && !obs.collected && this.p.dist(this.x, this.y, obs.x, obs.y) < 30) {
@@ -506,13 +490,11 @@ export default class Player implements PlayerType {
           this.carryingFuelCanister = true;
           this.canisterCollectCooldown = 30;
           
-          // Remove the canister from the ground
           currentObstacles.splice(i, 1);
           return;
         }
       }
     } else {
-      // Remove canister if near fuel pump
       let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
       let nearFuelPump = false;
       
@@ -525,7 +507,6 @@ export default class Player implements PlayerType {
         }
       }
       
-      // Already carrying a canister - check if near hoverbike to refuel
       if (this.hoverbike.worldX === this.worldX && 
           this.hoverbike.worldY === this.worldY &&
           this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) < 30 &&
@@ -535,13 +516,11 @@ export default class Player implements PlayerType {
         return;
       }
       
-      // Drop the canister if not near the fuel pump or hoverbike
       let nearHoverbike = (this.hoverbike.worldX === this.worldX && 
                           this.hoverbike.worldY === this.worldY &&
                           this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) < 30);
       
       if (!nearFuelPump && !nearHoverbike) {
-        // Drop the canister at player's position
         currentObstacles.push({
           type: 'fuelCanister',
           x: this.x,
@@ -559,21 +538,19 @@ export default class Player implements PlayerType {
     this.canisterCollectionProgress = 0;
     this.canisterCollectionTarget = fuelPump;
     
-    // Set a timer to complete the collection
     const collectInterval = setInterval(() => {
       if (!this.isCollectingCanister) {
         clearInterval(collectInterval);
         return;
       }
       
-      // Check if player moved away
       if (this.p.dist(this.x, this.y, this.canisterCollectionTarget.x, this.canisterCollectionTarget.y) > 60) {
         this.isCollectingCanister = false;
         clearInterval(collectInterval);
         return;
       }
       
-      this.canisterCollectionProgress += 0.0125; // Reduced speed - takes ~3 seconds now (doubled from 0.025)
+      this.canisterCollectionProgress += 0.0125;
       
       if (this.canisterCollectionProgress >= 1) {
         this.carryingFuelCanister = true;
@@ -589,24 +566,21 @@ export default class Player implements PlayerType {
     this.isRefuelingHoverbike = true;
     this.refuelingProgress = 0;
     
-    // Set a timer to complete the refueling
     const refuelInterval = setInterval(() => {
       if (!this.isRefuelingHoverbike) {
         clearInterval(refuelInterval);
         return;
       }
       
-      // Check if player moved away
       if (this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) > 30) {
         this.isRefuelingHoverbike = false;
         clearInterval(refuelInterval);
         return;
       }
       
-      this.refuelingProgress += 0.0125; // Slower refueling (doubled from 0.025)
+      this.refuelingProgress += 0.0125;
       
       if (this.refuelingProgress >= 1) {
-        // Refuel the hoverbike with half its max fuel
         const fuelAmount = this.hoverbike.maxFuel / 2;
         this.hoverbike.fuel = Math.min(this.hoverbike.fuel + fuelAmount, this.hoverbike.maxFuel);
         this.carryingFuelCanister = false;
@@ -626,21 +600,19 @@ export default class Player implements PlayerType {
     this.isRepairingHoverbike = true;
     this.repairProgress = 0;
     
-    // Set a timer to complete the repair
     const repairInterval = setInterval(() => {
       if (!this.isRepairingHoverbike) {
         clearInterval(repairInterval);
         return;
       }
       
-      // Check if player moved away
       if (this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) > 30) {
         this.isRepairingHoverbike = false;
         clearInterval(repairInterval);
         return;
       }
       
-      this.repairProgress += 0.015; // Repair over ~2.5 seconds
+      this.repairProgress += 0.015;
       
       if (this.repairProgress >= 1) {
         this.inventory.metal--;
@@ -657,15 +629,12 @@ export default class Player implements PlayerType {
       this.p.push();
       this.p.translate(this.canisterCollectionTarget.x, this.canisterCollectionTarget.y - 40);
       
-      // Background of the progress bar
       this.p.fill(0, 0, 0, 150);
       this.p.rect(-15, 0, 30, 4, 2);
       
-      // Progress fill
       this.p.fill(220, 50, 50);
       this.p.rect(-15, 0, 30 * this.canisterCollectionProgress, 4, 2);
       
-      // Text showing action
       this.p.fill(255);
       this.p.textAlign(this.p.CENTER);
       this.p.textSize(8);
@@ -678,15 +647,12 @@ export default class Player implements PlayerType {
       this.p.push();
       this.p.translate(this.hoverbike.x, this.hoverbike.y - 25);
       
-      // Background of the progress bar
       this.p.fill(0, 0, 0, 150);
       this.p.rect(-15, 0, 30, 4, 2);
       
-      // Progress fill
       this.p.fill(220, 50, 50);
       this.p.rect(-15, 0, 30 * this.refuelingProgress, 4, 2);
       
-      // Text showing action
       this.p.fill(255);
       this.p.textAlign(this.p.CENTER);
       this.p.textSize(8);
@@ -699,21 +665,17 @@ export default class Player implements PlayerType {
       this.p.push();
       this.p.translate(this.hoverbike.x, this.hoverbike.y - 25);
       
-      // Background of the progress bar
       this.p.fill(0, 0, 0, 150);
       this.p.rect(-15, 0, 30, 4, 2);
       
-      // Progress fill
       this.p.fill(60, 180, 60);
       this.p.rect(-15, 0, 30 * this.repairProgress, 4, 2);
       
-      // Text showing action
       this.p.fill(255);
       this.p.textAlign(this.p.CENTER);
       this.p.textSize(8);
       this.p.text("Repairing", 0, -5);
       
-      // Draw repair animation - sparks/tools effect
       if (this.p.frameCount % 5 === 0) {
         const sparkX = this.hoverbike.x + this.p.random(-10, 10);
         const sparkY = this.hoverbike.y + this.p.random(-5, 5);
@@ -729,28 +691,26 @@ export default class Player implements PlayerType {
   applyCactusDamage() {
     if (this.cactusDamageCooldown <= 0) {
       const oldHealth = this.health;
-      this.health = this.p.max(0, this.health - 5); // Increased damage from cactus
+      this.health = this.p.max(0, this.health - 5);
       if (oldHealth !== this.health) {
         emitGameStateUpdate(this, this.hoverbike);
       }
-      this.cactusDamageCooldown = 60; // 1 second cooldown (at 60fps)
+      this.cactusDamageCooldown = 60;
     }
   }
   
   checkForCactusDamage() {
-    // Decrement cooldown
     if (this.cactusDamageCooldown > 0) {
       this.cactusDamageCooldown--;
       return;
     }
     
-    // Check for nearby cactuses
     let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
     for (let obs of currentObstacles) {
       if (obs.type === 'cactus') {
         let dx = this.x - obs.x;
         let dy = this.y - obs.y;
-        let hitboxWidth = 20 * obs.size; // Slightly wider detection than collision
+        let hitboxWidth = 20 * obs.size;
         let distance = this.p.sqrt(dx * dx + dy * dy);
         
         if (distance < hitboxWidth) {
@@ -762,18 +722,14 @@ export default class Player implements PlayerType {
   }
   
   checkForHutSleeping() {
-    // Only check when it's night time (gameState will be checked by the game class)
     let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
     for (let obs of currentObstacles) {
       if (obs.type === 'hut') {
-        // Check if player is in front of the hut (southern side)
         let dx = this.x - obs.x;
-        let dy = this.y - (obs.y + 25); // Check slightly in front of the hut (south side)
+        let dy = this.y - (obs.y + 25);
         let distance = this.p.sqrt(dx * dx + dy * dy);
         
         if (distance < 15) {
-          // The game class will handle the actual sleep action
-          // by checking if the player is near a hut and it's night time
           return true;
         }
       }
@@ -800,5 +756,15 @@ export default class Player implements PlayerType {
       }
     }
     return false;
+  }
+
+  cancelDigging() {
+    if (this.digging) {
+      this.digging = false;
+      this.isDigging = false;
+      this.digTimer = 0;
+      this.digTarget = null;
+      emitGameStateUpdate(this, this.hoverbike);
+    }
   }
 }

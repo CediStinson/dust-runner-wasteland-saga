@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -29,6 +30,9 @@ export default class Hoverbike implements HoverbikeType {
     sparks: Array<{x: number, y: number, opacity: number, vx: number, vy: number}>;
     timer: number;
   };
+  // Add these properties to satisfy the HoverbikeType interface
+  speedLevel: number = 0; // Default value
+  upgradeSpeed: () => void = () => {}; // Empty implementation
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -56,6 +60,17 @@ export default class Hoverbike implements HoverbikeType {
       active: false,
       sparks: [],
       timer: 0
+    };
+    
+    // Initialize the speedLevel property properly
+    this.speedLevel = 0;
+    
+    // Define the upgradeSpeed method properly
+    this.upgradeSpeed = () => {
+      if (this.speedLevel < 3) {
+        this.speedLevel++;
+        this.speed += 0.5;
+      }
     };
   }
 
