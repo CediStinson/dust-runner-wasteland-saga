@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -29,6 +28,11 @@ export default class Player implements PlayerType {
   armAnimationOffset: number;
   carryingFuelCanister: boolean;
   canisterCollectCooldown: number;
+  isCollectingCanister: boolean;
+  canisterCollectionProgress: number;
+  canisterCollectionTarget: any;
+  isRefuelingHoverbike: boolean;
+  refuelingProgress: number;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -56,6 +60,11 @@ export default class Player implements PlayerType {
     this.armAnimationOffset = 0;
     this.carryingFuelCanister = false;
     this.canisterCollectCooldown = 0;
+    this.isCollectingCanister = false;
+    this.canisterCollectionProgress = 0;
+    this.canisterCollectionTarget = null;
+    this.isRefuelingHoverbike = false;
+    this.refuelingProgress = 0;
   }
 
   update() {
@@ -113,12 +122,11 @@ export default class Player implements PlayerType {
             
             if (distance < hitboxWidth) {
               willCollide = true;
-              if (this.p.frameCount % 30 === 0) {
-                const oldHealth = this.health;
-                this.health = this.p.max(0, this.health - 5); // Increased damage from 1 to 5
-                if (oldHealth !== this.health) {
-                  emitGameStateUpdate(this, this.hoverbike);
-                }
+              // Apply damage immediately on touch, not just on certain frames
+              const oldHealth = this.health;
+              this.health = this.p.max(0, this.health - 1); // Small continuous damage
+              if (oldHealth !== this.health && this.p.frameCount % 10 === 0) { // Update UI less frequently to avoid spam
+                emitGameStateUpdate(this, this.hoverbike);
               }
               break;
             }
@@ -221,6 +229,9 @@ export default class Player implements PlayerType {
       this.displayDigProgress();
       this.p.pop();
     }
+    
+    // Display fuel-related progress bars
+    this.displayFuelProgressBars();
   }
 
   displayFuelCanister() {
@@ -349,7 +360,8 @@ export default class Player implements PlayerType {
     
     // Check for ground fuel canisters
     let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-    for (let obs of currentObstacles) {
+    for (let i = 0; i < currentObstacles.length; i++) {
+      let obs = currentObstacles[i];
       if (obs.type === 'fuelCanister' && !obs.collected && this.p.dist(this.x, this.y, obs.x, obs.y) < 30) {
         this.p.push();
         this.p.fill(255, 255, 100, 150);
@@ -476,8 +488,7 @@ export default class Player implements PlayerType {
       let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
       for (let obs of currentObstacles) {
         if (obs.type === 'fuelPump' && this.p.dist(this.x, this.y, obs.x, obs.y) < 60) {
-          this.carryingFuelCanister = true;
-          this.canisterCollectCooldown = 30; // Prevent instant interactions
+          this.startCanisterCollection(obs);
           return;
         }
       }
@@ -493,33 +504,33 @@ export default class Player implements PlayerType {
         }
       }
     } else {
+      // Remove canister if near fuel pump (new functionality)
+      let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+      let nearFuelPump = false;
+      
+      for (let obs of currentObstacles) {
+        if (obs.type === 'fuelPump' && this.p.dist(this.x, this.y, obs.x, obs.y) < 60) {
+          nearFuelPump = true;
+          this.carryingFuelCanister = false;
+          this.canisterCollectCooldown = 30;
+          return;
+        }
+      }
+      
       // Already carrying a canister - check if near hoverbike to refuel
       if (this.hoverbike.worldX === this.worldX && 
           this.hoverbike.worldY === this.worldY &&
           this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) < 30 &&
           this.hoverbike.fuel < this.hoverbike.maxFuel) {
-        // Refuel the hoverbike with half its max fuel
-        const fuelAmount = this.hoverbike.maxFuel / 2;
-        this.hoverbike.fuel = Math.min(this.hoverbike.fuel + fuelAmount, this.hoverbike.maxFuel);
-        this.carryingFuelCanister = false;
-        this.canisterCollectCooldown = 30;
-        emitGameStateUpdate(this, this.hoverbike);
+        
+        this.startHoverbikeRefueling();
         return;
       }
       
       // Drop the canister if not near the fuel pump or hoverbike
-      let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-      let nearFuelPump = false;
       let nearHoverbike = (this.hoverbike.worldX === this.worldX && 
                           this.hoverbike.worldY === this.worldY &&
                           this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) < 30);
-      
-      for (let obs of currentObstacles) {
-        if (obs.type === 'fuelPump' && this.p.dist(this.x, this.y, obs.x, obs.y) < 60) {
-          nearFuelPump = true;
-          break;
-        }
-      }
       
       if (!nearFuelPump && !nearHoverbike) {
         // Drop the canister at player's position
@@ -532,6 +543,114 @@ export default class Player implements PlayerType {
         this.carryingFuelCanister = false;
         this.canisterCollectCooldown = 30;
       }
+    }
+  }
+
+  startCanisterCollection(fuelPump) {
+    this.isCollectingCanister = true;
+    this.canisterCollectionProgress = 0;
+    this.canisterCollectionTarget = fuelPump;
+    
+    // Set a timer to complete the collection
+    const collectInterval = setInterval(() => {
+      if (!this.isCollectingCanister) {
+        clearInterval(collectInterval);
+        return;
+      }
+      
+      // Check if player moved away
+      if (this.p.dist(this.x, this.y, this.canisterCollectionTarget.x, this.canisterCollectionTarget.y) > 60) {
+        this.isCollectingCanister = false;
+        clearInterval(collectInterval);
+        return;
+      }
+      
+      this.canisterCollectionProgress += 0.025; // Collect over ~1.5 seconds
+      
+      if (this.canisterCollectionProgress >= 1) {
+        this.carryingFuelCanister = true;
+        this.isCollectingCanister = false;
+        this.canisterCollectionTarget = null;
+        this.canisterCollectCooldown = 30;
+        clearInterval(collectInterval);
+      }
+    }, 40);
+  }
+  
+  startHoverbikeRefueling() {
+    this.isRefuelingHoverbike = true;
+    this.refuelingProgress = 0;
+    
+    // Set a timer to complete the refueling
+    const refuelInterval = setInterval(() => {
+      if (!this.isRefuelingHoverbike) {
+        clearInterval(refuelInterval);
+        return;
+      }
+      
+      // Check if player moved away
+      if (this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) > 30) {
+        this.isRefuelingHoverbike = false;
+        clearInterval(refuelInterval);
+        return;
+      }
+      
+      this.refuelingProgress += 0.025; // Refuel over ~1.5 seconds
+      
+      if (this.refuelingProgress >= 1) {
+        // Refuel the hoverbike with half its max fuel
+        const fuelAmount = this.hoverbike.maxFuel / 2;
+        this.hoverbike.fuel = Math.min(this.hoverbike.fuel + fuelAmount, this.hoverbike.maxFuel);
+        this.carryingFuelCanister = false;
+        this.isRefuelingHoverbike = false;
+        this.canisterCollectCooldown = 30;
+        emitGameStateUpdate(this, this.hoverbike);
+        clearInterval(refuelInterval);
+      }
+    }, 40);
+  }
+  
+  displayFuelProgressBars() {
+    if (this.isCollectingCanister && this.canisterCollectionTarget) {
+      this.p.push();
+      this.p.translate(this.canisterCollectionTarget.x, this.canisterCollectionTarget.y - 40);
+      
+      // Background of the progress bar
+      this.p.fill(0, 0, 0, 150);
+      this.p.rect(-15, 0, 30, 4, 2);
+      
+      // Progress fill
+      this.p.fill(220, 50, 50);
+      this.p.rect(-15, 0, 30 * this.canisterCollectionProgress, 4, 2);
+      
+      // Text showing action
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(8);
+      this.p.text("Getting Fuel", 0, -5);
+      
+      this.p.pop();
+    }
+    
+    if (this.isRefuelingHoverbike) {
+      this.p.push();
+      this.p.translate(this.hoverbike.x, this.hoverbike.y - 25);
+      
+      // Background of the progress bar
+      this.p.fill(0, 0, 0, 150);
+      this.p.rect(-15, 0, 30, 4, 2);
+      
+      // Progress fill
+      this.p.fill(220, 50, 50);
+      this.p.rect(-15, 0, 30 * this.refuelingProgress, 4, 2);
+      
+      // Text showing action
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(8);
+      this.p.text("Refueling", 0, -5);
+      
+      this.p.pop();
     }
   }
 

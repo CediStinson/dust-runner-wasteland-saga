@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -22,6 +21,7 @@ export default class Game {
   dayTimeIcon: string; // "sun" or "moon"
   dayTimeAngle: number; // Position on the circle
   exploredAreas: Set<string>; // Track explored areas
+  dayTint: { r: number; g: number; b: number; a: number };
 
   constructor(p: any) {
     this.p = p;
@@ -35,6 +35,7 @@ export default class Game {
     this.dayTimeIcon = "sun"; // Start with the sun
     this.dayTimeAngle = this.timeOfDay * Math.PI * 2; // Calculate initial angle
     this.exploredAreas = new Set<string>(); // Initialize empty set of explored areas
+    this.dayTint = { r: 255, g: 255, b: 255, a: 0 }; // Default tint (no tint)
     
     this.worldGenerator = new WorldGenerator(p);
     
@@ -274,13 +275,70 @@ export default class Game {
     } else {
       this.dayTimeIcon = "moon";
     }
+    
+    // Update the day/night tint color
+    this.updateDayTint();
+  }
+  
+  updateDayTint() {
+    // Calculate tint based on time of day
+    // 0.0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset
+    
+    if (this.timeOfDay >= 0.0 && this.timeOfDay < 0.25) {
+      // Night to sunrise transition (dark blue to orange)
+      const t = this.timeOfDay / 0.25; // 0 to 1
+      this.dayTint = {
+        r: this.p.lerp(26, 252, t),
+        g: this.p.lerp(31, 157, t),
+        b: this.p.lerp(44, 78, t),
+        a: this.p.lerp(40, 20, t)
+      };
+    } 
+    else if (this.timeOfDay >= 0.25 && this.timeOfDay < 0.5) {
+      // Sunrise to noon (orange to bright blue sky)
+      const t = (this.timeOfDay - 0.25) / 0.25;
+      this.dayTint = {
+        r: this.p.lerp(252, 180, t),
+        g: this.p.lerp(157, 214, t),
+        b: this.p.lerp(78, 255, t),
+        a: this.p.lerp(20, 0, t) // Fade out tint at noon
+      };
+    }
+    else if (this.timeOfDay >= 0.5 && this.timeOfDay < 0.75) {
+      // Noon to sunset (bright blue to orange)
+      const t = (this.timeOfDay - 0.5) / 0.25;
+      this.dayTint = {
+        r: this.p.lerp(180, 252, t),
+        g: this.p.lerp(214, 157, t),
+        b: this.p.lerp(255, 78, t),
+        a: this.p.lerp(0, 20, t)
+      };
+    }
+    else {
+      // Sunset to night (orange to dark blue)
+      const t = (this.timeOfDay - 0.75) / 0.25;
+      this.dayTint = {
+        r: this.p.lerp(252, 26, t),
+        g: this.p.lerp(157, 31, t),
+        b: this.p.lerp(78, 44, t),
+        a: this.p.lerp(20, 40, t)
+      };
+    }
   }
 
   render() {
     if (!this.gameStarted) {
       this.renderMainMenu();
     } else {
+      // Render the world first
       this.renderer.render();
+      
+      // Apply the day/night tint as an overlay
+      this.p.push();
+      this.p.fill(this.dayTint.r, this.dayTint.g, this.dayTint.b, this.dayTint.a);
+      this.p.noStroke();
+      this.p.rect(0, 0, this.p.width, this.p.height);
+      this.p.pop();
     }
   }
   

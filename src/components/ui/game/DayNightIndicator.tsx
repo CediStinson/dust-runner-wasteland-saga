@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Sun, Moon } from 'lucide-react';
 
 interface DayNightIndicatorProps {
@@ -11,6 +11,23 @@ const DayNightIndicator: React.FC<DayNightIndicatorProps> = ({
   dayTimeIcon,
   dayTimeAngle
 }) => {
+  const prevAngleRef = useRef(dayTimeAngle);
+  const iconWrapperRef = useRef<HTMLDivElement>(null);
+  
+  // Use a ref to hold the previous angle to prevent jumping when buttons are pressed
+  useEffect(() => {
+    // Prevent large jumps in angle by detecting them
+    const angleDiff = Math.abs(dayTimeAngle - prevAngleRef.current);
+    
+    // Only update the angle if the change is small or it's the first render
+    if (angleDiff < 0.1 || prevAngleRef.current === 0) {
+      if (iconWrapperRef.current) {
+        iconWrapperRef.current.style.transform = `rotate(${dayTimeAngle}rad)`;
+      }
+      prevAngleRef.current = dayTimeAngle;
+    }
+  }, [dayTimeAngle]);
+  
   return (
     <div className="bg-black/50 p-3 rounded-full backdrop-blur-sm text-white border border-white/30 w-16 h-16 flex items-center justify-center relative mb-2">
       <div className="absolute w-full h-full flex items-center justify-center">
@@ -20,8 +37,9 @@ const DayNightIndicator: React.FC<DayNightIndicatorProps> = ({
       
       {/* Sun or Moon icon that rotates around the circle */}
       <div 
+        ref={iconWrapperRef}
         className="absolute w-full h-full flex items-center justify-center"
-        style={{ transform: `rotate(${dayTimeAngle}rad)` }}
+        style={{ transform: `rotate(${prevAngleRef.current}rad)` }}
       >
         <div className="w-0.5 h-14 flex flex-col items-center">
           <div className="flex-1"></div>

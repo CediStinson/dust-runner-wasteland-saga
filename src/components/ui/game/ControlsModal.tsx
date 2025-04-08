@@ -47,6 +47,11 @@ const ControlsModal: React.FC<ControlsModalProps> = ({ showControls, setShowCont
     
     // Close the controls modal
     setShowControls(false);
+    
+    // Always reload the page after a short delay to ensure a clean state
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   if (!showControls) return null;
@@ -75,7 +80,7 @@ const ControlsModal: React.FC<ControlsModalProps> = ({ showControls, setShowCont
           <div>
             <h3 className="text-lg font-medium text-white mb-2">Interactions</h3>
             <ul className="list-disc pl-5 space-y-1">
-              <li><span className="text-white font-mono">E</span> - Interact (collect resources, mine copper)</li>
+              <li><span className="text-white font-mono">E</span> - Interact (collect resources, mine copper, fuel canisters)</li>
               <li><span className="text-white font-mono">F</span> - Get on/off hoverbike</li>
               <li><span className="text-white font-mono">R</span> - Repair hoverbike (costs 1 metal)</li>
               <li><span className="text-white font-mono">S</span> - Upgrade hoverbike speed (costs 5 metal)</li>
