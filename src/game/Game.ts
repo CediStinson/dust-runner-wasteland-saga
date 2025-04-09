@@ -27,6 +27,17 @@ export default class Game {
   sleepAnimationTimer: number;
   sleepParticles: Array<{x: number, y: number, z: number, opacity: number, yOffset: number, size: number}>;
   tarpColor: { r: number; g: number; b: number; };
+  questSystem: {
+    roofRepairQuest: {
+      active: boolean;
+      completed: boolean;
+      metalCollected: number;
+      requiredMetal: number;
+      rewardGiven: boolean;
+      showCompletionMessage: boolean;
+      completionMessageTimer: number;
+    };
+  };
 
   constructor(p: any) {
     this.p = p;
@@ -45,6 +56,19 @@ export default class Game {
     this.sleepStartTime = 0;
     this.sleepAnimationTimer = 0;
     this.sleepParticles = [];
+    
+    // Quest system initialization
+    this.questSystem = {
+      roofRepairQuest: {
+        active: true,
+        completed: false,
+        metalCollected: 0,
+        requiredMetal: 10,
+        rewardGiven: false,
+        showCompletionMessage: false,
+        completionMessageTimer: 0
+      }
+    };
     
     // Generate random tarp color in brown/red/green tones
     this.tarpColor = this.generateTarpColor();
@@ -149,10 +173,10 @@ export default class Game {
         type: 'tarp',
         x: this.p.width / 2 - 120, // To the left of the hut
         y: this.p.height / 2 - 50, // Align with the hut
-        width: 100,
-        height: 80,
+        width: 80, // Smaller tarp
+        height: 70, // Smaller tarp
         color: this.tarpColor,
-        zIndex: 1000 // Very high z-index to ensure it renders above everything else
+        zIndex: 5000 // Very high z-index to ensure it renders above everything else
       });
       
       // Update the world generator's obstacles
@@ -291,33 +315,82 @@ export default class Game {
     
     this.player.update();
     
+    // Update quest system
+    this.updateQuestSystem();
+    
     // Check if player is entering the hut at night
     if (!this.riding && this.worldX === 0 && this.worldY === 0) {
       if (this.player.checkForHutSleeping() && this.isNightTime()) {
         this.startSleeping();
       }
+      
+      // Check for hut interaction for roof repair quest
+      this.checkHutInteraction();
     }
     
     this.checkBorder();
     this.worldGenerator.updateWindmillAngle();
     
-    // Render fuel canisters in the current area
-    if (this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`]) {
-      for (const obstacle of this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`]) {
-        if (obstacle.type === 'fuelCanister' && !obstacle.collected) {
-          // Don't attempt to render here, we'll let the renderer handle it
-          // The issue was trying to render here instead of in GameRenderer
-        }
-      }
-    }
-    
     // Update renderer with time of day
     this.renderer.setTimeOfDay(this.timeOfDay);
   }
   
-  renderWeatheredCanister(x: number, y: number) {
-    // This method was causing issues by rendering in the wrong place
-    // We'll move canister rendering to GameRenderer instead
+  updateQuestSystem() {
+    // Update the roof repair quest
+    const quest = this.questSystem.roofRepairQuest;
+    
+    if (quest.active && !quest.completed) {
+      // Update metal collected count
+      quest.metalCollected = this.player.inventory.metal;
+      
+      // Check if quest requirements are met
+      if (quest.metalCollected >= quest.requiredMetal) {
+        // Quest can be completed - will be completed when player interacts with hut
+      }
+    }
+    
+    // Handle quest completion message timer
+    if (quest.showCompletionMessage) {
+      quest.completionMessageTimer++;
+      
+      if (quest.completionMessageTimer > 600) { // 10 seconds at 60fps
+        quest.showCompletionMessage = false;
+        quest.completionMessageTimer = 0;
+      }
+    }
+  }
+  
+  checkHutInteraction() {
+    const quest = this.questSystem.roofRepairQuest;
+    
+    if (quest.active && !quest.completed && quest.metalCollected >= quest.requiredMetal) {
+      // Check if player is pressing E near the hut
+      if (this.player.checkForHutInteraction() && this.p.keyIsDown(69)) { // E key
+        this.completeRoofRepairQuest();
+      }
+    }
+  }
+  
+  completeRoofRepairQuest() {
+    const quest = this.questSystem.roofRepairQuest;
+    
+    if (!quest.rewardGiven) {
+      // Subtract metal used for repair
+      this.player.inventory.metal -= quest.requiredMetal;
+      
+      // Mark quest as completed
+      quest.completed = true;
+      quest.active = false;
+      quest.rewardGiven = true;
+      quest.showCompletionMessage = true;
+      quest.completionMessageTimer = 0;
+      
+      // Give rewards
+      this.player.canDig = true;
+      
+      // Update UI
+      emitGameStateUpdate(this.player, this.hoverbike);
+    }
   }
   
   isNightTime() {
@@ -428,7 +501,7 @@ export default class Game {
         r: this.p.lerp(20, 255, t),  // Darker blue to bright orange
         g: this.p.lerp(25, 160, t),
         b: this.p.lerp(40, 70, t),
-        a: this.p.lerp(70, 30, t)    // More opacity at night
+        a: this.p.lerp(120, 30, t)    // More opacity at night
       };
     } 
     else if (this.timeOfDay >= 0.25 && this.timeOfDay < 0.5) {
@@ -458,7 +531,7 @@ export default class Game {
         r: this.p.lerp(255, 20, t),  // Fade to darker night
         g: this.p.lerp(130, 25, t),
         b: this.p.lerp(70, 40, t),
-        a: this.p.lerp(30, 70, t)    // Increase opacity for darker night
+        a: this.p.lerp(30, 120, t)    // Increase opacity for darker night
       };
     }
   }
@@ -470,6 +543,9 @@ export default class Game {
       // Render the world first
       this.renderer.render();
       
+      // Render quest UI
+      this.renderQuestUI();
+      
       // Render sleep animation if sleeping
       if (this.sleepingInHut) {
         this.renderSleepAnimation();
@@ -480,6 +556,43 @@ export default class Game {
       this.p.fill(this.dayTint.r, this.dayTint.g, this.dayTint.b, this.dayTint.a);
       this.p.noStroke();
       this.p.rect(0, 0, this.p.width, this.p.height);
+      this.p.pop();
+    }
+  }
+  
+  renderQuestUI() {
+    const quest = this.questSystem.roofRepairQuest;
+    
+    if (quest.active && !quest.completed) {
+      // Render active quest
+      this.p.push();
+      this.p.fill(0, 0, 0, 120);
+      this.p.rect(10, 10, 380, 50, 5);
+      
+      this.p.fill(255, 255, 200);
+      this.p.textSize(14);
+      this.p.textAlign(this.p.LEFT);
+      this.p.text("Quest: The last Sandstorm really damaged your roof.", 20, 30);
+      this.p.text(`Collect Metal: ${quest.metalCollected}/${quest.requiredMetal}`, 20, 50);
+      
+      // Show hint if requirements are met
+      if (quest.metalCollected >= quest.requiredMetal) {
+        this.p.fill(150, 255, 150);
+        this.p.text("Press E near your hut to repair it!", 240, 50);
+      }
+      this.p.pop();
+    } else if (quest.showCompletionMessage) {
+      // Render quest completion message
+      this.p.push();
+      this.p.fill(0, 0, 0, 150);
+      this.p.rect(this.p.width/2 - 250, this.p.height/2 - 50, 500, 100, 10);
+      
+      this.p.fill(255, 255, 150);
+      this.p.textSize(16);
+      this.p.textAlign(this.p.CENTER);
+      this.p.text("On top of the roof you just repaired you found your", this.p.width/2, this.p.height/2 - 20);
+      this.p.text("grandpa's old pickaxe. You are now able to dig for", this.p.width/2, this.p.height/2);
+      this.p.text("rare metals. Awesome!", this.p.width/2, this.p.height/2 + 20);
       this.p.pop();
     }
   }

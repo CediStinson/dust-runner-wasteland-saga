@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
@@ -54,7 +53,8 @@ const GameSketch = () => {
               worldData: game.getWorldData(),
               gameStarted: game.gameStarted,
               sleepingInHut: game.sleepingInHut, 
-              isUnderTarp: game.isPlayerUnderTarp()
+              isUnderTarp: game.isPlayerUnderTarp(),
+              questSystem: game.questSystem
             }
           });
           window.dispatchEvent(event);
@@ -77,7 +77,6 @@ const GameSketch = () => {
 
     const myP5 = new p5(sketch, sketchRef.current);
 
-    // Helper function to clean up any active actions
     const cleanupActiveActions = () => {
       if (gameRef.current?.player) {
         if (gameRef.current.player.digging) {
@@ -97,7 +96,6 @@ const GameSketch = () => {
       }
     };
     
-    // Set up listener for loading game state
     const handleLoadGameState = (event: CustomEvent) => {
       if (gameRef.current && event.detail) {
         cleanupActiveActions();

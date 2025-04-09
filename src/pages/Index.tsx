@@ -37,6 +37,7 @@ const Index = () => {
   const [dayTimeAngle, setDayTimeAngle] = useState(0);
   const [worldData, setWorldData] = useState<any>(null);
   const [gameStarted, setGameStarted] = useState(false);
+  const [questSystem, setQuestSystem] = useState<any>(null);
   
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -66,7 +67,8 @@ const Index = () => {
       dayTimeIcon,
       dayTimeAngle,
       worldData,
-      gameStarted
+      gameStarted,
+      questSystem
     };
   };
   
@@ -179,7 +181,8 @@ const Index = () => {
         playerHealth, maxPlayerHealth, worldX, worldY, playerX, playerY, playerAngle,
         carryingFuelCanister,
         hoverbikeX, hoverbikeY, hoverbikeAngle, hoverbikeWorldX, hoverbikeWorldY,
-        baseWorldX, baseWorldY, dayTimeIcon, dayTimeAngle, worldData, gameStarted
+        baseWorldX, baseWorldY, dayTimeIcon, dayTimeAngle, worldData, gameStarted,
+        questSystem
       } = event.detail;
       
       // Set all values from the event data
@@ -208,6 +211,11 @@ const Index = () => {
       // Handle game started state changes
       if (gameStarted !== undefined) {
         setGameStarted(gameStarted);
+      }
+      
+      // Handle quest system updates
+      if (questSystem !== undefined) {
+        setQuestSystem(questSystem);
       }
       
       // Handle world data changes

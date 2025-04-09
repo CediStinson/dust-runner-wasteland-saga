@@ -38,6 +38,7 @@ export default class Player implements PlayerType {
   repairProgress: number;
   cactusDamageCooldown: number = 0;
   droppingCanister: boolean;
+  canDig: boolean;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -74,6 +75,7 @@ export default class Player implements PlayerType {
     this.isRepairingHoverbike = false;
     this.repairProgress = 0;
     this.droppingCanister = false;
+    this.canDig = false;
   }
 
   update() {
@@ -731,12 +733,16 @@ export default class Player implements PlayerType {
       this.p.textSize(8);
       this.p.text("Repairing", 0, -5);
       
-      if (this.p.frameCount % 5 === 0) {
+      if (this.p.frameCount % 3 === 0 && this.p.random() > 0.6) {
         const sparkX = this.hoverbike.x + this.p.random(-10, 10);
         const sparkY = this.hoverbike.y + this.p.random(-5, 5);
-        this.p.fill(255, 255, 100);
+        
+        this.p.fill(255, 255, 200);
         this.p.noStroke();
-        this.p.ellipse(sparkX - this.hoverbike.x, sparkY - this.hoverbike.y, 2, 2);
+        this.p.ellipse(sparkX - this.hoverbike.x, sparkY - this.hoverbike.y, 1.5, 1.5);
+        
+        this.p.fill(255, 255, 150, 100);
+        this.p.ellipse(sparkX - this.hoverbike.x, sparkY - this.hoverbike.y, 3, 3);
       }
       
       this.p.pop();
@@ -786,6 +792,24 @@ export default class Player implements PlayerType {
         
         if (distance < 15) {
           return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  checkForHutInteraction() {
+    if (this.worldX === 0 && this.worldY === 0) {
+      let currentObstacles = this.obstacles["0,0"] || [];
+      for (let obs of currentObstacles) {
+        if (obs.type === 'hut') {
+          let dx = this.x - obs.x;
+          let dy = this.y - (obs.y + 25);
+          let distance = this.p.sqrt(dx * dx + dy * dy);
+          
+          if (distance < 20) {
+            return true;
+          }
         }
       }
     }
