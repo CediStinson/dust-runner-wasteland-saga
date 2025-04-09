@@ -15,7 +15,6 @@ export default class Hoverbike implements HoverbikeType {
   fuel: number;
   maxFuel: number;
   speed: number;
-  speedLevel: number;
   durabilityLevel: number;
   collisionCooldown: number;
   p: any;
@@ -47,7 +46,6 @@ export default class Hoverbike implements HoverbikeType {
     this.fuel = 100;
     this.maxFuel = 100;
     this.speed = 1;
-    this.speedLevel = 0;
     this.durabilityLevel = 0;
     this.collisionCooldown = 0;
     this.previousAcceleration = 0;
@@ -59,10 +57,12 @@ export default class Hoverbike implements HoverbikeType {
       sparks: [],
       timer: 0
     };
-  }
-
-  upgradeSpeed() {
-    console.log("Speed upgrades are disabled");
+    
+    this.speedLevel = 0;
+    
+    this.upgradeSpeed = () => {
+      console.log("Speed upgrades are disabled");
+    };
   }
 
   update() {
@@ -116,7 +116,7 @@ export default class Hoverbike implements HoverbikeType {
     let acceleration = 0;
     
     if (this.p.keyIsDown(this.p.UP_ARROW) && this.fuel > 0) {
-      acceleration = 0.0125;
+      acceleration = 0.025;
       
       if (this.p.frameCount % 30 === 0) {
         const oldFuel = this.fuel;
@@ -126,7 +126,7 @@ export default class Hoverbike implements HoverbikeType {
         }
       }
     } else if (this.p.keyIsDown(this.p.DOWN_ARROW) && this.fuel > 0) {
-      acceleration = -0.00625;
+      acceleration = -0.0125;
       
       if (this.p.frameCount % 30 === 0) {
         const oldFuel = this.fuel;
@@ -141,10 +141,10 @@ export default class Hoverbike implements HoverbikeType {
 
     let turningVelocity = 0;
     if (this.p.keyIsDown(this.p.LEFT_ARROW)) {
-      turningVelocity = this.fuel > 0 ? -0.01 : -0.0025;
+      turningVelocity = this.fuel > 0 ? -0.02 : -0.005;
     }
     else if (this.p.keyIsDown(this.p.RIGHT_ARROW)) {
-      turningVelocity = this.fuel > 0 ? 0.01 : 0.0025;
+      turningVelocity = this.fuel > 0 ? 0.02 : 0.005;
     }
 
     this.angle += turningVelocity;
@@ -154,8 +154,8 @@ export default class Hoverbike implements HoverbikeType {
       this.velocityY += this.p.sin(this.angle) * acceleration;
     }
     
-    this.velocityX *= 0.985;
-    this.velocityY *= 0.985;
+    this.velocityX *= 0.99;
+    this.velocityY *= 0.99;
   }
 
   applyMovement() {
