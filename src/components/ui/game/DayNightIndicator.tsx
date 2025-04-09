@@ -15,9 +15,8 @@ const DayNightIndicator: React.FC<DayNightIndicatorProps> = ({
   
   useEffect(() => {
     if (iconWrapperRef.current) {
-      // Apply rotation directly without checking for jumps
-      // This ensures smooth transitions regardless of angle changes
-      iconWrapperRef.current.style.transform = `rotate(${dayTimeAngle}rad)`;
+      // Use CSS variables to handle angle animation smoothly
+      iconWrapperRef.current.style.setProperty('--current-angle', `${dayTimeAngle}rad`);
     }
   }, [dayTimeAngle]);
   
@@ -31,7 +30,11 @@ const DayNightIndicator: React.FC<DayNightIndicatorProps> = ({
       {/* Sun or Moon icon that rotates around the circle */}
       <div 
         ref={iconWrapperRef}
-        className="absolute w-full h-full flex items-center justify-center transition-transform duration-1000 ease-linear"
+        className="absolute w-full h-full flex items-center justify-center"
+        style={{
+          transform: 'rotate(var(--current-angle))',
+          transition: 'transform 1000ms ease-linear'
+        }}
       >
         <div className="w-0.5 h-14 flex flex-col items-center">
           <div className="flex-1"></div>

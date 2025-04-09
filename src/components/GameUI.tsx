@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Save, Settings, LogOut } from 'lucide-react';
 import DayNightIndicator from './ui/game/DayNightIndicator';
@@ -78,7 +77,6 @@ const GameUI: React.FC<GameUIProps> = ({
     <>
       <div className="absolute top-0 left-0 right-0 p-2.5 pointer-events-none">
         <div className="container mx-auto flex justify-between">
-          {/* Settings, Save, and Logout buttons */}
           <div className="pointer-events-auto flex gap-2">
             <button 
               onClick={() => setShowControls(!showControls)}
@@ -107,12 +105,9 @@ const GameUI: React.FC<GameUIProps> = ({
             )}
           </div>
           
-          {/* Compass and Day/Night Indicator */}
           <div className="flex flex-col items-center scale-85 origin-top">
-            {/* Day/Night Indicator */}
             <DayNightIndicator dayTimeIcon={dayTimeIcon} dayTimeAngle={dayTimeAngle} />
             
-            {/* Compass */}
             <CompassIndicator 
               worldX={worldX} 
               worldY={worldY} 
@@ -123,10 +118,44 @@ const GameUI: React.FC<GameUIProps> = ({
         </div>
       </div>
       
-      {/* Controls modal */}
-      <ControlsModal showControls={showControls} setShowControls={setShowControls} />
+      <div className={`fixed inset-0 bg-black/70 backdrop-blur-sm z-50 transition-opacity ${showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        <div className="flex items-center justify-center h-full">
+          <div className="bg-gray-800/90 border border-gray-700 rounded-lg p-6 max-w-md w-full">
+            <h2 className="text-white text-xl font-bold mb-4">Game Controls</h2>
+            
+            <div className="text-gray-300 space-y-3">
+              <div className="flex justify-between">
+                <span>Move Player:</span>
+                <span>W, A, S, D</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Interact / Collect:</span>
+                <span>E</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Mount / Dismount Hoverbike:</span>
+                <span>F</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Repair Hoverbike (under tarp):</span>
+                <span>R</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Drive Hoverbike:</span>
+                <span>↑, ↓, ←, →</span>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => setShowControls(false)}
+              className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
       
-      {/* Refueling indicator */}
       {refueling && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
           <div className="bg-black/70 p-2 rounded-lg backdrop-blur-md border border-white/20">
@@ -143,10 +172,8 @@ const GameUI: React.FC<GameUIProps> = ({
       
       <div className="absolute bottom-0 left-0 right-0 p-2.5 pointer-events-none">
         <div className="container mx-auto flex justify-between items-end">
-          {/* Resources */}
           <ResourcesDisplay resources={resources} copper={copper} />
           
-          {/* Status Bars */}
           <StatusBars 
             playerHealth={playerHealth}
             maxPlayerHealth={maxPlayerHealth}

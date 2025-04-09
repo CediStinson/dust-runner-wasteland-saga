@@ -22,6 +22,8 @@ export default class Hoverbike implements HoverbikeType {
   player: any;
   previousAcceleration: number;
   isRiding: boolean;
+  lastRiding: boolean;
+  dismountTime: number;
   thrustIntensity: number;
   flameLength: number;
   repairAnimation: {
@@ -51,6 +53,8 @@ export default class Hoverbike implements HoverbikeType {
     this.collisionCooldown = 0;
     this.previousAcceleration = 0;
     this.isRiding = false;
+    this.lastRiding = false;
+    this.dismountTime = 0;
     this.thrustIntensity = 0;
     this.flameLength = 0;
     this.repairAnimation = {
@@ -62,6 +66,12 @@ export default class Hoverbike implements HoverbikeType {
   }
 
   update() {
+    if (this.lastRiding && !this.player.riding) {
+      this.dismountTime = this.p.frameCount;
+    }
+    
+    this.lastRiding = this.player.riding;
+
     if (this.player.riding) {
       this.isRiding = true;
       this.handleControls();
@@ -95,8 +105,19 @@ export default class Hoverbike implements HoverbikeType {
       }
     } else {
       this.isRiding = false;
-      this.velocityX *= 0.99;
-      this.velocityY *= 0.99;
+
+      const timeSinceDismount = this.p.frameCount - this.dismountTime;
+      const isDismountRecent = timeSinceDismount < 180;
+
+      if (isDismountRecent) {
+        this.velocityX *= 0.995;
+        this.velocityY *= 0.995;
+        this.applyMovement();
+      } else {
+        this.velocityX *= 0.97;
+        this.velocityY *= 0.97;
+      }
+
       this.thrustIntensity = this.p.lerp(this.thrustIntensity, 0, 0.05);
       this.flameLength = this.p.lerp(this.flameLength, 0, 0.05);
       
@@ -316,82 +337,11 @@ export default class Hoverbike implements HoverbikeType {
     if (!this.repairAnimation.active) return;
     
     this.p.push();
-    this.p.noStroke();
     
-    const toolAngle = Math.sin(this.repairAnimation.timer * 0.2) * 0.5;
-    const toolDistance = 20;
-    
-    this.p.push();
-    this.p.translate(this.x, this.y);
-    
-    if (this.repairAnimation.timer % 30 < 15) {
-      this.p.push();
-      this.p.rotate(toolAngle);
-      this.p.translate(toolDistance, 0);
-      
-      this.p.stroke(60, 40, 20);
-      this.p.strokeWeight(2);
-      this.p.line(0, 0, 0, -15);
-      
-      this.p.fill(150);
-      this.p.noStroke();
-      this.p.rect(-5, -20, 10, 8, 1);
-      
-      if (this.repairAnimation.timer % 15 < 2) {
-        this.p.fill(200, 200, 200, 150);
-        this.p.ellipse(this.p.random(-10, 10), this.p.random(-10, 10), 3, 3);
-      }
-      
-      this.p.pop();
-    } else {
-      this.p.push();
-      this.p.rotate(-toolAngle);
-      this.p.translate(-toolDistance, 0);
-      
-      this.p.fill(170, 170, 190);
-      this.p.rotate(-Math.PI/4);
-      this.p.rect(-3, -15, 6, 20, 1);
-      
-      this.p.ellipse(0, -17, 12, 8);
-      this.p.fill(0);
-      this.p.ellipse(0, -17, 6, 4);
-      
-      if (this.repairAnimation.timer % 5 < 3) {
-        this.p.fill(255, 255, 200, 220);
-        this.p.ellipse(0, -20, this.p.random(4, 7), this.p.random(4, 7));
-        
-        this.p.fill(255, 200, 50, 180);
-        this.p.ellipse(0, -20, this.p.random(8, 12), this.p.random(8, 12));
-      }
-      
-      this.p.pop();
-    }
-    
-    if (this.repairAnimation.timer % 20 < 5) {
-      this.p.fill(180, 180, 190);
-      this.p.rect(-8, 5, 5, 2);
-      this.p.rect(3, -5, 2, 4);
-    }
-    
-    if (this.repairAnimation.timer % 15 < 4 && this.repairAnimation.timer % 30 >= 15) {
-      const weldX = this.p.random(-15, 15);
-      const weldY = this.p.random(-10, 10);
-      
-      this.p.fill(255, 255, 200, 220);
-      this.p.ellipse(weldX, weldY, 4, 4);
-      
-      this.p.fill(255, 200, 50, 150);
-      this.p.ellipse(weldX, weldY, 8, 8);
-    }
-    
-    for (const spark of this.repairAnimation.sparks) {
-      const sparkColor = this.p.random(100) < 80 
-        ? this.p.color(255, this.p.random(100, 220), 20, spark.opacity) 
-        : this.p.color(200, 200, 255, spark.opacity);
-      
-      this.p.fill(sparkColor);
-      this.p.ellipse(this.x + spark.x, this.y + spark.y, this.p.random(1, 3), this.p.random(1, 3));
-    }
+    this.p.fill(200, 200, 100);
+    this.p.textAlign(this.p.CENTER);
+    this.p.textSize(10);
+    this.p.text("Repairing...", this.x, this.y - 25);
     
     this.p.pop();
   }

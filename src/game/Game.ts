@@ -173,10 +173,10 @@ export default class Game {
         type: 'tarp',
         x: this.p.width / 2 - 120, // To the left of the hut
         y: this.p.height / 2 - 50, // Align with the hut
-        width: 80, // Smaller tarp
-        height: 70, // Smaller tarp
+        width: 70, // Smaller tarp
+        height: 60, // Smaller tarp
         color: this.tarpColor,
-        zIndex: 5000 // Very high z-index to ensure it renders above everything else
+        zIndex: 9000 // Very high z-index to ensure it renders above everything else
       });
       
       // Update the world generator's obstacles
@@ -311,6 +311,9 @@ export default class Game {
     
     if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
       this.hoverbike.update();
+      
+      // Check for hoverbike-canister collisions
+      this.checkHoverbikeCanisterCollisions();
     }
     
     this.player.update();
@@ -501,7 +504,7 @@ export default class Game {
         r: this.p.lerp(20, 255, t),  // Darker blue to bright orange
         g: this.p.lerp(25, 160, t),
         b: this.p.lerp(40, 70, t),
-        a: this.p.lerp(120, 30, t)    // More opacity at night
+        a: this.p.lerp(180, 30, t)    // More opacity at night
       };
     } 
     else if (this.timeOfDay >= 0.25 && this.timeOfDay < 0.5) {
@@ -531,7 +534,7 @@ export default class Game {
         r: this.p.lerp(255, 20, t),  // Fade to darker night
         g: this.p.lerp(130, 25, t),
         b: this.p.lerp(70, 40, t),
-        a: this.p.lerp(30, 120, t)    // Increase opacity for darker night
+        a: this.p.lerp(30, 180, t)    // Increase opacity for darker night
       };
     }
   }
@@ -564,21 +567,21 @@ export default class Game {
     const quest = this.questSystem.roofRepairQuest;
     
     if (quest.active && !quest.completed) {
-      // Render active quest
+      // Render active quest - moved to bottom of screen
       this.p.push();
       this.p.fill(0, 0, 0, 120);
-      this.p.rect(10, 10, 380, 50, 5);
+      this.p.rect(10, this.p.height - 70, 380, 60, 5);
       
       this.p.fill(255, 255, 200);
       this.p.textSize(14);
       this.p.textAlign(this.p.LEFT);
-      this.p.text("Quest: The last Sandstorm really damaged your roof.", 20, 30);
-      this.p.text(`Collect Metal: ${quest.metalCollected}/${quest.requiredMetal}`, 20, 50);
+      this.p.text("Quest: The last Sandstorm really damaged your roof.", 20, this.p.height - 50);
+      this.p.text(`Collect Metal: ${quest.metalCollected}/${quest.requiredMetal}`, 20, this.p.height - 30);
       
       // Show hint if requirements are met
       if (quest.metalCollected >= quest.requiredMetal) {
         this.p.fill(150, 255, 150);
-        this.p.text("Press E near your hut to repair it!", 240, 50);
+        this.p.text("Press E near your hut to repair it!", 240, this.p.height - 30);
       }
       this.p.pop();
     } else if (quest.showCompletionMessage) {
@@ -780,12 +783,48 @@ export default class Game {
     if (key === 'r' && !this.riding && 
         this.p.dist(this.player.x, this.player.y, this.hoverbike.x, this.hoverbike.y) < 30 && 
         this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY &&
-        this.isPlayerUnderTarp() && // Only allow repairs under tarp
         this.player.inventory.metal > 0) { // Only if player has metal
-      // Start the repair process
-      this.player.startHoverbikeRepair();
-      this.hoverbike.startRepairAnimation();
+      
+      // Check if under tarp
+      if (this.isPlayerUnderTarp()) {
+        // Start the repair process
+        this.player.startHoverbikeRepair();
+      } else {
+        // Show message that repair needs to be under tarp
+        this.showTarpMessage();
+      }
     }
+  }
+
+  showTarpMessage() {
+    // Add a temporary message to the world
+    const message = {
+      type: 'floatingText',
+      text: 'Needs to be under the tarp at home base',
+      x: this.hoverbike.x,
+      y: this.hoverbike.y - 30,
+      color: { r: 255, g: 200, b: 100 },
+      lifetime: 120, // 2 seconds at 60fps
+      age: 0
+    };
+    
+    const currentAreaKey = `${this.worldX},${this.worldY}`;
+    const obstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
+    obstacles.push(message);
+    
+    // Remove the message after its lifetime
+    setTimeout(() => {
+      const currentObstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
+      const msgIndex = currentObstacles.findIndex(o => 
+        o.type === 'floatingText' && 
+        o.x === message.x && 
+        o.y === message.y
+      );
+      
+      if (msgIndex !== -1) {
+        currentObstacles.splice(msgIndex, 1);
+      }
+    }, 2000);
   }
 
   resize() {
@@ -888,5 +927,71 @@ export default class Game {
       this.player.y >= tarp.y - tarp.height / 2 &&
       this.player.y <= tarp.y + tarp.height / 2
     );
+  }
+
+  checkHoverbikeCanisterCollisions() {
+    if (!this.riding || this.hoverbike.worldX !== this.worldX || this.hoverbike.worldY !== this.worldY) {
+      return;
+    }
+    
+    const currentAreaKey = `${this.worldX},${this.worldY}`;
+    const resources = this.worldGenerator.getResources()[currentAreaKey] || [];
+    
+    for (let i = resources.length - 1; i >= 0; i--) {
+      const resource = resources[i];
+      if (resource.type === 'fuelCanister') {
+        const dx = this.hoverbike.x - resource.x;
+        const dy = this.hoverbike.y - resource.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 25) {  // Collision radius for canister
+          // Create explosion
+          this.createExplosion(resource.x, resource.y);
+          
+          // Damage hoverbike critically
+          this.hoverbike.health = Math.max(0, this.hoverbike.health - 50);
+          
+          // Apply force to hoverbike from explosion
+          const pushAngle = Math.atan2(dy, dx);
+          this.hoverbike.velocityX += Math.cos(pushAngle) * 2;
+          this.hoverbike.velocityY += Math.sin(pushAngle) * 2;
+          
+          // Remove the canister
+          resources.splice(i, 1);
+          
+          // Update UI
+          emitGameStateUpdate(this.player, this.hoverbike);
+          break;
+        }
+      }
+    }
+  }
+  
+  createExplosion(x: number, y: number) {
+    // Add explosion effect to the current area's obstacles temporarily
+    const currentAreaKey = `${this.worldX},${this.worldY}`;
+    let obstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
+    
+    obstacles.push({
+      type: 'explosion',
+      x: x,
+      y: y,
+      size: 1.0,
+      frame: 0,
+      maxFrames: 30
+    });
+    
+    // Update obstacles
+    this.worldGenerator.getObstacles()[currentAreaKey] = obstacles;
+    
+    // Remove explosion after animation completes
+    setTimeout(() => {
+      const obstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
+      const explosionIndex = obstacles.findIndex(o => o.type === 'explosion' && o.x === x && o.y === y);
+      if (explosionIndex !== -1) {
+        obstacles.splice(explosionIndex, 1);
+        this.worldGenerator.getObstacles()[currentAreaKey] = obstacles;
+      }
+    }, 500);
   }
 }
