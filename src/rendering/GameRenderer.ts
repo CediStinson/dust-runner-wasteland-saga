@@ -30,15 +30,24 @@ export default class GameRenderer {
 
   render() {
     this.drawBackground();
+    
+    // Draw the tarp first (lower z-index elements)
+    this.drawTarp();
+    
     this.applyDaytimeTint();
     this.drawObstacles();
     this.drawResources();
     
+    // Draw hoverbike (middle z-index)
     if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
       this.hoverbike.display();
     }
     
+    // Draw player (higher z-index)
     this.player.display();
+    
+    // Draw fuel canisters (high z-index)
+    this.drawFuelCanisters();
   }
 
   drawBackground() {
@@ -61,10 +70,10 @@ export default class GameRenderer {
     if (this.timeOfDay < 0.25) {
       // Midnight to sunrise: blue night tint getting lighter
       const blendFactor = this.timeOfDay / 0.25; // 0 to 1
-      const r = this.p.lerp(50, 150, blendFactor);
-      const g = this.p.lerp(50, 120, blendFactor);
-      const b = this.p.lerp(80, 100, blendFactor);
-      const alpha = this.p.lerp(180, 30, blendFactor);
+      const r = this.p.lerp(20, 150, blendFactor);
+      const g = this.p.lerp(20, 120, blendFactor);
+      const b = this.p.lerp(50, 100, blendFactor);
+      const alpha = this.p.lerp(200, 30, blendFactor);
       
       this.p.fill(r, g, b, alpha);
       this.p.rect(0, 0, this.p.width, this.p.height);
@@ -72,8 +81,8 @@ export default class GameRenderer {
       // Sunrise to noon: orangey sunrise to clear day
       const blendFactor = (this.timeOfDay - 0.25) / 0.25; // 0 to 1
       const r = this.p.lerp(255, 255, blendFactor);
-      const g = this.p.lerp(200, 255, blendFactor);
-      const b = this.p.lerp(150, 255, blendFactor);
+      const g = this.p.lerp(150, 255, blendFactor);
+      const b = this.p.lerp(100, 255, blendFactor);
       const alpha = this.p.lerp(40, 0, blendFactor);
       
       this.p.fill(r, g, b, alpha);
@@ -82,25 +91,125 @@ export default class GameRenderer {
       // Noon to sunset: clear day to orangey sunset
       const blendFactor = (this.timeOfDay - 0.5) / 0.25; // 0 to 1
       const r = this.p.lerp(255, 255, blendFactor);
-      const g = this.p.lerp(255, 150, blendFactor);
-      const b = this.p.lerp(255, 100, blendFactor);
-      const alpha = this.p.lerp(0, 50, blendFactor);
+      const g = this.p.lerp(255, 120, blendFactor);
+      const b = this.p.lerp(255, 50, blendFactor);
+      const alpha = this.p.lerp(0, 60, blendFactor);
       
       this.p.fill(r, g, b, alpha);
       this.p.rect(0, 0, this.p.width, this.p.height);
     } else {
       // Sunset to midnight: orangey sunset to blue night
       const blendFactor = (this.timeOfDay - 0.75) / 0.25; // 0 to 1
-      const r = this.p.lerp(255, 50, blendFactor);
-      const g = this.p.lerp(150, 50, blendFactor);
-      const b = this.p.lerp(100, 80, blendFactor);
-      const alpha = this.p.lerp(50, 180, blendFactor);
+      const r = this.p.lerp(255, 20, blendFactor);
+      const g = this.p.lerp(120, 20, blendFactor);
+      const b = this.p.lerp(50, 50, blendFactor);
+      const alpha = this.p.lerp(60, 200, blendFactor);
       
       this.p.fill(r, g, b, alpha);
       this.p.rect(0, 0, this.p.width, this.p.height);
     }
   }
 
+  drawTarp() {
+    // Draw tarp in the current area if it exists
+    const currentAreaKey = `${this.worldX},${this.worldY}`;
+    let currentObstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
+    
+    for (let obs of currentObstacles) {
+      if (obs.type === 'tarp') {
+        this.p.push();
+        
+        // Draw tarp shadow
+        this.p.fill(0, 0, 0, 40);
+        this.p.noStroke();
+        this.p.rect(
+          obs.x - obs.width/2 + 10, 
+          obs.y - obs.height/2 + 10, 
+          obs.width, 
+          obs.height
+        );
+        
+        // Draw tarp base
+        this.p.fill(obs.color.r, obs.color.g, obs.color.b);
+        this.p.stroke(0);
+        this.p.strokeWeight(2);
+        this.p.rect(
+          obs.x - obs.width/2, 
+          obs.y - obs.height/2, 
+          obs.width, 
+          obs.height
+        );
+        
+        // Draw pole structure
+        this.p.stroke(60, 40, 30);
+        this.p.strokeWeight(3);
+        
+        // Corner poles
+        this.p.line(
+          obs.x - obs.width/2, 
+          obs.y - obs.height/2,
+          obs.x - obs.width/2, 
+          obs.y - obs.height/2 - 15
+        );
+        
+        this.p.line(
+          obs.x + obs.width/2, 
+          obs.y - obs.height/2,
+          obs.x + obs.width/2, 
+          obs.y - obs.height/2 - 8
+        );
+        
+        this.p.line(
+          obs.x - obs.width/2, 
+          obs.y + obs.height/2,
+          obs.x - obs.width/2, 
+          obs.y + obs.height/2 + 5
+        );
+        
+        this.p.line(
+          obs.x + obs.width/2, 
+          obs.y + obs.height/2,
+          obs.x + obs.width/2, 
+          obs.y + obs.height/2 + 10
+        );
+        
+        // Draw fold lines on tarp
+        this.p.stroke(0, 0, 0, 50);
+        this.p.strokeWeight(1);
+        
+        for (let i = 1; i < 4; i++) {
+          this.p.line(
+            obs.x - obs.width/2, 
+            obs.y - obs.height/2 + (i * obs.height/4),
+            obs.x + obs.width/2, 
+            obs.y - obs.height/2 + (i * obs.height/4)
+          );
+        }
+        
+        for (let i = 1; i < 3; i++) {
+          this.p.line(
+            obs.x - obs.width/2 + (i * obs.width/3), 
+            obs.y - obs.height/2,
+            obs.x - obs.width/2 + (i * obs.width/3), 
+            obs.y + obs.height/2
+          );
+        }
+        
+        // Draw tarp highlights
+        this.p.noStroke();
+        this.p.fill(255, 255, 255, 40);
+        this.p.rect(
+          obs.x - obs.width/2 + 5, 
+          obs.y - obs.height/2 + 5, 
+          obs.width - 10, 
+          10
+        );
+        
+        this.p.pop();
+      }
+    }
+  }
+  
   drawObstacles() {
     let currentObstacles = this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`] || [];
     
@@ -192,6 +301,7 @@ export default class GameRenderer {
     this.p.push();
     this.p.translate(obs.x, obs.y);
 
+    // Draw shadow
     this.p.fill(50, 40, 30, 80);
     let shadowOffsetX = 5 * obs.size;
     let shadowOffsetY = 5 * obs.size;
@@ -199,14 +309,19 @@ export default class GameRenderer {
     let shadowHeight = 20 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
     this.p.ellipse(shadowOffsetX, shadowOffsetY, shadowWidth, shadowHeight);
 
+    // Base rock shape
     this.p.fill(80, 70, 60);
+    this.p.stroke(0);
+    this.p.strokeWeight(1);
     this.p.beginShape();
     for (let point of obs.shape) {
       this.p.vertex(point.x, point.y);
     }
     this.p.endShape(this.p.CLOSE);
 
+    // Lighter section
     this.p.fill(100, 90, 80);
+    this.p.noStroke();
     this.p.beginShape();
     for (let point of obs.shape) {
       let offsetX = 2 * obs.size;
@@ -215,6 +330,7 @@ export default class GameRenderer {
     }
     this.p.endShape(this.p.CLOSE);
 
+    // Darkest section
     this.p.fill(120, 110, 100);
     this.p.beginShape();
     for (let point of obs.shape) {
@@ -224,6 +340,7 @@ export default class GameRenderer {
     }
     this.p.endShape(this.p.CLOSE);
 
+    // Details
     this.p.fill(60, 50, 40);
     this.p.ellipse(-4 * obs.size, -2 * obs.size, 3 * obs.size, 1 * obs.size);
     this.p.ellipse(2 * obs.size, 3 * obs.size, 1 * obs.size, 3 * obs.size);
@@ -747,5 +864,81 @@ export default class GameRenderer {
     this.p.noStroke();
     
     this.p.pop();
+  }
+
+  drawFuelCanisters() {
+    // Draw fuel canisters in the current area
+    const currentAreaKey = `${this.worldX},${this.worldY}`;
+    const currentObstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
+    
+    for (const obstacle of currentObstacles) {
+      if (obstacle.type === 'fuelCanister' && !obstacle.collected) {
+        this.p.push();
+        this.p.translate(obstacle.x, obstacle.y);
+        
+        // Draw shadow under the canister
+        this.p.fill(0, 0, 0, 50);
+        this.p.noStroke();
+        this.p.ellipse(0, 2, 10, 6);
+        
+        // Canister base color (slightly darker red for worn look)
+        this.p.fill(190, 45, 45);
+        this.p.stroke(0);
+        this.p.strokeWeight(1);
+        this.p.rect(-4, -5, 8, 10, 1);
+        
+        // Weathered scratches and details
+        this.p.stroke(120, 30, 30);
+        this.p.strokeWeight(0.5);
+        this.p.line(-3, -3, -1, -1);
+        this.p.line(1, 2, 3, 4);
+        this.p.line(-2, 3, 0, 3);
+        
+        // Rust spots
+        this.p.noStroke();
+        this.p.fill(130, 70, 40, 180);
+        this.p.ellipse(-2, 2, 2, 1);
+        this.p.ellipse(3, -2, 1.5, 1);
+        this.p.ellipse(0, 0, 1, 2);
+        
+        // Dirt streaks
+        this.p.fill(80, 60, 40, 120);
+        this.p.rect(2, -3, 1, 5, 0.5);
+        this.p.rect(-3, 0, 4, 1, 0.5);
+        
+        // Worn metal highlights
+        this.p.fill(220, 170, 170, 100);
+        this.p.rect(-3, -4, 2, 1, 0.5);
+        this.p.rect(2, 2, 1, 2, 0.5);
+        
+        // Canister cap (darker and worn looking)
+        this.p.fill(40);
+        this.p.stroke(0);
+        this.p.strokeWeight(1);
+        this.p.rect(-2, -7, 4, 2);
+        
+        // Worn cap details
+        this.p.stroke(100);
+        this.p.strokeWeight(0.5);
+        this.p.line(-1, -6.5, 1, -6.5);
+        
+        // Canister handle (worn metal)
+        this.p.stroke(80, 80, 90);
+        this.p.strokeWeight(1);
+        this.p.line(-3, -5, 3, -5);
+        
+        // Fuel level indicator (faded)
+        this.p.noStroke();
+        this.p.fill(150, 150, 150, 180);
+        this.p.rect(3, -4, 0.5, 7);
+        
+        // Safety warnings (faded text)
+        this.p.fill(240, 220, 0, 100);
+        this.p.rect(-3.5, -2, 2, 0.5);
+        this.p.rect(-3.5, -1, 2, 0.5);
+        
+        this.p.pop();
+      }
+    }
   }
 }

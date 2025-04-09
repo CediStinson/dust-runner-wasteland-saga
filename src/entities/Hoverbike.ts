@@ -95,10 +95,10 @@ export default class Hoverbike implements HoverbikeType {
       }
     } else {
       this.isRiding = false;
-      this.velocityX *= 0.985;
-      this.velocityY *= 0.985;
-      this.thrustIntensity = this.p.lerp(this.thrustIntensity, 0, 0.1);
-      this.flameLength = this.p.lerp(this.flameLength, 0, 0.1);
+      this.velocityX *= 0.99;
+      this.velocityY *= 0.99;
+      this.thrustIntensity = this.p.lerp(this.thrustIntensity, 0, 0.05);
+      this.flameLength = this.p.lerp(this.flameLength, 0, 0.05);
       
       this.checkFuelRefill();
     }
@@ -416,6 +416,8 @@ export default class Hoverbike implements HoverbikeType {
       this.p.endShape(this.p.CLOSE);
       
       this.p.fill(80, 80, 90);
+      this.p.stroke(0);
+      this.p.strokeWeight(1);
       this.p.beginShape();
       this.p.vertex(14, 0);
       this.p.vertex(10, 5);
@@ -427,6 +429,8 @@ export default class Hoverbike implements HoverbikeType {
       this.p.endShape(this.p.CLOSE);
       
       this.p.fill(60, 60, 65);
+      this.p.stroke(0);
+      this.p.strokeWeight(1);
       this.p.ellipse(0, 0, 14, 10);
       
       this.p.stroke(70, 70, 75);
@@ -436,13 +440,19 @@ export default class Hoverbike implements HoverbikeType {
       this.p.strokeWeight(1);
       
       this.p.fill(40, 40, 45);
+      this.p.stroke(0);
+      this.p.strokeWeight(1);
       this.p.ellipse(6, -8, 4, 3);
       this.p.ellipse(6, 8, 4, 3);
       
       this.p.fill(200, 200, 100);
+      this.p.stroke(0);
+      this.p.strokeWeight(1);
       this.p.ellipse(18, 0, 6, 3);
       
       this.p.fill(90, 90, 95);
+      this.p.stroke(0);
+      this.p.strokeWeight(1);
       this.p.beginShape();
       this.p.vertex(-14, -6);
       this.p.vertex(-14, 6);
@@ -451,6 +461,8 @@ export default class Hoverbike implements HoverbikeType {
       this.p.endShape(this.p.CLOSE);
       
       this.p.fill(50, 50, 55);
+      this.p.stroke(0);
+      this.p.strokeWeight(0.5);
       this.p.rect(-15, -4, 4, 8, 1);
       
       if (this.thrustIntensity > 0) {
@@ -485,6 +497,8 @@ export default class Hoverbike implements HoverbikeType {
       this.p.endShape(this.p.CLOSE);
       
       this.p.fill(60, 60, 65);
+      this.p.stroke(0);
+      this.p.strokeWeight(0.5);
       this.p.ellipse(-8, -8, 2, 2);
       this.p.ellipse(0, -8, 2, 2);
       this.p.ellipse(8, -8, 2, 2);

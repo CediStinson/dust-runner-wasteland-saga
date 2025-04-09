@@ -151,7 +151,8 @@ export default class Game {
         y: this.p.height / 2 - 50, // Align with the hut
         width: 100,
         height: 80,
-        color: this.tarpColor
+        color: this.tarpColor,
+        zIndex: 1000 // Very high z-index to ensure it renders above everything else
       });
       
       // Update the world generator's obstacles
@@ -304,21 +305,8 @@ export default class Game {
     if (this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`]) {
       for (const obstacle of this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`]) {
         if (obstacle.type === 'fuelCanister' && !obstacle.collected) {
-          this.p.push();
-          this.p.translate(obstacle.x, obstacle.y);
-          
-          // Draw shadow
-          this.p.fill(0, 0, 0, 50);
-          this.p.noStroke();
-          this.p.ellipse(0, 2, 10, 6);
-          
-          // Canister body with weathered look
-          this.p.fill(180, 50, 50); // Base color
-          
-          // Render the canister with weathered appearance
-          this.renderWeatheredCanister(obstacle.x, obstacle.y);
-          
-          this.p.pop();
+          // Don't attempt to render here, we'll let the renderer handle it
+          // The issue was trying to render here instead of in GameRenderer
         }
       }
     }
@@ -328,72 +316,8 @@ export default class Game {
   }
   
   renderWeatheredCanister(x: number, y: number) {
-    // Draw the canister body with weathered details
-    this.p.push();
-    this.p.translate(x, y);
-    
-    // Draw shadow under the canister
-    this.p.fill(0, 0, 0, 50);
-    this.p.noStroke();
-    this.p.ellipse(0, 2, 10, 6);
-    
-    // Canister base color (slightly darker red for worn look)
-    this.p.fill(190, 45, 45);
-    this.p.stroke(0);
-    this.p.strokeWeight(1);
-    this.p.rect(-4, -5, 8, 10, 1);
-    
-    // Weathered scratches and details
-    this.p.stroke(120, 30, 30);
-    this.p.strokeWeight(0.5);
-    this.p.line(-3, -3, -1, -1);
-    this.p.line(1, 2, 3, 4);
-    this.p.line(-2, 3, 0, 3);
-    
-    // Rust spots
-    this.p.noStroke();
-    this.p.fill(130, 70, 40, 180);
-    this.p.ellipse(-2, 2, 2, 1);
-    this.p.ellipse(3, -2, 1.5, 1);
-    this.p.ellipse(0, 0, 1, 2);
-    
-    // Dirt streaks
-    this.p.fill(80, 60, 40, 120);
-    this.p.rect(2, -3, 1, 5, 0.5);
-    this.p.rect(-3, 0, 4, 1, 0.5);
-    
-    // Worn metal highlights
-    this.p.fill(220, 170, 170, 100);
-    this.p.rect(-3, -4, 2, 1, 0.5);
-    this.p.rect(2, 2, 1, 2, 0.5);
-    
-    // Canister cap (darker and worn looking)
-    this.p.fill(40);
-    this.p.stroke(0);
-    this.p.strokeWeight(1);
-    this.p.rect(-2, -7, 4, 2);
-    
-    // Worn cap details
-    this.p.stroke(100);
-    this.p.strokeWeight(0.5);
-    this.p.line(-1, -6.5, 1, -6.5);
-    
-    // Canister handle (worn metal)
-    this.p.stroke(80, 80, 90);
-    this.p.strokeWeight(1);
-    this.p.line(-3, -5, 3, -5);
-    
-    // Fuel level indicator (faded)
-    this.p.noStroke();
-    this.p.fill(150, 150, 150, 180);
-    this.p.rect(3, -4, 0.5, 7);
-    
-    // Safety warnings (faded text)
-    this.p.fill(240, 220, 0, 100);
-    this.p.rect(-3.5, -2, 2, 0.5);
-    this.p.rect(-3.5, -1, 2, 0.5);
-    
-    this.p.pop();
+    // This method was causing issues by rendering in the wrong place
+    // We'll move canister rendering to GameRenderer instead
   }
   
   isNightTime() {

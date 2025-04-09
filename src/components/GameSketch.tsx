@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
@@ -52,8 +53,8 @@ const GameSketch = () => {
               dayTimeAngle: game.dayTimeAngle,
               worldData: game.getWorldData(),
               gameStarted: game.gameStarted,
-              sleepingInHut: game.sleepingInHut, // Add sleeping state to gameStateUpdate
-              isUnderTarp: game.isPlayerUnderTarp() // Add tarp status to gameStateUpdate
+              sleepingInHut: game.sleepingInHut, 
+              isUnderTarp: game.isPlayerUnderTarp()
             }
           });
           window.dispatchEvent(event);
