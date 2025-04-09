@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -30,9 +29,6 @@ export default class Hoverbike implements HoverbikeType {
     sparks: Array<{x: number, y: number, opacity: number, vx: number, vy: number}>;
     timer: number;
   };
-  // Add these properties to satisfy the HoverbikeType interface
-  speedLevel: number = 0; // Default value
-  upgradeSpeed: () => void = () => {}; // Empty implementation
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -49,7 +45,7 @@ export default class Hoverbike implements HoverbikeType {
     this.maxHealth = 100;
     this.fuel = 100;
     this.maxFuel = 100;
-    this.speed = 2;
+    this.speed = 1;
     this.durabilityLevel = 0;
     this.collisionCooldown = 0;
     this.previousAcceleration = 0;
@@ -62,15 +58,10 @@ export default class Hoverbike implements HoverbikeType {
       timer: 0
     };
     
-    // Initialize the speedLevel property properly
     this.speedLevel = 0;
     
-    // Define the upgradeSpeed method properly
     this.upgradeSpeed = () => {
-      if (this.speedLevel < 3) {
-        this.speedLevel++;
-        this.speed += 0.5;
-      }
+      console.log("Speed upgrades are disabled");
     };
   }
 
@@ -79,54 +70,43 @@ export default class Hoverbike implements HoverbikeType {
       this.isRiding = true;
       this.handleControls();
       
-      // Only apply movement if there's fuel
       if (this.fuel > 0) {
         this.applyMovement();
       } else {
-        // Gradually slow down when out of fuel - even more gradual now
-        this.velocityX *= 0.995; // Even more gradual slowdown
+        this.velocityX *= 0.995;
         this.velocityY *= 0.995;
       }
       
       this.checkCollisions();
       
-      // Update flame length based on acceleration
       const currentSpeed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
       
-      // Check if accelerating/decelerating based on key states
       if (this.p.keyIsDown(this.p.UP_ARROW) && this.fuel > 0) {
-        // Accelerating - increase flame length
-        const targetLength = currentSpeed * 4 + 5; // Base flame + speed-dependent component
-        this.flameLength = this.p.lerp(this.flameLength, targetLength, 0.1); // Smooth transition
+        const targetLength = currentSpeed * 4 + 5;
+        this.flameLength = this.p.lerp(this.flameLength, targetLength, 0.1);
       } else if (this.p.keyIsDown(this.p.DOWN_ARROW) && this.fuel > 0) {
-        // Only allow braking/reversing if we have fuel
-        const targetLength = Math.max(currentSpeed * 2, 3); // Smaller flame when braking
-        this.flameLength = this.p.lerp(this.flameLength, targetLength, 0.2); // Faster transition when braking
+        const targetLength = Math.max(currentSpeed * 2, 3);
+        this.flameLength = this.p.lerp(this.flameLength, targetLength, 0.2);
       } else {
-        // Coasting - gradually adjust flame based on current speed
         const targetLength = currentSpeed * 3;
         this.flameLength = this.p.lerp(this.flameLength, targetLength, 0.1);
       }
       
-      // Ensure there's always a minimum flame when riding (unless no fuel)
       this.thrustIntensity = (this.fuel > 0) ? Math.max(2, this.flameLength) : 0;
       
       if (this.collisionCooldown > 0) {
         this.collisionCooldown--;
       }
     } else {
-      // Turn off flame completely when not riding
       this.isRiding = false;
       this.thrustIntensity = 0;
       this.flameLength = 0;
       this.checkFuelRefill();
       
-      // Apply even more gradual slowdown when not riding
-      this.velocityX *= 0.997; // Even more inertia
+      this.velocityX *= 0.997;
       this.velocityY *= 0.997;
     }
     
-    // Update repair animation if active
     if (this.repairAnimation.active) {
       this.updateRepairAnimation();
     }
@@ -135,83 +115,50 @@ export default class Hoverbike implements HoverbikeType {
   handleControls() {
     let acceleration = 0;
     
-    // Increased fuel consumption rate
     if (this.p.keyIsDown(this.p.UP_ARROW) && this.fuel > 0) {
-      acceleration = 0.05; // Reduced from 0.1 to make forward movement slower
+      acceleration = 0.025;
       
-      // More aggressive fuel consumption when accelerating
-      if (this.p.frameCount % 30 === 0) { // Every half second
+      if (this.p.frameCount % 30 === 0) {
         const oldFuel = this.fuel;
-        this.fuel = Math.max(0, this.fuel - 1); // Drain 1 unit of fuel instead of 0.5
+        this.fuel = Math.max(0, this.fuel - 1);
         if (oldFuel !== this.fuel) {
           emitGameStateUpdate(this.player, this);
         }
       }
     } else if (this.p.keyIsDown(this.p.DOWN_ARROW) && this.fuel > 0) {
-      // If moving forward, brake first
-      if (Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY) > 0.1) {
-        // Calculate if we're moving mostly in the direction we're facing
-        const movementAngle = Math.atan2(this.velocityY, this.velocityX);
-        const angleDifference = Math.abs((movementAngle - this.angle + Math.PI * 2) % (Math.PI * 2));
-        
-        if (angleDifference < Math.PI / 2 || angleDifference > Math.PI * 3 / 2) {
-          // We're moving forward, apply braking
-          acceleration = -0.05;
-        } else {
-          // We're already moving backward, accelerate backward but slower
-          acceleration = -0.005; // Further reduced from -0.01 to make backward movement even slower
-          
-          // Slightly reduced but still significant fuel consumption when braking
-          if (this.p.frameCount % 30 === 0) {
-            const oldFuel = this.fuel;
-            this.fuel = Math.max(0, this.fuel - 0.75);
-            if (oldFuel !== this.fuel) {
-              emitGameStateUpdate(this.player, this);
-            }
-          }
-        }
-      } else {
-        // If not moving or very slow, go in reverse (slower than before)
-        acceleration = -0.005; // Further reduced from -0.01 to make backward movement even slower
-        
-        // Slightly reduced but still significant fuel consumption when reversing
-        if (this.p.frameCount % 30 === 0) {
-          const oldFuel = this.fuel;
-          this.fuel = Math.max(0, this.fuel - 0.75);
-          if (oldFuel !== this.fuel) {
-            emitGameStateUpdate(this.player, this);
-          }
+      acceleration = -0.0125;
+      
+      if (this.p.frameCount % 30 === 0) {
+        const oldFuel = this.fuel;
+        this.fuel = Math.max(0, this.fuel - 0.75);
+        if (oldFuel !== this.fuel) {
+          emitGameStateUpdate(this.player, this);
         }
       }
     }
     
-    // Store acceleration for thrust effects
     this.previousAcceleration = acceleration;
 
     let turningVelocity = 0;
-    // Allow turning even without fuel, but at a reduced rate if no fuel
     if (this.p.keyIsDown(this.p.LEFT_ARROW)) {
-      turningVelocity = this.fuel > 0 ? -0.03 : -0.01;
+      turningVelocity = this.fuel > 0 ? -0.02 : -0.005;
     }
     else if (this.p.keyIsDown(this.p.RIGHT_ARROW)) {
-      turningVelocity = this.fuel > 0 ? 0.03 : 0.01;
+      turningVelocity = this.fuel > 0 ? 0.02 : 0.005;
     }
 
     this.angle += turningVelocity;
     
-    // Only apply acceleration if we have fuel
     if (this.fuel > 0) {
       this.velocityX += this.p.cos(this.angle) * acceleration;
       this.velocityY += this.p.sin(this.angle) * acceleration;
     }
     
-    // Apply less friction for more inertia
-    this.velocityX *= 0.995; // Even more inertia (was 0.99)
-    this.velocityY *= 0.995;
+    this.velocityX *= 0.99;
+    this.velocityY *= 0.99;
   }
 
   applyMovement() {
-    // Check for collisions with the hut before moving
     let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
     let willCollide = false;
     let newX = this.x + this.velocityX;
@@ -226,11 +173,11 @@ export default class Hoverbike implements HoverbikeType {
         if (obs.type === 'rock') {
           let hitboxWidth = 28 * obs.size * (obs.aspectRatio > 1 ? obs.aspectRatio : 1);
           let hitboxHeight = 28 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
-          collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.2; // Fixed hitbox size for rocks (was 1.5)
+          collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.2;
         } else if (obs.type === 'hut') {
-          collisionRadius = 30; // Hut collision radius
+          collisionRadius = 30;
         } else if (obs.type === 'fuelPump') {
-          collisionRadius = 35; // Fuel pump collision radius
+          collisionRadius = 35;
         }
         
         let distance = this.p.sqrt(dx * dx + dy * dy);
@@ -307,10 +254,8 @@ export default class Hoverbike implements HoverbikeType {
   }
   
   checkFuelRefill() {
-    // Only check for refill if we have fuel less than max
     if (this.fuel >= this.maxFuel) return;
     
-    // Prevent refueling while the player is riding the hoverbike
     if (this.player.riding) return;
     
     let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
@@ -320,13 +265,10 @@ export default class Hoverbike implements HoverbikeType {
         let dy = this.y - obs.y;
         let distance = this.p.sqrt(dx * dx + dy * dy);
         
-        // If close to fuel pump, refill fuel at a slower rate
         if (distance < 70 && this.fuel < this.maxFuel) {
           const oldFuel = this.fuel;
-          // Reduced refill speed from 0.3 to 0.1 units per frame
           this.fuel = Math.min(this.maxFuel, this.fuel + 0.1);
           
-          // Update UI more frequently for smoother visual updates (every 5 frames instead of 10)
           if (oldFuel !== this.fuel && this.p.frameCount % 5 === 0) {
             emitGameStateUpdate(this.player, this);
           }
@@ -344,23 +286,20 @@ export default class Hoverbike implements HoverbikeType {
   updateRepairAnimation() {
     this.repairAnimation.timer++;
     
-    // Create new sparks periodically
     if (this.repairAnimation.timer % 5 === 0) {
-      // Create 3 new sparks at random positions around the hoverbike
       for (let i = 0; i < 3; i++) {
         const angle = this.p.random(0, Math.PI * 2);
         const distance = this.p.random(5, 15);
         this.repairAnimation.sparks.push({
-          x: this.p.random(-10, 10), // Random position relative to hoverbike center
+          x: this.p.random(-10, 10),
           y: this.p.random(-10, 10),
           opacity: 255,
           vx: Math.cos(angle) * this.p.random(0.5, 2),
-          vy: Math.sin(angle) * this.p.random(0.5, 2) - this.p.random(0.5, 1.5) // Upward bias
+          vy: Math.sin(angle) * this.p.random(0.5, 2) - this.p.random(0.5, 1.5)
         });
       }
     }
     
-    // Update existing sparks
     for (let i = this.repairAnimation.sparks.length - 1; i >= 0; i--) {
       const spark = this.repairAnimation.sparks[i];
       spark.x += spark.vx;
@@ -372,8 +311,7 @@ export default class Hoverbike implements HoverbikeType {
       }
     }
     
-    // Stop the animation after a while
-    if (this.repairAnimation.timer >= 120) { // 2 seconds at 60fps
+    if (this.repairAnimation.timer >= 120) {
       this.repairAnimation.active = false;
     }
   }
@@ -384,43 +322,35 @@ export default class Hoverbike implements HoverbikeType {
     this.p.push();
     this.p.noStroke();
     
-    // Draw hammer/wrench animation
     const toolAngle = Math.sin(this.repairAnimation.timer * 0.2) * 0.5;
     const toolDistance = 20;
     
     this.p.push();
     this.p.translate(this.x, this.y);
     
-    // Alternate between hammer and wrench for different repair actions
     if (this.repairAnimation.timer % 30 < 15) {
-      // Draw hammer
       this.p.push();
       this.p.rotate(toolAngle);
       this.p.translate(toolDistance, 0);
       
-      // Handle
       this.p.stroke(60, 40, 20);
       this.p.strokeWeight(2);
       this.p.line(0, 0, 0, -15);
       
-      // Hammer head
       this.p.fill(150);
       this.p.noStroke();
       this.p.rect(-5, -20, 10, 8, 1);
       
       this.p.pop();
     } else {
-      // Draw wrench
       this.p.push();
       this.p.rotate(-toolAngle);
       this.p.translate(-toolDistance, 0);
       
-      // Wrench body
       this.p.fill(170, 170, 190);
       this.p.rotate(-Math.PI/4);
       this.p.rect(-3, -15, 6, 20, 1);
       
-      // Wrench head
       this.p.ellipse(0, -17, 12, 8);
       this.p.fill(0);
       this.p.ellipse(0, -17, 6, 4);
@@ -428,23 +358,19 @@ export default class Hoverbike implements HoverbikeType {
       this.p.pop();
     }
     
-    // Draw welding effect occasionally
     if (this.repairAnimation.timer % 15 < 5) {
       const weldX = this.p.random(-15, 15);
       const weldY = this.p.random(-10, 10);
       
-      // Bright welding spot
       this.p.fill(255, 255, 200, 220);
       this.p.ellipse(weldX, weldY, 4, 4);
       
-      // Outer glow
       this.p.fill(255, 200, 50, 150);
       this.p.ellipse(weldX, weldY, 8, 8);
     }
     
     this.p.pop();
     
-    // Draw individual sparks
     for (const spark of this.repairAnimation.sparks) {
       this.p.fill(255, this.p.random(100, 200), 50, spark.opacity);
       this.p.ellipse(this.x + spark.x, this.y + spark.y, this.p.random(1, 3), this.p.random(1, 3));
@@ -457,93 +383,76 @@ export default class Hoverbike implements HoverbikeType {
     if (this.worldX === this.player.worldX && this.worldY === this.player.worldY) {
       this.p.push();
       this.p.translate(this.x, this.y);
-      this.p.rotate(this.angle); // Remove the PI/2 rotation so it faces the direction of travel
+      this.p.rotate(this.angle);
       
-      // Main body - hoverbike with correct orientation (front facing forward, back in the rear)
-      // First layer - base chassis (gray metallic)
-      this.p.stroke(0); // Add black outlines back
+      this.p.stroke(0);
       this.p.strokeWeight(1);
       this.p.fill(130, 130, 140);
       this.p.beginShape();
-      this.p.vertex(20, 0);     // Front point
-      this.p.vertex(16, 6);     // Front right
-      this.p.vertex(0, 8);      // Mid right
-      this.p.vertex(-16, 6);    // Rear right
-      this.p.vertex(-16, -6);   // Rear left
-      this.p.vertex(0, -8);     // Mid left
-      this.p.vertex(16, -6);    // Front left
+      this.p.vertex(20, 0);
+      this.p.vertex(16, 6);
+      this.p.vertex(0, 8);
+      this.p.vertex(-16, 6);
+      this.p.vertex(-16, -6);
+      this.p.vertex(0, -8);
+      this.p.vertex(16, -6);
       this.p.endShape(this.p.CLOSE);
       
-      // Central section (seat and controls)
       this.p.fill(80, 80, 90);
       this.p.beginShape();
-      this.p.vertex(14, 0);     // Front
-      this.p.vertex(10, 5);     // Front right
-      this.p.vertex(-6, 6);     // Mid right
-      this.p.vertex(-10, 4);    // Rear right
-      this.p.vertex(-10, -4);   // Rear left
-      this.p.vertex(-6, -6);    // Mid left
-      this.p.vertex(10, -5);    // Front left
+      this.p.vertex(14, 0);
+      this.p.vertex(10, 5);
+      this.p.vertex(-6, 6);
+      this.p.vertex(-10, 4);
+      this.p.vertex(-10, -4);
+      this.p.vertex(-6, -6);
+      this.p.vertex(10, -5);
       this.p.endShape(this.p.CLOSE);
       
-      // Seat
       this.p.fill(60, 60, 65);
       this.p.ellipse(0, 0, 14, 10);
       
-      // Handlebars
       this.p.stroke(70, 70, 75);
       this.p.strokeWeight(2);
       this.p.line(8, -4, 6, -8);
       this.p.line(8, 4, 6, 8);
       this.p.strokeWeight(1);
       
-      // Handlebar grips
       this.p.fill(40, 40, 45);
       this.p.ellipse(6, -8, 4, 3);
       this.p.ellipse(6, 8, 4, 3);
       
-      // Front lights
       this.p.fill(200, 200, 100);
       this.p.ellipse(18, 0, 6, 3);
       
-      // Jet engine at the back
       this.p.fill(90, 90, 95);
       this.p.beginShape();
-      this.p.vertex(-14, -6);  // Top edge of engine
-      this.p.vertex(-14, 6);   // Bottom edge of engine
-      this.p.vertex(-20, 5);   // Bottom exhaust
-      this.p.vertex(-20, -5);  // Top exhaust
+      this.p.vertex(-14, -6);
+      this.p.vertex(-14, 6);
+      this.p.vertex(-20, 5);
+      this.p.vertex(-20, -5);
       this.p.endShape(this.p.CLOSE);
       
-      // Engine details
       this.p.fill(50, 50, 55);
       this.p.rect(-15, -4, 4, 8, 1);
       
-      // Only display flame if riding
       if (this.thrustIntensity > 0) {
-        // Enhanced exhaust flame - dynamic length based on thrust intensity
-        this.p.noStroke();
-        
-        // Horizontal flame that stretches with acceleration/deceleration
-        // Base glow - always present but minimal when not moving
         const flameWidth = this.thrustIntensity;
         const flameHeight = 6;
-        const flameX = -21 - (flameWidth / 2); // Position flame just behind the exhaust
+        const flameX = -21 - (flameWidth / 2);
         
-        // Outer glow - yellow/orange
+        this.p.noStroke();
+        
         this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
         this.p.ellipse(flameX, 0, flameWidth, flameHeight);
         
-        // Inner glow - brighter, more intense
         this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
         this.p.ellipse(flameX - 1, 0, flameWidth * 0.7, flameHeight * 0.8);
         
-        // Brightest core - red hot
         this.p.fill(255, 50, 50, 200 + this.p.sin(this.p.frameCount * 0.3) * 55);
         this.p.ellipse(flameX - 2, 0, flameWidth * 0.5, flameHeight * 0.6);
       }
       
-      // Side panels with makeshift repairs
       this.p.stroke(0);
       this.p.fill(100, 100, 110);
       this.p.beginShape();
@@ -558,7 +467,6 @@ export default class Hoverbike implements HoverbikeType {
       this.p.vertex(5, 8);
       this.p.endShape(this.p.CLOSE);
       
-      // Bolts and rivets
       this.p.fill(60, 60, 65);
       this.p.ellipse(-8, -8, 2, 2);
       this.p.ellipse(0, -8, 2, 2);
@@ -567,7 +475,6 @@ export default class Hoverbike implements HoverbikeType {
       this.p.ellipse(0, 8, 2, 2);
       this.p.ellipse(8, 8, 2, 2);
       
-      // Wires and hoses
       this.p.stroke(40, 40, 45);
       this.p.strokeWeight(1);
       this.p.line(-8, -6, -14, -4);
@@ -575,14 +482,12 @@ export default class Hoverbike implements HoverbikeType {
       this.p.line(-8, 2, -14, 2);
       this.p.line(-8, 6, -14, 4);
       
-      // Shadow
       this.p.noStroke();
       this.p.fill(50, 50, 60, 100);
       this.p.ellipse(0, 0, 25, 20);
       
       this.p.pop();
       
-      // Display repair effects (must be outside the translate/rotate to avoid affecting spark positions)
       this.displayRepairEffects();
     }
   }
