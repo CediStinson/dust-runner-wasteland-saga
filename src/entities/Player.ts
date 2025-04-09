@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -26,6 +25,7 @@ export default class Player implements PlayerType {
   riding: boolean;
   lastAngle: number;
   turnSpeed: number;
+  hairColor: {r: number, g: number, b: number};
   armAnimationOffset: number;
   carryingFuelCanister: boolean;
   canisterCollectCooldown: number;
@@ -253,93 +253,69 @@ export default class Player implements PlayerType {
   }
 
   displayRidingPlayerTopDown() {
-    // Draw shadow
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
     this.p.ellipse(0, 0, 12, 9);
     
-    // Golden pixel character
     this.p.strokeWeight(0.5);
     this.p.stroke(0, 0, 0, 200);
-
-    // Base color - golden yellow
-    this.p.fill(255, 200, 0);
-    this.p.ellipse(0, 0, 10, 8);
-
-    // Draw pixelated gold character details
-    // Darker gold details
-    this.p.fill(200, 150, 0);
-    this.p.rect(-2, -1, 2, 2);
-    this.p.rect(2, -1, 1, 2);
-
-    // Lighter gold highlights
-    this.p.fill(255, 230, 100);
-    this.p.rect(-1, -3, 2, 2);
-    this.p.rect(1, 1, 2, 1);
-
-    // Cream/white highlights
-    this.p.fill(255, 240, 200);
-    this.p.rect(2, -2, 1, 1);
-    this.p.rect(-3, 1, 1, 1);
+    this.p.fill(90, 130, 90, 255);
+    this.p.ellipse(0, 0, 12, 9);
+    this.p.noStroke();
+    
+    this.p.fill(245, 220, 190);
+    this.p.ellipse(0, 0, 6, 6);
+    
+    this.drawTopDownHair();
+    
+    this.p.fill(245, 220, 190);
+    this.p.ellipse(-4, 6, 4, 4);
+    this.p.ellipse(4, 6, 4, 4);
   }
 
   displayStandingPlayerTopDown() {
-    // Draw shadow
     this.p.fill(0, 0, 0, 40);
     this.p.noStroke();
     this.p.ellipse(0, 2, 12, 9);
     
-    // Main pixel art character
-    this.p.push();
+    this.p.strokeWeight(0.5);
+    this.p.stroke(0, 0, 0, 200);
+    this.p.fill(90, 130, 90, 255);
+    this.p.ellipse(0, 0, 12, 9);
+    this.p.noStroke();
     
-    // Base shape - golden body
-    this.p.fill(255, 200, 0);
-    this.p.rect(-4, -4, 8, 8, 1);
+    this.p.fill(245, 220, 190);
+    this.p.ellipse(0, 0, 6, 6);
     
-    // Darker gold accents
-    this.p.fill(200, 150, 0);
-    this.p.rect(-3, -3, 2, 6);
-    this.p.rect(2, -1, 1, 4);
+    this.drawTopDownHair();
     
-    // Light gold highlights
-    this.p.fill(255, 230, 100);
-    this.p.rect(-1, -4, 2, 1);
-    this.p.rect(1, 1, 2, 2);
-    
-    // White/cream highlights
-    this.p.fill(255, 240, 200);
-    this.p.rect(2, -3, 1, 2);
-    this.p.rect(-4, 2, 1, 1);
-    
-    // Draw arms with animation
-    this.drawArms();
-    
-    this.p.pop();
-  }
-
-  drawArms() {
-    // Left arm
-    this.p.push();
-    this.p.translate(-5, 1 + this.armAnimationOffset);
-    this.p.fill(255, 200, 0);
-    this.p.rect(-2, -1, 3, 2);
-    this.p.fill(200, 150, 0);
-    this.p.rect(-2, -1, 1, 1);
-    this.p.pop();
-    
-    // Right arm
-    this.p.push();
-    this.p.translate(5, 1 - this.armAnimationOffset);
-    this.p.fill(255, 200, 0);
-    this.p.rect(-1, -1, 3, 2);
-    this.p.fill(200, 150, 0);
-    this.p.rect(1, 0, 1, 1);
-    this.p.pop();
+    this.p.fill(245, 220, 190);
+    this.p.ellipse(-5, 3 + this.armAnimationOffset, 4, 4);
+    this.p.ellipse(5, 3 - this.armAnimationOffset, 4, 4);
   }
 
   drawTopDownHair() {
-    // This method is no longer needed as we're using the pixelated character
-    // The pixel art already includes the character's "helmet" or head
+    const { r, g, b } = this.hairColor;
+    
+    this.p.strokeWeight(1);
+    this.p.stroke('#000000e6');
+    this.p.push();
+    this.p.translate(0, -2.5);
+    this.p.fill(r, g, b);
+    this.p.ellipse(0, 0, 6, 6);
+    this.p.noStroke();
+    this.p.fill(r-30, g-30, b-30);
+    this.p.stroke('#000000e6');
+    this.p.strokeWeight(0.5);
+    this.p.fill(r, g, b);
+    this.p.beginShape();
+    this.p.vertex(-2, -1);
+    this.p.vertex(2, -1);
+    this.p.vertex(3, 2);
+    this.p.vertex(3, -5);
+    this.p.vertex(-3, -2);
+    this.p.endShape(this.p.CLOSE);
+    this.p.pop();
   }
 
   checkForCollectableResources() {
