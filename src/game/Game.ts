@@ -564,41 +564,48 @@ export default class Game {
   }
   
   renderQuestUI() {
-    const quest = this.questSystem.roofRepairQuest;
-    
-    if (quest.active && !quest.completed) {
-      // Render active quest - moved to bottom of screen
-      this.p.push();
-      this.p.fill(0, 0, 0, 120);
-      this.p.rect(10, this.p.height - 70, 380, 60, 5);
-      
-      this.p.fill(255, 255, 200);
-      this.p.textSize(14);
-      this.p.textAlign(this.p.LEFT);
-      this.p.text("Quest: The last Sandstorm really damaged your roof.", 20, this.p.height - 50);
-      this.p.text(`Collect Metal: ${quest.metalCollected}/${quest.requiredMetal}`, 20, this.p.height - 30);
-      
-      // Show hint if requirements are met
-      if (quest.metalCollected >= quest.requiredMetal) {
-        this.p.fill(150, 255, 150);
-        this.p.text("Press E near your hut to repair it!", 240, this.p.height - 30);
-      }
-      this.p.pop();
-    } else if (quest.showCompletionMessage) {
-      // Render quest completion message
-      this.p.push();
-      this.p.fill(0, 0, 0, 150);
-      this.p.rect(this.p.width/2 - 250, this.p.height/2 - 50, 500, 100, 10);
-      
-      this.p.fill(255, 255, 150);
-      this.p.textSize(16);
-      this.p.textAlign(this.p.CENTER);
-      this.p.text("On top of the roof you just repaired you found your", this.p.width/2, this.p.height/2 - 20);
-      this.p.text("grandpa's old pickaxe. You are now able to dig for", this.p.width/2, this.p.height/2);
-      this.p.text("rare metals. Awesome!", this.p.width/2, this.p.height/2 + 20);
-      this.p.pop();
+  const quest = this.questSystem.roofRepairQuest;
+  
+  if (quest.active && !quest.completed) {
+    // Render active quest - centered at bottom
+    const boxWidth = 380;
+    const boxHeight = 60;
+    const boxX = (this.p.width - boxWidth) / 2;
+    const boxY = this.p.height - 70;
+
+    this.p.push();
+    this.p.fill(0, 0, 0, 120);
+    this.p.rect(boxX, boxY, boxWidth, boxHeight, 5);
+
+    this.p.fill(255, 255, 200);
+    this.p.textSize(14);
+    this.p.textAlign(this.p.LEFT);
+    this.p.text("Quest: The last Sandstorm really damaged your roof.", boxX + 10, boxY + 20);
+    this.p.text(`Collect Metal: ${quest.metalCollected}/${quest.requiredMetal}`, boxX + 10, boxY + 40);
+
+    // Show hint if requirements are met
+    if (quest.metalCollected >= quest.requiredMetal) {
+      this.p.fill(150, 255, 150);
+      this.p.textAlign(this.p.RIGHT);
+      this.p.text("Press E near your hut to repair it!", boxX + boxWidth - 10, boxY + 40);
     }
+    this.p.pop();
+  } else if (quest.showCompletionMessage) {
+    // Render quest completion message
+    this.p.push();
+    this.p.fill(0, 0, 0, 150);
+    this.p.rect(this.p.width / 2 - 250, this.p.height / 2 - 50, 500, 100, 10);
+
+    this.p.fill(255, 255, 150);
+    this.p.textSize(16);
+    this.p.textAlign(this.p.CENTER);
+    this.p.text("On top of the roof you just repaired you found your", this.p.width / 2, this.p.height / 2 - 20);
+    this.p.text("grandpa's old pickaxe. You are now able to dig for", this.p.width / 2, this.p.height / 2);
+    this.p.text("rare metals. Awesome!", this.p.width / 2, this.p.height / 2 + 20);
+    this.p.pop();
   }
+}
+
   
   renderSleepAnimation() {
     // Darken the screen
