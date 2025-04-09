@@ -72,7 +72,7 @@ export default class Game {
     // Position the hoverbike under the tarp (slightly to the left of the hut)
     this.hoverbike = new Hoverbike(
       p, 
-      p.width / 2 - 70, // Position under the tarp
+      p.width / 2 - 120, // Position under the tarp
       p.height / 2 - 50, // Align with the hut's y position
       this.worldX, 
       this.worldY, 
@@ -239,7 +239,7 @@ export default class Game {
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
     }
   }
-  
+
   addWalkingMarksAtHomeBase() {
     const homeAreaKey = "0,0";
     let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
@@ -494,47 +494,47 @@ export default class Game {
   }
   
   updateDayTint() {
-    // Calculate tint based on time of day
+    // Calculate tint based on time of day with more extreme values
     // 0.0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset
     
     if (this.timeOfDay >= 0.0 && this.timeOfDay < 0.25) {
       // Night to sunrise transition (dark blue to orange)
       const t = this.timeOfDay / 0.25; // 0 to 1
       this.dayTint = {
-        r: this.p.lerp(26, 252, t),
-        g: this.p.lerp(31, 157, t),
-        b: this.p.lerp(44, 78, t),
-        a: this.p.lerp(40, 20, t)
+        r: this.p.lerp(20, 255, t),  // Darker blue to bright orange
+        g: this.p.lerp(25, 160, t),
+        b: this.p.lerp(40, 70, t),
+        a: this.p.lerp(70, 30, t)    // More opacity at night
       };
     } 
     else if (this.timeOfDay >= 0.25 && this.timeOfDay < 0.5) {
-      // Sunrise to noon (orange to bright blue sky)
+      // Sunrise to noon (orange to clear blue sky)
       const t = (this.timeOfDay - 0.25) / 0.25;
       this.dayTint = {
-        r: this.p.lerp(252, 180, t),
-        g: this.p.lerp(157, 214, t),
-        b: this.p.lerp(78, 255, t),
-        a: this.p.lerp(20, 0, t) // Fade out tint at noon
+        r: this.p.lerp(255, 150, t),
+        g: this.p.lerp(160, 200, t),
+        b: this.p.lerp(70, 255, t),
+        a: this.p.lerp(30, 0, t)     // Fade out completely at noon
       };
     }
     else if (this.timeOfDay >= 0.5 && this.timeOfDay < 0.75) {
-      // Noon to sunset (bright blue to orange)
+      // Noon to sunset (clear blue to orange)
       const t = (this.timeOfDay - 0.5) / 0.25;
       this.dayTint = {
-        r: this.p.lerp(180, 252, t),
-        g: this.p.lerp(214, 157, t),
-        b: this.p.lerp(255, 78, t),
-        a: this.p.lerp(0, 20, t)
+        r: this.p.lerp(150, 255, t),
+        g: this.p.lerp(200, 130, t),
+        b: this.p.lerp(255, 70, t),
+        a: this.p.lerp(0, 30, t)     // Gradually increase tint
       };
     }
     else {
       // Sunset to night (orange to dark blue)
       const t = (this.timeOfDay - 0.75) / 0.25;
       this.dayTint = {
-        r: this.p.lerp(252, 26, t),
-        g: this.p.lerp(157, 31, t),
-        b: this.p.lerp(78, 44, t),
-        a: this.p.lerp(20, 40, t)
+        r: this.p.lerp(255, 20, t),  // Fade to darker night
+        g: this.p.lerp(130, 25, t),
+        b: this.p.lerp(70, 40, t),
+        a: this.p.lerp(30, 70, t)    // Increase opacity for darker night
       };
     }
   }
@@ -740,10 +740,14 @@ export default class Game {
       }
     }
     
-    if (key === 'r' && !this.riding && this.p.dist(this.player.x, this.player.y, this.hoverbike.x, this.hoverbike.y) < 30 && 
-        this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
+    if (key === 'r' && !this.riding && 
+        this.p.dist(this.player.x, this.player.y, this.hoverbike.x, this.hoverbike.y) < 30 && 
+        this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY &&
+        this.isPlayerUnderTarp() && // Only allow repairs under tarp
+        this.player.inventory.metal > 0) { // Only if player has metal
       // Start the repair process
       this.player.startHoverbikeRepair();
+      this.hoverbike.startRepairAnimation();
     }
   }
 

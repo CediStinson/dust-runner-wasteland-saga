@@ -111,9 +111,9 @@ export default class Player implements PlayerType {
               let hitboxHeight = 28 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
               collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.5;
             } else if (obs.type === 'hut') {
-              collisionRadius = 30;
+              collisionRadius = 40;
             } else if (obs.type === 'fuelPump') {
-              collisionRadius = 35;
+              collisionRadius = 45;
             }
             
             let distance = this.p.sqrt(dx * dx + dy * dy);
@@ -162,6 +162,13 @@ export default class Player implements PlayerType {
       this.x = this.hoverbike.x;
       this.y = this.hoverbike.y;
       this.angle = this.hoverbike.angle;
+    }
+    
+    if (this.isCollectingCanister && 
+        (Math.abs(this.velX) > 0.3 || Math.abs(this.velY) > 0.3)) {
+      this.isCollectingCanister = false;
+      this.canisterCollectionProgress = 0;
+      this.canisterCollectionTarget = null;
     }
   }
 
@@ -319,19 +326,29 @@ export default class Player implements PlayerType {
   }
 
   checkForCollectableResources() {
+    let closestResource = null;
+    let minDistance = Infinity;
     let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
     
     for (let res of currentResources) {
-      if ((res.type === 'metal' || res.type === 'copper') && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
-        this.p.push();
-        this.p.fill(255, 255, 100, 150);
-        this.p.ellipse(res.x, res.y - 15, 5, 5);
-        this.p.fill(255);
-        this.p.textAlign(this.p.CENTER);
-        this.p.textSize(8);
-        this.p.text("E", res.x, res.y - 13);
-        this.p.pop();
+      if ((res.type === 'metal' || res.type === 'copper')) {
+        const distance = this.p.dist(this.x, this.y, res.x, res.y);
+        if (distance < 30 && distance < minDistance) {
+          closestResource = res;
+          minDistance = distance;
+        }
       }
+    }
+    
+    if (closestResource) {
+      this.p.push();
+      this.p.fill(255, 255, 100, 150);
+      this.p.ellipse(closestResource.x, closestResource.y - 15, 5, 5);
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(8);
+      this.p.text("E", closestResource.x, closestResource.y - 13);
+      this.p.pop();
     }
     
     if (!this.carryingFuelCanister && this.canisterCollectCooldown === 0) {
@@ -352,19 +369,29 @@ export default class Player implements PlayerType {
       }
     }
     
+    let closestCanister = null;
+    let minCanisterDistance = Infinity;
     let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-    for (let i = 0; i < currentObstacles.length; i++) {
-      let obs = currentObstacles[i];
-      if (obs.type === 'fuelCanister' && !obs.collected && this.p.dist(this.x, this.y, obs.x, obs.y) < 30) {
-        this.p.push();
-        this.p.fill(255, 255, 100, 150);
-        this.p.ellipse(obs.x, obs.y - 15, 5, 5);
-        this.p.fill(255);
-        this.p.textAlign(this.p.CENTER);
-        this.p.textSize(8);
-        this.p.text("E", obs.x, obs.y - 13);
-        this.p.pop();
+    
+    for (let obs of currentObstacles) {
+      if (obs.type === 'fuelCanister' && !obs.collected) {
+        const distance = this.p.dist(this.x, this.y, obs.x, obs.y);
+        if (distance < 30 && distance < minCanisterDistance) {
+          closestCanister = obs;
+          minCanisterDistance = distance;
+        }
       }
+    }
+    
+    if (closestCanister) {
+      this.p.push();
+      this.p.fill(255, 255, 100, 150);
+      this.p.ellipse(closestCanister.x, closestCanister.y - 15, 5, 5);
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(8);
+      this.p.text("E", closestCanister.x, closestCanister.y - 13);
+      this.p.pop();
     }
     
     if (this.carryingFuelCanister && 
@@ -387,25 +414,37 @@ export default class Player implements PlayerType {
 
   collectResource() {
     let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
+    let collectionMade = false;
     
-    for (let i = currentResources.length - 1; i >= 0; i--) {
+    let closestResource = null;
+    let minDistance = Infinity;
+    
+    for (let i = 0; i < currentResources.length; i++) {
       let res = currentResources[i];
-      if (res.type === 'metal' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
-        this.inventory.metal++;
-        currentResources.splice(i, 1);
-        emitGameStateUpdate(this, this.hoverbike);
+      const distance = this.p.dist(this.x, this.y, res.x, res.y);
+      
+      if (distance < 30 && distance < minDistance) {
+        closestResource = res;
+        minDistance = distance;
       }
     }
     
-    if (!this.digging) {
-      for (let i = 0; i < currentResources.length; i++) {
-        let res = currentResources[i];
-        if (res.type === 'copper' && this.p.dist(this.x, this.y, res.x, res.y) < 30) {
-          this.startDigging(res);
-          break;
+    if (closestResource) {
+      if (closestResource.type === 'metal') {
+        this.inventory.metal++;
+        const index = currentResources.indexOf(closestResource);
+        if (index !== -1) {
+          currentResources.splice(index, 1);
         }
+        emitGameStateUpdate(this, this.hoverbike);
+        collectionMade = true;
+      } else if (closestResource.type === 'copper' && !this.digging) {
+        this.startDigging(closestResource);
+        collectionMade = true;
       }
     }
+    
+    return collectionMade;
   }
   
   startDigging(target: any) {
@@ -483,16 +522,30 @@ export default class Player implements PlayerType {
         }
       }
       
+      let closestCanister = null;
+      let minDistance = Infinity;
+      
       for (let i = 0; i < currentObstacles.length; i++) {
         let obs = currentObstacles[i];
-        if (obs.type === 'fuelCanister' && !obs.collected && this.p.dist(this.x, this.y, obs.x, obs.y) < 30) {
-          obs.collected = true;
-          this.carryingFuelCanister = true;
-          this.canisterCollectCooldown = 30;
-          
-          currentObstacles.splice(i, 1);
-          return;
+        if (obs.type === 'fuelCanister' && !obs.collected) {
+          const distance = this.p.dist(this.x, this.y, obs.x, obs.y);
+          if (distance < 30 && distance < minDistance) {
+            closestCanister = obs;
+            minDistance = distance;
+          }
         }
+      }
+      
+      if (closestCanister) {
+        closestCanister.collected = true;
+        this.carryingFuelCanister = true;
+        this.canisterCollectCooldown = 30;
+        
+        const index = currentObstacles.indexOf(closestCanister);
+        if (index !== -1) {
+          currentObstacles.splice(index, 1);
+        }
+        return;
       }
     } else {
       let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
@@ -516,17 +569,18 @@ export default class Player implements PlayerType {
         return;
       }
       
-      let nearHoverbike = (this.hoverbike.worldX === this.worldX && 
-                          this.hoverbike.worldY === this.worldY &&
-                          this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) < 30);
-      
-      if (!nearFuelPump && !nearHoverbike) {
+      if (!nearFuelPump) {
+        let dropDistance = 20;
+        let dropX = this.x + Math.cos(this.angle) * dropDistance;
+        let dropY = this.y + Math.sin(this.angle) * dropDistance;
+        
         currentObstacles.push({
           type: 'fuelCanister',
-          x: this.x,
-          y: this.y,
+          x: dropX,
+          y: dropY,
           collected: false
         });
+        
         this.carryingFuelCanister = false;
         this.canisterCollectCooldown = 30;
       }
@@ -544,7 +598,8 @@ export default class Player implements PlayerType {
         return;
       }
       
-      if (this.p.dist(this.x, this.y, this.canisterCollectionTarget.x, this.canisterCollectionTarget.y) > 60) {
+      if (this.p.dist(this.x, this.y, this.canisterCollectionTarget.x, this.canisterCollectionTarget.y) > 60 || 
+          Math.abs(this.velX) > 0.3 || Math.abs(this.velY) > 0.3) {
         this.isCollectingCanister = false;
         clearInterval(collectInterval);
         return;

@@ -29,6 +29,7 @@ export default class Hoverbike implements HoverbikeType {
     sparks: Array<{x: number, y: number, opacity: number, vx: number, vy: number}>;
     timer: number;
   };
+  speedLevel: number;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -57,12 +58,7 @@ export default class Hoverbike implements HoverbikeType {
       sparks: [],
       timer: 0
     };
-    
     this.speedLevel = 0;
-    
-    this.upgradeSpeed = () => {
-      console.log("Speed upgrades are disabled");
-    };
   }
 
   update() {
@@ -99,12 +95,12 @@ export default class Hoverbike implements HoverbikeType {
       }
     } else {
       this.isRiding = false;
-      this.thrustIntensity = 0;
-      this.flameLength = 0;
-      this.checkFuelRefill();
+      this.velocityX *= 0.985;
+      this.velocityY *= 0.985;
+      this.thrustIntensity = this.p.lerp(this.thrustIntensity, 0, 0.1);
+      this.flameLength = this.p.lerp(this.flameLength, 0, 0.1);
       
-      this.velocityX *= 0.997;
-      this.velocityY *= 0.997;
+      this.checkFuelRefill();
     }
     
     if (this.repairAnimation.active) {
@@ -286,16 +282,16 @@ export default class Hoverbike implements HoverbikeType {
   updateRepairAnimation() {
     this.repairAnimation.timer++;
     
-    if (this.repairAnimation.timer % 5 === 0) {
-      for (let i = 0; i < 3; i++) {
+    if (this.repairAnimation.timer % 3 === 0) {
+      for (let i = 0; i < 4; i++) {
         const angle = this.p.random(0, Math.PI * 2);
         const distance = this.p.random(5, 15);
         this.repairAnimation.sparks.push({
-          x: this.p.random(-10, 10),
-          y: this.p.random(-10, 10),
+          x: this.p.random(-12, 12),
+          y: this.p.random(-12, 12),
           opacity: 255,
-          vx: Math.cos(angle) * this.p.random(0.5, 2),
-          vy: Math.sin(angle) * this.p.random(0.5, 2) - this.p.random(0.5, 1.5)
+          vx: Math.cos(angle) * this.p.random(0.5, 3),
+          vy: Math.sin(angle) * this.p.random(0.5, 3) - this.p.random(0.5, 2)
         });
       }
     }
@@ -304,7 +300,7 @@ export default class Hoverbike implements HoverbikeType {
       const spark = this.repairAnimation.sparks[i];
       spark.x += spark.vx;
       spark.y += spark.vy;
-      spark.opacity -= this.p.random(5, 15);
+      spark.opacity -= this.p.random(8, 20);
       
       if (spark.opacity <= 0) {
         this.repairAnimation.sparks.splice(i, 1);
@@ -341,6 +337,11 @@ export default class Hoverbike implements HoverbikeType {
       this.p.noStroke();
       this.p.rect(-5, -20, 10, 8, 1);
       
+      if (this.repairAnimation.timer % 15 < 2) {
+        this.p.fill(200, 200, 200, 150);
+        this.p.ellipse(this.p.random(-10, 10), this.p.random(-10, 10), 3, 3);
+      }
+      
       this.p.pop();
     } else {
       this.p.push();
@@ -355,10 +356,24 @@ export default class Hoverbike implements HoverbikeType {
       this.p.fill(0);
       this.p.ellipse(0, -17, 6, 4);
       
+      if (this.repairAnimation.timer % 5 < 3) {
+        this.p.fill(255, 255, 200, 220);
+        this.p.ellipse(0, -20, this.p.random(4, 7), this.p.random(4, 7));
+        
+        this.p.fill(255, 200, 50, 180);
+        this.p.ellipse(0, -20, this.p.random(8, 12), this.p.random(8, 12));
+      }
+      
       this.p.pop();
     }
     
-    if (this.repairAnimation.timer % 15 < 5) {
+    if (this.repairAnimation.timer % 20 < 5) {
+      this.p.fill(180, 180, 190);
+      this.p.rect(-8, 5, 5, 2);
+      this.p.rect(3, -5, 2, 4);
+    }
+    
+    if (this.repairAnimation.timer % 15 < 4 && this.repairAnimation.timer % 30 >= 15) {
       const weldX = this.p.random(-15, 15);
       const weldY = this.p.random(-10, 10);
       
@@ -369,10 +384,12 @@ export default class Hoverbike implements HoverbikeType {
       this.p.ellipse(weldX, weldY, 8, 8);
     }
     
-    this.p.pop();
-    
     for (const spark of this.repairAnimation.sparks) {
-      this.p.fill(255, this.p.random(100, 200), 50, spark.opacity);
+      const sparkColor = this.p.random(100) < 80 
+        ? this.p.color(255, this.p.random(100, 220), 20, spark.opacity) 
+        : this.p.color(200, 200, 255, spark.opacity);
+      
+      this.p.fill(sparkColor);
       this.p.ellipse(this.x + spark.x, this.y + spark.y, this.p.random(1, 3), this.p.random(1, 3));
     }
     
@@ -503,5 +520,10 @@ export default class Hoverbike implements HoverbikeType {
   setWorldCoordinates(x: number, y: number) {
     this.worldX = x;
     this.worldY = y;
+  }
+
+  upgradeSpeed() {
+    console.log("Speed upgrades are disabled");
+    return;
   }
 }
