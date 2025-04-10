@@ -93,6 +93,9 @@ export default class Game {
     
     this.worldGenerator = new WorldGenerator(p);
     
+    // Adjust WorldGenerator's canister spawn rate
+    this.worldGenerator.FUEL_CANISTER_CHANCE = 0.15; // Increase chance of fuel canisters
+    
     // Initialize player and hoverbike with references to each other
     // We need to create placeholder objects first
     this.player = {} as Player;
@@ -154,6 +157,9 @@ export default class Game {
     
     // Modify the world generator to make copper rarer
     this.worldGenerator.COPPER_CHANCE = 0.05; // Make copper 5 times rarer (was ~0.25)
+    
+    // Fix obstacle hitboxes for common objects
+    this.adjustObstacleHitboxes();
   }
 
   generateTarpColor() {
@@ -351,6 +357,103 @@ export default class Game {
       
       // Update the world generator's obstacles
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+    }
+  }
+
+  adjustObstacleHitboxes() {
+    // Get all areas in the world generator
+    const areas = this.worldGenerator.getObstacles();
+    
+    // For each area that has been generated
+    for (const areaKey in areas) {
+      const obstacles = areas[areaKey];
+      if (!obstacles || !Array.isArray(obstacles)) continue;
+      
+      // Adjust hitboxes for each obstacle
+      for (const obstacle of obstacles) {
+        switch (obstacle.type) {
+          case 'cactus':
+            // Make cactus hitbox slightly smaller than visual
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = obstacle.width ? obstacle.width * 0.8 : 15; // 80% of visual or default 15
+              obstacle.hitboxHeight = obstacle.height ? obstacle.height * 0.8 : 20; // 80% of visual or default 20
+            }
+            break;
+            
+          case 'rock':
+          case 'smallRock':
+            // Make rock hitboxes match visual size more closely
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = obstacle.size ? obstacle.size * 17 * 0.85 : 14; // 85% of visual
+              obstacle.hitboxHeight = obstacle.size ? obstacle.size * 14 * 0.85 : 12; // 85% of visual
+            }
+            break;
+            
+          case 'metalNode':
+          case 'copperNode':
+            // Make resource nodes have tighter hitboxes
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = obstacle.size ? obstacle.size * 16 * 0.9 : 14; // 90% of visual
+              obstacle.hitboxHeight = obstacle.size ? obstacle.size * 14 * 0.9 : 12; // 90% of visual
+            }
+            break;
+            
+          case 'fuelPump':
+            // Adjust fuel pump hitbox slightly
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = 20 * 0.9; // 90% of visual
+              obstacle.hitboxHeight = 30 * 0.9; // 90% of visual
+            }
+            break;
+            
+          case 'windmill':
+            // Make windmill hitbox more realistic (exclude spinning blades from collision)
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = 16; // Just the center pole
+              obstacle.hitboxHeight = 60; // Tall but narrow
+            }
+            break;
+            
+          case 'house':
+          case 'hut':
+            // Make building hitboxes slightly smaller than visual
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = obstacle.width ? obstacle.width * 0.95 : 45; // 95% of visual
+              obstacle.hitboxHeight = obstacle.height ? obstacle.height * 0.95 : 35; // 95% of visual
+            }
+            break;
+            
+          case 'tarp':
+            // Make tarp hitbox smaller to allow walking under its edges
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = obstacle.width ? obstacle.width * 0.7 : 42; // 70% of visual
+              obstacle.hitboxHeight = obstacle.height ? obstacle.height * 0.7 : 35; // 70% of visual
+            }
+            break;
+            
+          case 'fuelCanister':
+            // Make fuel canisters slightly smaller hitbox for easier navigation
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = 15; // Smaller than visual
+              obstacle.hitboxHeight = 20; // Smaller than visual
+            }
+            break;
+        }
+      }
+    }
+    
+    // Also apply to the resources
+    const resources = this.worldGenerator.getResources();
+    for (const areaKey in resources) {
+      const areaResources = resources[areaKey];
+      if (!areaResources || !Array.isArray(areaResources)) continue;
+      
+      for (const resource of areaResources) {
+        if (resource.type === 'fuelCanister') {
+          resource.hitboxWidth = 15; // Smaller hitbox
+          resource.hitboxHeight = 20; // Smaller hitbox
+        }
+      }
     }
   }
 
@@ -890,6 +993,9 @@ export default class Game {
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
       this.exploredAreas.add(`${this.worldX},${this.worldY}`); // Mark as explored
+      
+      // Apply adjusted hitboxes to the new area
+      this.adjustObstacleHitboxes();
     } else if (this.player.x < 0) {
       this.worldX--;
       this.player.x = this.p.width;
@@ -903,6 +1009,9 @@ export default class Game {
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
       this.exploredAreas.add(`${this.worldX},${this.worldY}`); // Mark as explored
+      
+      // Apply adjusted hitboxes to the new area
+      this.adjustObstacleHitboxes();
     }
     
     if (this.player.y > this.p.height) {
@@ -918,6 +1027,9 @@ export default class Game {
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
       this.exploredAreas.add(`${this.worldX},${this.worldY}`); // Mark as explored
+      
+      // Apply adjusted hitboxes to the new area
+      this.adjustObstacleHitboxes();
     } else if (this.player.y < 0) {
       this.worldY--;
       this.player.y = this.p.height;
@@ -931,6 +1043,9 @@ export default class Game {
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
       this.exploredAreas.add(`${this.worldX},${this.worldY}`); // Mark as explored
+      
+      // Apply adjusted hitboxes to the new area
+      this.adjustObstacleHitboxes();
     }
   }
 
