@@ -58,7 +58,7 @@ export default class Game {
     this.nightLength = 60 * 60 * 5; // 5 minutes in frames
     this.gameStarted = false;
     this.dayTimeIcon = "sun"; // Start with the sun
-    this.dayTimeAngle = (1.5 - 2 * this.timeOfDay) * Math.PI; // Start at left (π)
+    this.dayTimeAngle = this.timeOfDay * Math.PI * 2; // Calculate initial angle
     this.exploredAreas = new Set<string>(); // Initialize empty set of explored areas
     this.dayTint = { r: 255, g: 255, b: 255, a: 0 }; // Default tint (no tint)
     this.sleepingInHut = false;
@@ -97,9 +97,11 @@ export default class Game {
     this.worldGenerator.FUEL_CANISTER_CHANCE = 0.15; // Increase chance of fuel canisters
     
     // Initialize player and hoverbike with references to each other
+    // We need to create placeholder objects first
     this.player = {} as Player;
     this.hoverbike = {} as Hoverbike;
     
+    // Now fully initialize them with proper references
     this.player = new Player(
       p, 
       p.width / 2, 
@@ -110,9 +112,10 @@ export default class Game {
       this.worldGenerator.getResources(),
       this.hoverbike,
       this.riding,
-      this
+      this  // Pass the game instance to the player
     );
     
+    // Position the hoverbike under the tarp (slightly to the left of the hut)
     this.hoverbike = new Hoverbike(
       p, 
       p.width / 2 - 120, // Position under the tarp
@@ -123,6 +126,7 @@ export default class Game {
       this.player
     );
     
+    // Update player to reference the proper hoverbike
     this.player.hoverbike = this.hoverbike;
     
     this.renderer = new GameRenderer(
@@ -132,9 +136,7 @@ export default class Game {
       this.hoverbike,
       this.worldX,
       this.worldY,
-      this.timeOfDay,
-      this.dayTimeIcon, // Pass initial icon
-      this.dayTimeAngle // Pass initial angle
+      this.timeOfDay
     );
     
     // Generate the initial area
@@ -154,51 +156,61 @@ export default class Game {
     this.addWalkingMarksAtHomeBase();
     
     // Modify the world generator to make copper rarer
-    this.worldGenerator.COPPER_CHANCE = 0.05; // Make copper 5 times rarer
+    this.worldGenerator.COPPER_CHANCE = 0.05; // Make copper 5 times rarer (was ~0.25)
     
     // Fix obstacle hitboxes for common objects
     this.adjustObstacleHitboxes();
   }
 
   generateTarpColor() {
+    // Generate random color in brown/red/green dark tones
     const colorType = Math.floor(Math.random() * 3); // 0: brown, 1: dark red, 2: dark green
+    
     let r, g, b;
+    
     switch (colorType) {
       case 0: // Brown tones
-        r = Math.floor(Math.random() * 80) + 80;
-        g = Math.floor(Math.random() * 60) + 40;
-        b = Math.floor(Math.random() * 30) + 20;
+        r = Math.floor(Math.random() * 80) + 80; // 80-160
+        g = Math.floor(Math.random() * 60) + 40; // 40-100
+        b = Math.floor(Math.random() * 30) + 20; // 20-50
         break;
       case 1: // Dark red tones
-        r = Math.floor(Math.random() * 70) + 120;
-        g = Math.floor(Math.random() * 30) + 30;
-        b = Math.floor(Math.random() * 30) + 30;
+        r = Math.floor(Math.random() * 70) + 120; // 120-190
+        g = Math.floor(Math.random() * 30) + 30; // 30-60
+        b = Math.floor(Math.random() * 30) + 30; // 30-60
         break;
       case 2: // Dark green tones
-        r = Math.floor(Math.random() * 40) + 30;
-        g = Math.floor(Math.random() * 50) + 70;
-        b = Math.floor(Math.random() * 30) + 20;
+        r = Math.floor(Math.random() * 40) + 30; // 30-70
+        g = Math.floor(Math.random() * 50) + 70; // 70-120
+        b = Math.floor(Math.random() * 30) + 20; // 20-50
         break;
     }
+    
     return { r, g, b };
   }
 
   addTarpAtHomeBase() {
     const homeAreaKey = "0,0";
     let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
+    
+    // Add tarp if it doesn't exist
     const hasTarp = homeObstacles.some(obs => obs.type === 'tarp');
     
     if (!hasTarp) {
       homeObstacles.push({
         type: 'tarp',
-        x: this.p.width / 2 - 120,
-        y: this.p.height / 2 - 50,
-        width: 60,
-        height: 50,
+        x: this.p.width / 2 - 120, // To the left of the hut
+        y: this.p.height / 2 - 50, // Align with the hut
+        width: 60, // Smaller tarp
+        height: 50, // Smaller tarp
         color: this.tarpColor,
-        zIndex: 90000
+        zIndex: 90000 // Extremely high z-index to ensure it renders above everything else
       });
+      
+      // Update the world generator's obstacles
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+      
+      // Remove any obstacles that are too close to the tarp
       this.clearObstaclesNearTarp(homeAreaKey);
     }
   }
@@ -206,43 +218,114 @@ export default class Game {
   clearObstaclesNearTarp(areaKey: string) {
     const obstacles = this.worldGenerator.getObstacles()[areaKey] || [];
     const tarp = obstacles.find(obs => obs.type === 'tarp');
+    
     if (!tarp) return;
     
+    // Define clearance area around tarp (slightly larger than tarp itself)
     const clearMargin = 20;
     const minX = tarp.x - (tarp.width / 2) - clearMargin;
     const maxX = tarp.x + (tarp.width / 2) + clearMargin;
     const minY = tarp.y - (tarp.height / 2) - clearMargin;
     const maxY = tarp.y + (tarp.height / 2) + clearMargin;
     
+    // Filter out any obstacles in the clearance area except the tarp itself
     const filteredObstacles = obstacles.filter(obs => {
       if (obs.type === 'tarp') return true;
+      
+      // Skip obstacles that don't have x/y coordinates
       if (obs.x === undefined || obs.y === undefined) return true;
+      
+      // Check if obstacle is in the clearance area
       const inClearanceArea = (
         obs.x >= minX && obs.x <= maxX &&
         obs.y >= minY && obs.y <= maxY
       );
+      
+      // Keep it if it's not in the clearance area
       return !inClearanceArea;
     });
     
+    // Update the obstacles for this area
     this.worldGenerator.getObstacles()[areaKey] = filteredObstacles;
   }
 
   addFuelStationAtHomeBase() {
     const homeAreaKey = "0,0";
     let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
+    
+    // Add fuel pump if it doesn't exist
     const hasFuelPump = homeObstacles.some(obs => obs.type === 'fuelPump');
     
     if (!hasFuelPump) {
-      homeObstacles.push(
-        { type: 'fuelStain', x: this.p.width / 2 + 100, y: this.p.height / 2 - 45, seedAngle: 0.5, size: 1.2 },
-        { type: 'fuelStain', x: this.p.width / 2 + 110, y: this.p.height / 2 - 40, seedAngle: 2.1, size: 0.9 },
-        { type: 'fuelStain', x: this.p.width / 2 + 95, y: this.p.height / 2 - 55, seedAngle: 4.2, size: 1.0 },
-        { type: 'fuelStain', x: this.p.width / 2 + 130, y: this.p.height / 2 - 50, seedAngle: 3.3, size: 0.8 },
-        { type: 'fuelStain', x: this.p.width / 2 + 85, y: this.p.height / 2 - 70, seedAngle: 1.7, size: 0.7 },
-        { type: 'fuelStain', x: this.p.width / 2 + 150, y: this.p.height / 2 - 60, seedAngle: 5.2, size: 0.6 },
-        { type: 'fuelStain', x: this.p.width / 2 + 70, y: this.p.height / 2 - 90, seedAngle: 2.5, size: 0.75 },
-        { type: 'fuelPump', x: this.p.width / 2 + 100, y: this.p.height / 2 - 50, size: 1.0 }
-      );
+      // Add fuel stains first (so they render underneath)
+      // Create multiple fixed stains with different seed angles
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 100,
+        y: this.p.height / 2 - 45, // Slightly offset from the pump
+        seedAngle: 0.5,
+        size: 1.2
+      });
+      
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 110,
+        y: this.p.height / 2 - 40,
+        seedAngle: 2.1,
+        size: 0.9
+      });
+      
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 95,
+        y: this.p.height / 2 - 55,
+        seedAngle: 4.2,
+        size: 1.0
+      });
+      
+      // Add more fuel stains in a wider area to represent the extended refueling zone
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 130,
+        y: this.p.height / 2 - 50,
+        seedAngle: 3.3,
+        size: 0.8
+      });
+      
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 85,
+        y: this.p.height / 2 - 70,
+        seedAngle: 1.7,
+        size: 0.7
+      });
+      
+      // Add even more stains to indicate the larger refueling area
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 150,
+        y: this.p.height / 2 - 60,
+        seedAngle: 5.2,
+        size: 0.6
+      });
+      
+      homeObstacles.push({
+        type: 'fuelStain',
+        x: this.p.width / 2 + 70,
+        y: this.p.height / 2 - 90,
+        seedAngle: 2.5,
+        size: 0.75
+      });
+      
+      // Add fuel pump without stains now (stains are separate objects)
+      homeObstacles.push({
+        type: 'fuelPump',
+        x: this.p.width / 2 + 100,
+        y: this.p.height / 2 - 50,
+        size: 1.0,
+      });
+      
+      // Update the world generator's obstacles
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
     }
   }
@@ -250,9 +333,13 @@ export default class Game {
   addWalkingMarksAtHomeBase() {
     const homeAreaKey = "0,0";
     let homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
+    
+    // Add walking marks
     const hasWalkingMarks = homeObstacles.some(obs => obs.type === 'walkingMarks');
     
     if (!hasWalkingMarks) {
+      // Add multiple footprint sets in a pattern approaching the home base
+      // Use fixed positions for stability
       const walkingMarkPositions = [
         { x: this.p.width / 2 - 80, y: this.p.height / 2 + 60, angle: 0.8, size: 0.9, opacity: 170 },
         { x: this.p.width / 2 + 45, y: this.p.height / 2 + 75, angle: 5.5, size: 0.8, opacity: 150 },
@@ -260,127 +347,206 @@ export default class Game {
         { x: this.p.width / 2 + 80, y: this.p.height / 2 - 15, angle: 3.7, size: 0.7, opacity: 160 },
         { x: this.p.width / 2 - 60, y: this.p.height / 2 - 25, angle: 1.3, size: 0.85, opacity: 180 }
       ];
+      
       for (const position of walkingMarkPositions) {
-        homeObstacles.push({ type: 'walkingMarks', ...position });
+        homeObstacles.push({
+          type: 'walkingMarks',
+          ...position
+        });
       }
+      
+      // Update the world generator's obstacles
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
     }
   }
 
   adjustObstacleHitboxes() {
+    // Get all areas in the world generator
     const areas = this.worldGenerator.getObstacles();
+    
+    // For each area that has been generated
     for (const areaKey in areas) {
       const obstacles = areas[areaKey];
       if (!obstacles || !Array.isArray(obstacles)) continue;
+      
+      // Adjust hitboxes for each obstacle
       for (const obstacle of obstacles) {
         switch (obstacle.type) {
           case 'cactus':
-            obstacle.hitboxWidth = obstacle.width ? obstacle.width * 0.8 : 15;
-            obstacle.hitboxHeight = obstacle.height ? obstacle.height * 0.8 : 20;
+            // Make cactus hitbox slightly smaller than visual
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = obstacle.width ? obstacle.width * 0.8 : 15; // 80% of visual or default 15
+              obstacle.hitboxHeight = obstacle.height ? obstacle.height * 0.8 : 20; // 80% of visual or default 20
+            }
             break;
+            
           case 'rock':
           case 'smallRock':
-            obstacle.hitboxWidth = obstacle.size ? obstacle.size * 17 * 0.85 : 14;
-            obstacle.hitboxHeight = obstacle.size ? obstacle.size * 14 * 0.85 : 12;
+            // Make rock hitboxes match visual size more closely
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = obstacle.size ? obstacle.size * 17 * 0.85 : 14; // 85% of visual
+              obstacle.hitboxHeight = obstacle.size ? obstacle.size * 14 * 0.85 : 12; // 85% of visual
+            }
             break;
+            
           case 'metalNode':
           case 'copperNode':
-            obstacle.hitboxWidth = obstacle.size ? obstacle.size * 16 * 0.9 : 14;
-            obstacle.hitboxHeight = obstacle.size ? obstacle.size * 14 * 0.9 : 12;
+            // Make resource nodes have tighter hitboxes
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = obstacle.size ? obstacle.size * 16 * 0.9 : 14; // 90% of visual
+              obstacle.hitboxHeight = obstacle.size ? obstacle.size * 14 * 0.9 : 12; // 90% of visual
+            }
             break;
+            
           case 'fuelPump':
-            obstacle.hitboxWidth = 20 * 0.9;
-            obstacle.hitboxHeight = 30 * 0.9;
+            // Adjust fuel pump hitbox slightly
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = 20 * 0.9; // 90% of visual
+              obstacle.hitboxHeight = 30 * 0.9; // 90% of visual
+            }
             break;
+            
           case 'windmill':
-            obstacle.hitboxWidth = 16;
-            obstacle.hitboxHeight = 60;
+            // Make windmill hitbox more realistic (exclude spinning blades from collision)
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = 16; // Just the center pole
+              obstacle.hitboxHeight = 60; // Tall but narrow
+            }
             break;
+            
           case 'house':
           case 'hut':
-            obstacle.hitboxWidth = obstacle.width ? obstacle.width * 0.95 : 45;
-            obstacle.hitboxHeight = obstacle.height ? obstacle.height * 0.95 : 35;
+            // Make building hitboxes slightly smaller than visual
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = obstacle.width ? obstacle.width * 0.95 : 45; // 95% of visual
+              obstacle.hitboxHeight = obstacle.height ? obstacle.height * 0.95 : 35; // 95% of visual
+            }
             break;
+            
           case 'tarp':
-            obstacle.hitboxWidth = obstacle.width ? obstacle.width * 0.7 : 42;
-            obstacle.hitboxHeight = obstacle.height ? obstacle.height * 0.7 : 35;
+            // Make tarp hitbox smaller to allow walking under its edges
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = obstacle.width ? obstacle.width * 0.7 : 42; // 70% of visual
+              obstacle.hitboxHeight = obstacle.height ? obstacle.height * 0.7 : 35; // 70% of visual
+            }
             break;
+            
           case 'fuelCanister':
-            obstacle.hitboxWidth = 15;
-            obstacle.hitboxHeight = 20;
+            // Make fuel canisters slightly smaller hitbox for easier navigation
+            if (obstacle.hitboxWidth === undefined) {
+              obstacle.hitboxWidth = 15; // Smaller than visual
+              obstacle.hitboxHeight = 20; // Smaller than visual
+            }
             break;
         }
       }
     }
+    
+    // Also apply to the resources
     const resources = this.worldGenerator.getResources();
     for (const areaKey in resources) {
       const areaResources = resources[areaKey];
       if (!areaResources || !Array.isArray(areaResources)) continue;
+      
       for (const resource of areaResources) {
         if (resource.type === 'fuelCanister') {
-          resource.hitboxWidth = 15;
-          resource.hitboxHeight = 20;
+          resource.hitboxWidth = 15; // Smaller hitbox
+          resource.hitboxHeight = 20; // Smaller hitbox
         }
       }
     }
   }
 
   update() {
-    if (!this.gameStarted) return;
+    if (!this.gameStarted) {
+      return;
+    }
     
+    // Update time of day
     this.updateTimeOfDay();
     
+    // Handle sleeping in hut logic
     if (this.sleepingInHut) {
       this.updateSleeping();
-      return;
+      return; // Skip other updates while sleeping
     }
     
     if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
       this.hoverbike.update();
+      
+      // Check for hoverbike-canister collisions
       this.checkHoverbikeCanisterCollisions();
     }
     
     this.player.update();
+    
+    // Update quest system
     this.updateQuestSystem();
     
+    // Check if player is entering the hut at night
     if (!this.riding && this.worldX === 0 && this.worldY === 0) {
       if (this.player.checkForHutSleeping() && this.isNightTime()) {
         this.startSleeping();
       }
+      
+      // Check for hut interaction for roof repair quest
       this.checkHutInteraction();
     }
     
     this.checkBorder();
     this.worldGenerator.updateWindmillAngle();
+    
+    // Update renderer with time of day
     this.renderer.setTimeOfDay(this.timeOfDay);
   }
   
   updateQuestSystem() {
+    // Update the roof repair quest
     const quest = this.questSystem.roofRepairQuest;
+    
     if (quest.active && !quest.completed) {
+      // Update metal collected count
       quest.metalCollected = this.player.inventory.metal;
-      if (quest.metalCollected >= quest.requiredMetal) {}
+      
+      // Check if quest requirements are met
+      if (quest.metalCollected >= quest.requiredMetal) {
+        // Quest can be completed - will be completed when player interacts with hut
+      }
     }
+    
+    // Handle quest completion message timer
     if (quest.showCompletionMessage) {
       quest.completionMessageTimer++;
-      if (quest.completionMessageTimer > 600) {
+      
+      if (quest.completionMessageTimer > 600) { // 10 seconds at 60fps
         quest.showCompletionMessage = false;
         quest.completionMessageTimer = 0;
+        
+        // Activate the second quest after completing the first one
         if (quest.completed && !this.questSystem.resourceCollectionQuest.active) {
           this.questSystem.resourceCollectionQuest.active = true;
         }
       }
     }
+    
+    // Update the resource collection quest
     const resourceQuest = this.questSystem.resourceCollectionQuest;
+    
     if (resourceQuest.active && !resourceQuest.completed) {
+      // Update copper collected count
       resourceQuest.copperCollected = this.player.inventory.copper;
+      
+      // Check if quest requirements are met
       if (resourceQuest.copperCollected >= resourceQuest.requiredCopper) {
         this.completeResourceQuest();
       }
     }
+    
+    // Handle resource quest completion message timer
     if (resourceQuest.showCompletionMessage) {
       resourceQuest.completionMessageTimer++;
-      if (resourceQuest.completionMessageTimer > 600) {
+      
+      if (resourceQuest.completionMessageTimer > 600) { // 10 seconds at 60fps
         resourceQuest.showCompletionMessage = false;
         resourceQuest.completionMessageTimer = 0;
       }
@@ -389,8 +555,10 @@ export default class Game {
   
   checkHutInteraction() {
     const quest = this.questSystem.roofRepairQuest;
+    
     if (quest.active && !quest.completed && quest.metalCollected >= quest.requiredMetal) {
-      if (this.player.checkForHutInteraction() && this.p.keyIsDown(69)) {
+      // Check if player is pressing E near the hut
+      if (this.player.checkForHutInteraction() && this.p.keyIsDown(69)) { // E key
         this.completeRoofRepairQuest();
       }
     }
@@ -398,37 +566,59 @@ export default class Game {
   
   completeRoofRepairQuest() {
     const quest = this.questSystem.roofRepairQuest;
+    
     if (!quest.rewardGiven) {
+      // Subtract metal used for repair
       this.player.inventory.metal -= quest.requiredMetal;
+      
+      // Mark quest as completed
       quest.completed = true;
       quest.active = false;
       quest.rewardGiven = true;
       quest.showCompletionMessage = true;
       quest.completionMessageTimer = 0;
+      
+      // Give rewards
       this.player.canDig = true;
+      
+      // Update UI
       emitGameStateUpdate(this.player, this.hoverbike);
     }
   }
   
   completeResourceQuest() {
     const quest = this.questSystem.resourceCollectionQuest;
+    
     if (!quest.rewardGiven && quest.copperCollected >= quest.requiredCopper) {
+      // Mark quest as completed
       quest.completed = true;
       quest.active = false;
       quest.rewardGiven = true;
       quest.showCompletionMessage = true;
       quest.completionMessageTimer = 0;
+      
+      // Give rewards - increase hoverbike fuel capacity
       this.hoverbike.maxFuel += 25;
       this.hoverbike.fuel = Math.min(this.hoverbike.fuel + 25, this.hoverbike.maxFuel);
+      
+      // Update UI
       emitGameStateUpdate(this.player, this.hoverbike);
     }
   }
   
   isPlayerUnderTarp() {
-    if (this.worldX !== 0 || this.worldY !== 0) return false;
+    if (this.worldX !== 0 || this.worldY !== 0) {
+      return false; // Only at home base
+    }
+    
     const homeObstacles = this.worldGenerator.getObstacles()["0,0"] || [];
     const tarp = homeObstacles.find(obs => obs.type === 'tarp');
-    if (!tarp) return false;
+    
+    if (!tarp) {
+      return false;
+    }
+    
+    // Check if player is under the tarp
     return (
       this.player.x >= tarp.x - tarp.width / 2 &&
       this.player.x <= tarp.x + tarp.width / 2 &&
@@ -438,6 +628,7 @@ export default class Game {
   }
 
   isNightTime() {
+    // Return true if it's night (between sunset and sunrise)
     return this.timeOfDay < 0.25 || this.timeOfDay > 0.75;
   }
   
@@ -446,10 +637,13 @@ export default class Game {
     this.sleepStartTime = this.timeOfDay;
     this.sleepAnimationTimer = 0;
     this.sleepParticles = [];
+    
+    // Create initial sleep particles (Zs)
     this.createSleepParticles();
   }
   
   createSleepParticles() {
+    // Create Z particles
     for (let i = 0; i < 3; i++) {
       this.sleepParticles.push({
         x: this.p.width / 2,
@@ -463,78 +657,115 @@ export default class Game {
   }
   
   updateSleeping() {
-    this.timeOfDay += 0.005;
-    if (this.timeOfDay > 1) this.timeOfDay -= 1;
+    // Accelerate time while sleeping
+    this.timeOfDay += 0.005; // Much faster time progression (x20 normal speed)
+    if (this.timeOfDay > 1) this.timeOfDay -= 1; // Wrap around if needed
+    
+    // Update sleep animation
     this.sleepAnimationTimer++;
+    
+    // Update Z particles
     for (let i = this.sleepParticles.length - 1; i >= 0; i--) {
       const particle = this.sleepParticles[i];
       particle.z += 0.5;
       particle.yOffset -= 0.5;
       particle.opacity -= 1;
-      if (particle.opacity <= 0) this.sleepParticles.splice(i, 1);
+      
+      // Remove faded particles and create new ones periodically
+      if (particle.opacity <= 0) {
+        this.sleepParticles.splice(i, 1);
+      }
     }
-    if (this.sleepAnimationTimer % 40 === 0) this.createSleepParticles();
-    if (this.timeOfDay > 0.25 && this.timeOfDay < 0.3) this.endSleeping();
+    
+    // Create new particles periodically
+    if (this.sleepAnimationTimer % 40 === 0) {
+      this.createSleepParticles();
+    }
+    
+    // End sleeping when it's morning
+    if (this.timeOfDay > 0.25 && this.timeOfDay < 0.3) {
+      this.endSleeping();
+    }
   }
   
   endSleeping() {
     this.sleepingInHut = false;
+    // Position the player in front of the hut
     this.player.x = this.p.width / 2;
-    this.player.y = this.p.height / 2 + 30;
+    this.player.y = this.p.height / 2 + 30; // In front of the hut
+    
+    // Restore some health to the player
     this.player.health = Math.min(this.player.health + 30, this.player.maxHealth);
+    
+    // Update UI
     emitGameStateUpdate(this.player, this.hoverbike);
   }
 
   updateTimeOfDay() {
+    // Calculate total day-night cycle length
     const totalCycleLength = this.dayLength + this.nightLength;
+    
+    // Increment timeOfDay
     const increment = 1 / totalCycleLength;
     this.timeOfDay = (this.timeOfDay + increment) % 1;
     
-    // Angle starts at left (π), moves clockwise
-    this.dayTimeAngle = (1.5 - 2 * this.timeOfDay) * Math.PI;
-    if (this.dayTimeAngle < 0) this.dayTimeAngle += 2 * Math.PI;
+    // Update time of day icon and angle
+    // Convert time to angle (0 = midnight, 0.5 = noon)
+    this.dayTimeAngle = this.timeOfDay * Math.PI * 2;
     
-    if (this.timeOfDay >= 0.25 && this.timeOfDay < 0.75) {
+    // Determine if it's day or night
+    if (this.timeOfDay > 0.25 && this.timeOfDay < 0.75) {
       this.dayTimeIcon = "sun";
     } else {
       this.dayTimeIcon = "moon";
     }
     
+    // Update the day/night tint color
     this.updateDayTint();
   }
   
   updateDayTint() {
+    // Calculate tint based on time of day with more extreme values
+    // 0.0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset
+    
     if (this.timeOfDay >= 0.0 && this.timeOfDay < 0.25) {
-      const t = this.timeOfDay / 0.25;
+      // Night to sunrise transition (dark blue to orange)
+      const t = this.timeOfDay / 0.25; // 0 to 1
       this.dayTint = {
-        r: this.p.lerp(20, 255, t),
+        r: this.p.lerp(20, 255, t),  // Darker blue to bright orange
         g: this.p.lerp(25, 160, t),
         b: this.p.lerp(40, 70, t),
-        a: this.p.lerp(180, 30, t)
+        a: this.p.lerp(180, 30, t)    // More opacity at night
       };
-    } else if (this.timeOfDay >= 0.25 && this.timeOfDay < 0.5) {
+    } 
+    else if (this.timeOfDay >= 0.25 && this.timeOfDay < 0.5) {
+      // Sunrise to noon (orange to clear blue sky)
       const t = (this.timeOfDay - 0.25) / 0.25;
       this.dayTint = {
         r: this.p.lerp(255, 150, t),
         g: this.p.lerp(160, 200, t),
         b: this.p.lerp(70, 255, t),
-        a: this.p.lerp(30, 0, t)
+        a: this.p.lerp(30, 0, t)     // Fade out completely at noon
       };
-    } else if (this.timeOfDay >= 0.5 && this.timeOfDay < 0.75) {
+    }
+    else if (this.timeOfDay >= 0.5 && this.timeOfDay < 0.75) {
+      // Noon to sunset (clear blue to orange)
       const t = (this.timeOfDay - 0.5) / 0.25;
       this.dayTint = {
         r: this.p.lerp(150, 255, t),
         g: this.p.lerp(200, 130, t),
         b: this.p.lerp(255, 70, t),
-        a: this.p.lerp(0, 30, t)
+        a: this.p.lerp(0, 30, t)     // Gradually increase tint
       };
-    } else {
+    }
+    else {
+      // Sunset to night (orange to dark blue)
       const t = (this.timeOfDay - 0.75) / 0.25;
       this.dayTint = {
-        r: this.p.lerp(255, 20, t),
+        r: this.p.lerp(255, 20, t),  // Fade to darker night
         g: this.p.lerp(130, 25, t),
         b: this.p.lerp(70, 40, t),
-        a: this.p.lerp(30, 180, t)
+        a: this.p.lerp(30, 180, t)    // Increase opacity for darker night
       };
     }
   }
@@ -543,11 +774,18 @@ export default class Game {
     if (!this.gameStarted) {
       this.renderMainMenu();
     } else {
-      this.renderer.setDayTimeIcon(this.dayTimeIcon);
-      this.renderer.setDayTimeAngle(this.dayTimeAngle);
+      // Render the world first
       this.renderer.render();
+      
+      // Render quest UI
       this.renderQuestUI();
-      if (this.sleepingInHut) this.renderSleepAnimation();
+      
+      // Render sleep animation if sleeping
+      if (this.sleepingInHut) {
+        this.renderSleepAnimation();
+      }
+      
+      // Apply the day/night tint as an overlay
       this.p.push();
       this.p.fill(this.dayTint.r, this.dayTint.g, this.dayTint.b, this.dayTint.a);
       this.p.noStroke();
@@ -557,13 +795,16 @@ export default class Game {
   }
   
   renderQuestUI() {
+    // First check if there's an active quest
     const roofQuest = this.questSystem.roofRepairQuest;
     const resourceQuest = this.questSystem.resourceCollectionQuest;
+    
     if (roofQuest.active && !roofQuest.completed) {
       this.renderActiveQuest(
         "Quest: The last Sandstorm really damaged your roof.",
         `Collect Metal: ${roofQuest.metalCollected}/${roofQuest.requiredMetal}`,
-        roofQuest.metalCollected >= roofQuest.requiredMetal ? "Press E near your hut to repair it!" : ""
+        roofQuest.metalCollected >= roofQuest.requiredMetal ? 
+          "Press E near your hut to repair it!" : ""
       );
     } else if (resourceQuest.active && !resourceQuest.completed) {
       this.renderActiveQuest(
@@ -572,6 +813,8 @@ export default class Game {
         ""
       );
     }
+    
+    // Handle quest completion messages
     if (roofQuest.showCompletionMessage) {
       this.renderQuestCompletion(
         "On top of the roof you just repaired you found your",
@@ -588,21 +831,26 @@ export default class Game {
   }
   
   renderActiveQuest(title: string, progress: string, hint: string) {
+    // Center at bottom, fixed width
     const boxWidth = 380;
     const boxHeight = 60;
     const boxX = (this.p.width - boxWidth) / 2;
-    const boxY = this.p.height - 100;
+    const boxY = this.p.height - 100; // Lower position to avoid overlapping with UI elements
+
     this.p.push();
     this.p.fill(0, 0, 0, 150);
     this.p.stroke(255, 255, 200, 80);
     this.p.strokeWeight(1);
     this.p.rect(boxX, boxY, boxWidth, boxHeight, 5);
+
     this.p.noStroke();
     this.p.fill(255, 255, 200);
     this.p.textSize(14);
     this.p.textAlign(this.p.LEFT);
     this.p.text(title, boxX + 10, boxY + 20);
     this.p.text(progress, boxX + 10, boxY + 42);
+
+    // Show hint if requirements are met
     if (hint) {
       this.p.fill(150, 255, 150);
       this.p.textAlign(this.p.RIGHT);
@@ -617,6 +865,7 @@ export default class Game {
     this.p.stroke(200, 200, 100, 50);
     this.p.strokeWeight(2);
     this.p.rect(this.p.width / 2 - 250, this.p.height / 2 - 50, 500, 100, 10);
+
     this.p.noStroke();
     this.p.fill(255, 255, 150);
     this.p.textSize(16);
@@ -628,14 +877,18 @@ export default class Game {
   }
   
   renderSleepAnimation() {
+    // Darken the screen
     this.p.push();
     this.p.fill(0, 0, 0, 150);
     this.p.noStroke();
     this.p.rect(0, 0, this.p.width, this.p.height);
+    
+    // Render Z particles
     this.p.textSize(24);
     this.p.textAlign(this.p.CENTER, this.p.CENTER);
     this.p.fill(255);
     this.p.noStroke();
+    
     for (const particle of this.sleepParticles) {
       this.p.push();
       this.p.textSize(particle.size);
@@ -643,14 +896,20 @@ export default class Game {
       this.p.text("Z", particle.x + particle.z, particle.y + particle.yOffset);
       this.p.pop();
     }
+    
+    // Show sleeping message
     this.p.textSize(18);
     this.p.fill(255);
     this.p.text("Sleeping until morning...", this.p.width/2, this.p.height/2 + 150);
+    
     this.p.pop();
   }
 
   renderMainMenu() {
+    // Draw background
     this.p.background(20, 18, 24);
+    
+    // Draw stars
     this.p.fill(255, 255, 255);
     for (let i = 0; i < 100; i++) {
       const x = this.p.random(this.p.width);
@@ -660,6 +919,8 @@ export default class Game {
       this.p.fill(brightness);
       this.p.ellipse(x, y, size, size);
     }
+    
+    // Draw large desert dune silhouette
     this.p.fill(50, 30, 20);
     this.p.beginShape();
     this.p.vertex(0, this.p.height);
@@ -670,30 +931,49 @@ export default class Game {
     }
     this.p.vertex(this.p.width, this.p.height);
     this.p.endShape(this.p.CLOSE);
+    
+    // Draw title text with glow effect
     const titleText = "DUST RUNNER: WASTELAND SAGA";
     this.p.textSize(42);
     this.p.textAlign(this.p.CENTER);
     this.p.textFont('Courier New');
+    
+    // Glow effect
     this.p.fill(255, 220, 150, 30);
     for (let i = 10; i > 0; i--) {
       this.p.text(titleText, this.p.width/2, this.p.height/3 + i);
       this.p.text(titleText, this.p.width/2 + i, this.p.height/3);
       this.p.text(titleText, this.p.width/2 - i, this.p.height/3);
     }
+    
+    // Main text
     this.p.fill(255, 220, 150);
     this.p.text(titleText, this.p.width/2, this.p.height/3);
+    
+    // Draw start button
     const btnWidth = 200;
     const btnHeight = 50;
     const btnX = this.p.width/2 - btnWidth/2;
     const btnY = this.p.height/2 + 30;
+    
     const mouseOver = this.p.mouseX > btnX && this.p.mouseX < btnX + btnWidth && 
                       this.p.mouseY > btnY && this.p.mouseY < btnY + btnHeight;
-    this.p.fill(mouseOver ? 255, 220, 150 : 200, 170, 100);
-    if (mouseOver && this.p.mouseIsPressed) this.gameStarted = true;
+                      
+    if (mouseOver) {
+      this.p.fill(255, 220, 150);
+      if (this.p.mouseIsPressed) {
+        this.gameStarted = true;
+      }
+    } else {
+      this.p.fill(200, 170, 100);
+    }
+    
     this.p.rect(btnX, btnY, btnWidth, btnHeight, 5);
     this.p.fill(40, 30, 20);
     this.p.textSize(24);
     this.p.text("START GAME", this.p.width/2, btnY + 32);
+    
+    // Draw subtitle text
     this.p.fill(200, 180, 150);
     this.p.textSize(16);
     this.p.text("Survive the harsh desert. Collect resources. Upgrade your hoverbike.", this.p.width/2, this.p.height/2 - 20);
@@ -704,59 +984,79 @@ export default class Game {
       this.worldX++;
       this.player.x = 0;
       this.player.setWorldCoordinates(this.worldX, this.worldY);
+      
       if (this.riding) {
         this.hoverbike.x = this.player.x;
         this.hoverbike.setWorldCoordinates(this.worldX, this.worldY);
       }
+      
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
-      this.exploredAreas.add(`${this.worldX},${this.worldY}`);
+      this.exploredAreas.add(`${this.worldX},${this.worldY}`); // Mark as explored
+      
+      // Apply adjusted hitboxes to the new area
       this.adjustObstacleHitboxes();
     } else if (this.player.x < 0) {
       this.worldX--;
       this.player.x = this.p.width;
       this.player.setWorldCoordinates(this.worldX, this.worldY);
+      
       if (this.riding) {
         this.hoverbike.x = this.player.x;
         this.hoverbike.setWorldCoordinates(this.worldX, this.worldY);
       }
+      
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
-      this.exploredAreas.add(`${this.worldX},${this.worldY}`);
+      this.exploredAreas.add(`${this.worldX},${this.worldY}`); // Mark as explored
+      
+      // Apply adjusted hitboxes to the new area
       this.adjustObstacleHitboxes();
     }
+    
     if (this.player.y > this.p.height) {
       this.worldY++;
       this.player.y = 0;
       this.player.setWorldCoordinates(this.worldX, this.worldY);
+      
       if (this.riding) {
         this.hoverbike.y = this.player.y;
         this.hoverbike.setWorldCoordinates(this.worldX, this.worldY);
       }
+      
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
-      this.exploredAreas.add(`${this.worldX},${this.worldY}`);
+      this.exploredAreas.add(`${this.worldX},${this.worldY}`); // Mark as explored
+      
+      // Apply adjusted hitboxes to the new area
       this.adjustObstacleHitboxes();
     } else if (this.player.y < 0) {
       this.worldY--;
       this.player.y = this.p.height;
       this.player.setWorldCoordinates(this.worldX, this.worldY);
+      
       if (this.riding) {
         this.hoverbike.y = this.player.y;
         this.hoverbike.setWorldCoordinates(this.worldX, this.worldY);
       }
+      
       this.renderer.setWorldCoordinates(this.worldX, this.worldY);
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
-      this.exploredAreas.add(`${this.worldX},${this.worldY}`);
+      this.exploredAreas.add(`${this.worldX},${this.worldY}`); // Mark as explored
+      
+      // Apply adjusted hitboxes to the new area
       this.adjustObstacleHitboxes();
     }
   }
 
   handleKey(key: string) {
     if (!this.gameStarted) {
-      if (key === ' ' || key === 'Enter') this.gameStarted = true;
+      if (key === ' ' || key === 'Enter') {
+        this.gameStarted = true;
+      }
       return;
     }
+    
     if (key === 'f' || key === 'F') {
       if (this.riding) {
         this.riding = false;
@@ -767,42 +1067,58 @@ export default class Game {
         this.player.setRiding(true);
       }
     }
+    
     if (key === 'r' && !this.riding && 
         this.p.dist(this.player.x, this.player.y, this.hoverbike.x, this.hoverbike.y) < 30 && 
         this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY &&
-        this.player.inventory.metal > 0) {
+        this.player.inventory.metal > 0) { // Only if player has metal
+      
+      // Check if under tarp
       if (this.isPlayerUnderTarp()) {
+        // Start the repair process
         this.player.startHoverbikeRepair();
       } else {
+        // Show message that repair needs to be under tarp
         this.showTarpMessage();
       }
     }
   }
 
   showTarpMessage() {
+    // Add a temporary message to the world
     const message = {
       type: 'floatingText',
       text: 'Needs to be under the tarp at home base',
       x: this.hoverbike.x,
       y: this.hoverbike.y - 30,
       color: { r: 255, g: 200, b: 100 },
-      lifetime: 120,
+      lifetime: 120, // 2 seconds at 60fps
       age: 0
     };
+    
     const currentAreaKey = `${this.worldX},${this.worldY}`;
     const obstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
     obstacles.push(message);
+    
+    // Remove the message after its lifetime
     setTimeout(() => {
       const currentObstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
       const msgIndex = currentObstacles.findIndex(o => 
-        o.type === 'floatingText' && o.x === message.x && o.y === message.y
+        o.type === 'floatingText' && 
+        o.x === message.x && 
+        o.y === message.y
       );
-      if (msgIndex !== -1) currentObstacles.splice(msgIndex, 1);
+      
+      if (msgIndex !== -1) {
+        currentObstacles.splice(msgIndex, 1);
+      }
     }, 2000);
   }
 
   showMessage(message: string, duration: number = 3000) {
     console.log(`Game message: ${message}`);
+    // Implement any UI message showing logic here
+    // This could be implemented later if needed
   }
 
   resize() {
@@ -811,12 +1127,16 @@ export default class Game {
   }
   
   handleClick(mouseX: number, mouseY: number) {
+    // Handle clicks in main menu
     if (!this.gameStarted) {
+      // Check if start button is clicked
       const btnWidth = 200;
       const btnHeight = 50;
       const btnX = this.p.width/2 - btnWidth/2;
       const btnY = this.p.height/2 + 30;
-      if (mouseX > btnX && mouseX < btnX + btnWidth && mouseY > btnY && mouseY < btnY + btnHeight) {
+      
+      if (mouseX > btnX && mouseX < btnX + btnWidth && 
+          mouseY > btnY && mouseY < btnY + btnHeight) {
         this.gameStarted = true;
       }
     }
@@ -826,26 +1146,44 @@ export default class Game {
     const exploredAreasArray = Array.from(this.exploredAreas);
     const obstacles = {};
     const resources = {};
+    
+    // Only save data for explored areas
     for (const areaKey of exploredAreasArray) {
-      if (this.worldGenerator.getObstacles()[areaKey]) obstacles[areaKey] = this.worldGenerator.getObstacles()[areaKey];
-      if (this.worldGenerator.getResources()[areaKey]) resources[areaKey] = this.worldGenerator.getResources()[areaKey];
+      if (this.worldGenerator.getObstacles()[areaKey]) {
+        obstacles[areaKey] = this.worldGenerator.getObstacles()[areaKey];
+      }
+      if (this.worldGenerator.getResources()[areaKey]) {
+        resources[areaKey] = this.worldGenerator.getResources()[areaKey];
+      }
     }
-    return { exploredAreas: exploredAreasArray, obstacles, resources };
+    
+    return {
+      exploredAreas: exploredAreasArray,
+      obstacles,
+      resources
+    };
   }
   
   loadWorldData(worldData: any) {
     if (!worldData) return;
+    
+    // Restore explored areas
     this.exploredAreas = new Set(worldData.exploredAreas || []);
+    
+    // Restore obstacles and resources
     if (worldData.obstacles) {
       for (const areaKey in worldData.obstacles) {
         this.worldGenerator.getObstacles()[areaKey] = worldData.obstacles[areaKey];
       }
     }
+    
     if (worldData.resources) {
       for (const areaKey in worldData.resources) {
         this.worldGenerator.getResources()[areaKey] = worldData.resources[areaKey];
       }
     }
+    
+    // Ensure the current area is properly loaded
     const currentAreaKey = `${this.worldX},${this.worldY}`;
     if (!this.worldGenerator.getObstacles()[currentAreaKey]) {
       this.worldGenerator.generateNewArea(this.worldX, this.worldY);
@@ -854,6 +1192,7 @@ export default class Game {
   }
   
   resetToStartScreen() {
+    // Clean up any active events or intervals
     if (this.player) {
       this.player.isCollectingCanister = false;
       this.player.isRefuelingHoverbike = false;
@@ -864,22 +1203,36 @@ export default class Game {
   }
 
   checkHoverbikeCanisterCollisions() {
-    if (!this.riding || this.hoverbike.worldX !== this.worldX || this.hoverbike.worldY !== this.worldY) return;
+    if (!this.riding || this.hoverbike.worldX !== this.worldX || this.hoverbike.worldY !== this.worldY) {
+      return;
+    }
+    
     const currentAreaKey = `${this.worldX},${this.worldY}`;
     const resources = this.worldGenerator.getResources()[currentAreaKey] || [];
+    
     for (let i = resources.length - 1; i >= 0; i--) {
       const resource = resources[i];
       if (resource.type === 'fuelCanister') {
         const dx = this.hoverbike.x - resource.x;
         const dy = this.hoverbike.y - resource.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < 25) {
+        
+        if (distance < 25) {  // Collision radius for canister
+          // Create explosion
           this.createExplosion(resource.x, resource.y);
+          
+          // Damage hoverbike critically
           this.hoverbike.health = Math.max(0, this.hoverbike.health - 50);
+          
+          // Apply force to hoverbike from explosion
           const pushAngle = Math.atan2(dy, dx);
           this.hoverbike.velocityX += Math.cos(pushAngle) * 2;
           this.hoverbike.velocityY += Math.sin(pushAngle) * 2;
+          
+          // Remove the canister
           resources.splice(i, 1);
+          
+          // Update UI
           emitGameStateUpdate(this.player, this.hoverbike);
           break;
         }
@@ -888,27 +1241,60 @@ export default class Game {
   }
   
   createExplosion(x: number, y: number) {
+    // Add explosion effect to the current area's obstacles temporarily
     const currentAreaKey = `${this.worldX},${this.worldY}`;
     let obstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
+    
+    // Create multiple explosion particles for a more dramatic effect
     for (let i = 0; i < 10; i++) {
       const offsetX = this.p.random(-20, 20);
       const offsetY = this.p.random(-20, 20);
       const size = this.p.random(0.7, 1.3);
       const delay = this.p.floor(this.p.random(0, 10));
-      obstacles.push({ type: 'explosion', x: x + offsetX, y: y + offsetY, size, frame: delay, maxFrames: 30 + delay });
+      
+      obstacles.push({
+        type: 'explosion',
+        x: x + offsetX,
+        y: y + offsetY,
+        size: size,
+        frame: delay,
+        maxFrames: 30 + delay
+      });
     }
+    
+    // Create smoke particles that linger longer
     for (let i = 0; i < 15; i++) {
       const offsetX = this.p.random(-30, 30);
       const offsetY = this.p.random(-30, 30);
       const size = this.p.random(0.5, 1.0);
       const delay = this.p.floor(this.p.random(5, 20));
-      obstacles.push({ type: 'smoke', x: x + offsetX, y: y + offsetY, size, frame: delay, maxFrames: 90 + delay, alpha: 255 });
+      
+      obstacles.push({
+        type: 'smoke',
+        x: x + offsetX,
+        y: y + offsetY,
+        size: size,
+        frame: delay,
+        maxFrames: 90 + delay,
+        alpha: 255
+      });
     }
+    
+    // Update obstacles
     this.worldGenerator.getObstacles()[currentAreaKey] = obstacles;
+    
+    // Make screen shake effect
     this.renderer.startScreenShake(0.8, 15);
+    
+    // Play explosion sound if available
+    // this.soundManager.playSound('explosion');
+    
+    // Remove explosion particles after they fade
     setTimeout(() => {
       const currentObstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
-      const updatedObstacles = currentObstacles.filter(o => o.type !== 'explosion' && o.type !== 'smoke');
+      const updatedObstacles = currentObstacles.filter(o => 
+        o.type !== 'explosion' && o.type !== 'smoke'
+      );
       this.worldGenerator.getObstacles()[currentAreaKey] = updatedObstacles;
     }, 2000);
   }
