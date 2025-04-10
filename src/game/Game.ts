@@ -37,6 +37,15 @@ export default class Game {
       showCompletionMessage: boolean;
       completionMessageTimer: number;
     };
+    resourceCollectionQuest: {
+      active: boolean;
+      completed: boolean;
+      copperCollected: number;
+      requiredCopper: number;
+      rewardGiven: boolean;
+      showCompletionMessage: boolean;
+      completionMessageTimer: number;
+    };
   };
 
   constructor(p: any) {
@@ -64,6 +73,15 @@ export default class Game {
         completed: false,
         metalCollected: 0,
         requiredMetal: 10,
+        rewardGiven: false,
+        showCompletionMessage: false,
+        completionMessageTimer: 0
+      },
+      resourceCollectionQuest: {
+        active: false,
+        completed: false,
+        copperCollected: 0,
+        requiredCopper: 5,
         rewardGiven: false,
         showCompletionMessage: false,
         completionMessageTimer: 0
@@ -132,6 +150,9 @@ export default class Game {
     
     // Add walking marks
     this.addWalkingMarksAtHomeBase();
+    
+    // Modify the world generator to make copper rarer
+    this.worldGenerator.COPPER_CHANCE = 0.05; // Make copper 5 times rarer (was ~0.25)
   }
 
   generateTarpColor() {
@@ -173,15 +194,52 @@ export default class Game {
         type: 'tarp',
         x: this.p.width / 2 - 120, // To the left of the hut
         y: this.p.height / 2 - 50, // Align with the hut
-        width: 70, // Smaller tarp
-        height: 60, // Smaller tarp
+        width: 60, // Smaller tarp
+        height: 50, // Smaller tarp
         color: this.tarpColor,
-        zIndex: 9000 // Very high z-index to ensure it renders above everything else
+        zIndex: 90000 // Extremely high z-index to ensure it renders above everything else
       });
       
       // Update the world generator's obstacles
       this.worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+      
+      // Remove any obstacles that are too close to the tarp
+      this.clearObstaclesNearTarp(homeAreaKey);
     }
+  }
+  
+  clearObstaclesNearTarp(areaKey: string) {
+    const obstacles = this.worldGenerator.getObstacles()[areaKey] || [];
+    const tarp = obstacles.find(obs => obs.type === 'tarp');
+    
+    if (!tarp) return;
+    
+    // Define clearance area around tarp (slightly larger than tarp itself)
+    const clearMargin = 20;
+    const minX = tarp.x - (tarp.width / 2) - clearMargin;
+    const maxX = tarp.x + (tarp.width / 2) + clearMargin;
+    const minY = tarp.y - (tarp.height / 2) - clearMargin;
+    const maxY = tarp.y + (tarp.height / 2) + clearMargin;
+    
+    // Filter out any obstacles in the clearance area except the tarp itself
+    const filteredObstacles = obstacles.filter(obs => {
+      if (obs.type === 'tarp') return true;
+      
+      // Skip obstacles that don't have x/y coordinates
+      if (obs.x === undefined || obs.y === undefined) return true;
+      
+      // Check if obstacle is in the clearance area
+      const inClearanceArea = (
+        obs.x >= minX && obs.x <= maxX &&
+        obs.y >= minY && obs.y <= maxY
+      );
+      
+      // Keep it if it's not in the clearance area
+      return !inClearanceArea;
+    });
+    
+    // Update the obstacles for this area
+    this.worldGenerator.getObstacles()[areaKey] = filteredObstacles;
   }
 
   addFuelStationAtHomeBase() {
@@ -359,6 +417,34 @@ export default class Game {
       if (quest.completionMessageTimer > 600) { // 10 seconds at 60fps
         quest.showCompletionMessage = false;
         quest.completionMessageTimer = 0;
+        
+        // Activate the second quest after completing the first one
+        if (quest.completed && !this.questSystem.resourceCollectionQuest.active) {
+          this.questSystem.resourceCollectionQuest.active = true;
+        }
+      }
+    }
+    
+    // Update the resource collection quest
+    const resourceQuest = this.questSystem.resourceCollectionQuest;
+    
+    if (resourceQuest.active && !resourceQuest.completed) {
+      // Update copper collected count
+      resourceQuest.copperCollected = this.player.inventory.copper;
+      
+      // Check if quest requirements are met
+      if (resourceQuest.copperCollected >= resourceQuest.requiredCopper) {
+        this.completeResourceQuest();
+      }
+    }
+    
+    // Handle resource quest completion message timer
+    if (resourceQuest.showCompletionMessage) {
+      resourceQuest.completionMessageTimer++;
+      
+      if (resourceQuest.completionMessageTimer > 600) { // 10 seconds at 60fps
+        resourceQuest.showCompletionMessage = false;
+        resourceQuest.completionMessageTimer = 0;
       }
     }
   }
@@ -396,6 +482,47 @@ export default class Game {
     }
   }
   
+  completeResourceQuest() {
+    const quest = this.questSystem.resourceCollectionQuest;
+    
+    if (!quest.rewardGiven && quest.copperCollected >= quest.requiredCopper) {
+      // Mark quest as completed
+      quest.completed = true;
+      quest.active = false;
+      quest.rewardGiven = true;
+      quest.showCompletionMessage = true;
+      quest.completionMessageTimer = 0;
+      
+      // Give rewards - increase hoverbike fuel capacity
+      this.hoverbike.maxFuel += 25;
+      this.hoverbike.fuel = Math.min(this.hoverbike.fuel + 25, this.hoverbike.maxFuel);
+      
+      // Update UI
+      emitGameStateUpdate(this.player, this.hoverbike);
+    }
+  }
+  
+  isPlayerUnderTarp() {
+    if (this.worldX !== 0 || this.worldY !== 0) {
+      return false; // Only at home base
+    }
+    
+    const homeObstacles = this.worldGenerator.getObstacles()["0,0"] || [];
+    const tarp = homeObstacles.find(obs => obs.type === 'tarp');
+    
+    if (!tarp) {
+      return false;
+    }
+    
+    // Check if player is under the tarp
+    return (
+      this.player.x >= tarp.x - tarp.width / 2 &&
+      this.player.x <= tarp.x + tarp.width / 2 &&
+      this.player.y >= tarp.y - tarp.height / 2 &&
+      this.player.y <= tarp.y + tarp.height / 2
+    );
+  }
+
   isNightTime() {
     // Return true if it's night (between sunset and sunrise)
     return this.timeOfDay < 0.25 || this.timeOfDay > 0.75;
@@ -564,48 +691,86 @@ export default class Game {
   }
   
   renderQuestUI() {
-  const quest = this.questSystem.roofRepairQuest;
+    // First check if there's an active quest
+    const roofQuest = this.questSystem.roofRepairQuest;
+    const resourceQuest = this.questSystem.resourceCollectionQuest;
+    
+    if (roofQuest.active && !roofQuest.completed) {
+      this.renderActiveQuest(
+        "Quest: The last Sandstorm really damaged your roof.",
+        `Collect Metal: ${roofQuest.metalCollected}/${roofQuest.requiredMetal}`,
+        roofQuest.metalCollected >= roofQuest.requiredMetal ? 
+          "Press E near your hut to repair it!" : ""
+      );
+    } else if (resourceQuest.active && !resourceQuest.completed) {
+      this.renderActiveQuest(
+        "Quest: You need to upgrade your hoverbike.",
+        `Collect Copper: ${resourceQuest.copperCollected}/${resourceQuest.requiredCopper}`,
+        ""
+      );
+    }
+    
+    // Handle quest completion messages
+    if (roofQuest.showCompletionMessage) {
+      this.renderQuestCompletion(
+        "On top of the roof you just repaired you found your",
+        "grandpa's old pickaxe. You are now able to dig for",
+        "rare metals. Awesome!"
+      );
+    } else if (resourceQuest.showCompletionMessage) {
+      this.renderQuestCompletion(
+        "With the copper collected, you've successfully upgraded",
+        "your hoverbike's fuel tank! It can now hold 25% more fuel,",
+        "allowing for much longer exploration journeys."
+      );
+    }
+  }
   
-  if (quest.active && !quest.completed) {
-    // Render active quest - centered at bottom
+  renderActiveQuest(title: string, progress: string, hint: string) {
+    // Center at bottom, fixed width
     const boxWidth = 380;
     const boxHeight = 60;
     const boxX = (this.p.width - boxWidth) / 2;
-    const boxY = this.p.height - 70;
+    const boxY = this.p.height - 100; // Lower position to avoid overlapping with UI elements
 
     this.p.push();
-    this.p.fill(0, 0, 0, 120);
+    this.p.fill(0, 0, 0, 150);
+    this.p.stroke(255, 255, 200, 80);
+    this.p.strokeWeight(1);
     this.p.rect(boxX, boxY, boxWidth, boxHeight, 5);
 
+    this.p.noStroke();
     this.p.fill(255, 255, 200);
     this.p.textSize(14);
     this.p.textAlign(this.p.LEFT);
-    this.p.text("Quest: The last Sandstorm really damaged your roof.", boxX + 10, boxY + 20);
-    this.p.text(`Collect Metal: ${quest.metalCollected}/${quest.requiredMetal}`, boxX + 10, boxY + 40);
+    this.p.text(title, boxX + 10, boxY + 20);
+    this.p.text(progress, boxX + 10, boxY + 42);
 
     // Show hint if requirements are met
-    if (quest.metalCollected >= quest.requiredMetal) {
+    if (hint) {
       this.p.fill(150, 255, 150);
       this.p.textAlign(this.p.RIGHT);
-      this.p.text("Press E near your hut to repair it!", boxX + boxWidth - 10, boxY + 40);
+      this.p.text(hint, boxX + boxWidth - 10, boxY + 42);
     }
     this.p.pop();
-  } else if (quest.showCompletionMessage) {
-    // Render quest completion message
+  }
+  
+  renderQuestCompletion(line1: string, line2: string, line3: string) {
     this.p.push();
     this.p.fill(0, 0, 0, 150);
+    this.p.stroke(200, 200, 100, 50);
+    this.p.strokeWeight(2);
     this.p.rect(this.p.width / 2 - 250, this.p.height / 2 - 50, 500, 100, 10);
 
+    this.p.noStroke();
     this.p.fill(255, 255, 150);
     this.p.textSize(16);
     this.p.textAlign(this.p.CENTER);
-    this.p.text("On top of the roof you just repaired you found your", this.p.width / 2, this.p.height / 2 - 20);
-    this.p.text("grandpa's old pickaxe. You are now able to dig for", this.p.width / 2, this.p.height / 2);
-    this.p.text("rare metals. Awesome!", this.p.width / 2, this.p.height / 2 + 20);
+    this.p.text(line1, this.p.width / 2, this.p.height / 2 - 20);
+    this.p.text(line2, this.p.width / 2, this.p.height / 2);
+    this.p.text(line3, this.p.width / 2, this.p.height / 2 + 20);
     this.p.pop();
   }
-}
-
   
   renderSleepAnimation() {
     // Darken the screen
@@ -915,27 +1080,6 @@ export default class Game {
     this.gameStarted = false;
   }
 
-  isPlayerUnderTarp() {
-    if (this.worldX !== 0 || this.worldY !== 0) {
-      return false; // Only at home base
-    }
-    
-    const homeObstacles = this.worldGenerator.getObstacles()["0,0"] || [];
-    const tarp = homeObstacles.find(obs => obs.type === 'tarp');
-    
-    if (!tarp) {
-      return false;
-    }
-    
-    // Check if player is under the tarp
-    return (
-      this.player.x >= tarp.x - tarp.width / 2 &&
-      this.player.x <= tarp.x + tarp.width / 2 &&
-      this.player.y >= tarp.y - tarp.height / 2 &&
-      this.player.y <= tarp.y + tarp.height / 2
-    );
-  }
-
   checkHoverbikeCanisterCollisions() {
     if (!this.riding || this.hoverbike.worldX !== this.worldX || this.hoverbike.worldY !== this.worldY) {
       return;
@@ -979,26 +1123,57 @@ export default class Game {
     const currentAreaKey = `${this.worldX},${this.worldY}`;
     let obstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
     
-    obstacles.push({
-      type: 'explosion',
-      x: x,
-      y: y,
-      size: 1.0,
-      frame: 0,
-      maxFrames: 30
-    });
+    // Create multiple explosion particles for a more dramatic effect
+    for (let i = 0; i < 10; i++) {
+      const offsetX = this.p.random(-20, 20);
+      const offsetY = this.p.random(-20, 20);
+      const size = this.p.random(0.7, 1.3);
+      const delay = this.p.floor(this.p.random(0, 10));
+      
+      obstacles.push({
+        type: 'explosion',
+        x: x + offsetX,
+        y: y + offsetY,
+        size: size,
+        frame: delay,
+        maxFrames: 30 + delay
+      });
+    }
+    
+    // Create smoke particles that linger longer
+    for (let i = 0; i < 15; i++) {
+      const offsetX = this.p.random(-30, 30);
+      const offsetY = this.p.random(-30, 30);
+      const size = this.p.random(0.5, 1.0);
+      const delay = this.p.floor(this.p.random(5, 20));
+      
+      obstacles.push({
+        type: 'smoke',
+        x: x + offsetX,
+        y: y + offsetY,
+        size: size,
+        frame: delay,
+        maxFrames: 90 + delay,
+        alpha: 255
+      });
+    }
     
     // Update obstacles
     this.worldGenerator.getObstacles()[currentAreaKey] = obstacles;
     
-    // Remove explosion after animation completes
+    // Make screen shake effect
+    this.renderer.startScreenShake(0.8, 15);
+    
+    // Play explosion sound if available
+    // this.soundManager.playSound('explosion');
+    
+    // Remove explosion particles after they fade
     setTimeout(() => {
-      const obstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
-      const explosionIndex = obstacles.findIndex(o => o.type === 'explosion' && o.x === x && o.y === y);
-      if (explosionIndex !== -1) {
-        obstacles.splice(explosionIndex, 1);
-        this.worldGenerator.getObstacles()[currentAreaKey] = obstacles;
-      }
-    }, 500);
+      const currentObstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
+      const updatedObstacles = currentObstacles.filter(o => 
+        o.type !== 'explosion' && o.type !== 'smoke'
+      );
+      this.worldGenerator.getObstacles()[currentAreaKey] = updatedObstacles;
+    }, 2000);
   }
 }

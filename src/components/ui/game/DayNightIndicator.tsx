@@ -32,8 +32,8 @@ const DayNightIndicator: React.FC<DayNightIndicatorProps> = ({
         ref={iconWrapperRef}
         className="absolute w-full h-full flex items-center justify-center"
         style={{
-          transform: 'rotate(var(--current-angle))',
-          transition: 'transform 1000ms ease-linear'
+          transform: `rotate(${dayTimeAngle}rad)`, // Direct angle application
+          transition: 'transform 1000ms cubic-bezier(0.4, 0.0, 0.2, 1)'
         }}
       >
         <div className="w-0.5 h-14 flex flex-col items-center">
