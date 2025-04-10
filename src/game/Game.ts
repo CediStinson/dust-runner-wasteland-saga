@@ -108,7 +108,8 @@ export default class Game {
       this.worldGenerator.getObstacles(), 
       this.worldGenerator.getResources(),
       this.hoverbike,
-      this.riding
+      this.riding,
+      this  // Pass the game instance to the player
     );
     
     // Position the hoverbike under the tarp (slightly to the left of the hut)
@@ -997,6 +998,12 @@ export default class Game {
         currentObstacles.splice(msgIndex, 1);
       }
     }, 2000);
+  }
+
+  showMessage(message: string, duration: number = 3000) {
+    console.log(`Game message: ${message}`);
+    // Implement any UI message showing logic here
+    // This could be implemented later if needed
   }
 
   resize() {

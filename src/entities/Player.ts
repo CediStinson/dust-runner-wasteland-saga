@@ -39,8 +39,9 @@ export default class Player implements PlayerType {
   cactusDamageCooldown: number = 0;
   droppingCanister: boolean;
   canDig: boolean;
+  game: any;
 
-  constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
+  constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean, game?: any) {
     this.p = p;
     this.x = x;
     this.y = y;
@@ -50,6 +51,7 @@ export default class Player implements PlayerType {
     this.resources = resources;
     this.hoverbike = hoverbike;
     this.riding = riding;
+    this.game = game;
     this.velX = 0;
     this.velY = 0;
     this.speed = 0.5;
@@ -446,7 +448,7 @@ export default class Player implements PlayerType {
       } else if (closestResource.type === 'copper' && !this.canDig) {
         if (this.p.frameCount % 60 === 0) {
           console.log("First quest must be completed to mine copper");
-          if (this.game && this.game.showMessage) {
+          if (this.game && typeof this.game.showMessage === 'function') {
             this.game.showMessage("Complete the first quest to unlock copper mining", 3000);
           }
         }
