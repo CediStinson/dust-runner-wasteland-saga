@@ -474,7 +474,7 @@ export default class Game {
       quest.showCompletionMessage = true;
       quest.completionMessageTimer = 0;
       
-      // Give rewards - Enable digging ability ONLY after quest completion
+      // Give rewards
       this.player.canDig = true;
       
       // Update UI
@@ -493,7 +493,7 @@ export default class Game {
       quest.showCompletionMessage = true;
       quest.completionMessageTimer = 0;
       
-      // Give rewards - Increase hoverbike fuel capacity
+      // Give rewards - increase hoverbike fuel capacity
       this.hoverbike.maxFuel += 25;
       this.hoverbike.fuel = Math.min(this.hoverbike.fuel + 25, this.hoverbike.maxFuel);
       
@@ -697,7 +697,7 @@ export default class Game {
     
     if (roofQuest.active && !roofQuest.completed) {
       this.renderActiveQuest(
-        "Quest: The last Sandstorm damaged your roof.",
+        "Quest: The last Sandstorm really damaged your roof.",
         `Collect Metal: ${roofQuest.metalCollected}/${roofQuest.requiredMetal}`,
         roofQuest.metalCollected >= roofQuest.requiredMetal ? 
           "Press E near your hut to repair it!" : ""
@@ -727,11 +727,11 @@ export default class Game {
   }
   
   renderActiveQuest(title: string, progress: string, hint: string) {
-    // Center at bottom with fixed width, adjusted to fit text better
-    const boxWidth = 400; // Increased from 380
-    const boxHeight = 70; // Increased from 60 
+    // Center at bottom, fixed width
+    const boxWidth = 380;
+    const boxHeight = 60;
     const boxX = (this.p.width - boxWidth) / 2;
-    const boxY = this.p.height - 120; // Higher position to avoid overlap with UI
+    const boxY = this.p.height - 100; // Lower position to avoid overlapping with UI elements
 
     this.p.push();
     this.p.fill(0, 0, 0, 150);
@@ -742,14 +742,15 @@ export default class Game {
     this.p.noStroke();
     this.p.fill(255, 255, 200);
     this.p.textSize(14);
-    this.p.textAlign(this.p.CENTER); // Changed to center align
-    this.p.text(title, boxX + boxWidth/2, boxY + 20);
-    this.p.text(progress, boxX + boxWidth/2, boxY + 42);
+    this.p.textAlign(this.p.LEFT);
+    this.p.text(title, boxX + 10, boxY + 20);
+    this.p.text(progress, boxX + 10, boxY + 42);
 
     // Show hint if requirements are met
     if (hint) {
       this.p.fill(150, 255, 150);
-      this.p.text(hint, boxX + boxWidth/2, boxY + 64); // Added more vertical space
+      this.p.textAlign(this.p.RIGHT);
+      this.p.text(hint, boxX + boxWidth - 10, boxY + 42);
     }
     this.p.pop();
   }

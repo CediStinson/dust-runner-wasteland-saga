@@ -10,7 +10,7 @@ export default class WorldGenerator {
   grassTextures: Record<string, any>;
   windmillAngle: number;
   edgeBuffer: number = 100; // Increased from 50 to 100px buffer from edges
-  COPPER_CHANCE: number = 0.05; // Much rarer copper spawn chance (reduced from 0.25 to 0.05)
+  COPPER_CHANCE: number = 0.25; // Default copper spawn chance
 
   constructor(p: any) {
     this.p = p;
@@ -303,26 +303,6 @@ export default class WorldGenerator {
             size: size
           });
         }
-        
-        // Rarely add a fuel canister (5% chance)
-        if (this.p.random() < 0.05) {
-          let position = this.getValidPosition();
-          
-          // Add fuel canister
-          const canister = { 
-            x: position.x, 
-            y: position.y, 
-            type: 'fuelCanister',
-            rotation: this.p.random(this.p.TWO_PI),
-            fullness: this.p.random(0.2, 0.5) // Between 20% and 50% of max fuel
-          };
-          
-          // Store in resources instead of obstacles
-          if (!this.resources[zoneKey]) {
-            this.resources[zoneKey] = [];
-          }
-          this.resources[zoneKey].push(canister);
-        }
       }
       
       this.obstacles[zoneKey] = areaObstacles;
@@ -332,7 +312,7 @@ export default class WorldGenerator {
   }
 
   generateResources(x: number, y: number, areaObstacles: any[]) {
-    let areaResources = this.resources[`${x},${y}`] || [];
+    let areaResources = [];
     
     if (x !== 0 || y !== 0) {
       for (let i = 0; i < 5; i++) {
@@ -348,12 +328,10 @@ export default class WorldGenerator {
         });
       }
       
-      // Make copper much rarer
       let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
       
       for (let rock of rocks) {
-        // Use the COPPER_CHANCE instead of hardcoded value
-        if (this.p.random() < this.COPPER_CHANCE) {
+        if (this.p.random() < 0.4) {
           areaResources.push(this.generateCopperOre(`${x},${y}`, rock));
         }
       }
@@ -381,7 +359,7 @@ export default class WorldGenerator {
       let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
       
       for (let rock of rocks) {
-        if (this.p.dist(rock.x, rock.y, centerX, centerY) >= safeRadius && this.p.random() < this.COPPER_CHANCE) {
+        if (this.p.dist(rock.x, rock.y, centerX, centerY) >= safeRadius && this.p.random() < 0.4) {
           areaResources.push(this.generateCopperOre(`${x},${y}`, rock));
         }
       }

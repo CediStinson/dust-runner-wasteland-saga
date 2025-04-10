@@ -1,39 +1,44 @@
 import p5 from 'p5';
+import { PlayerType } from '../utils/gameUtils';
+import { emitGameStateUpdate } from '../utils/gameUtils';
 
-export default class Player {
-  p: any;
+export default class Player implements PlayerType {
   x: number;
   y: number;
-  worldX: number;
-  worldY: number;
-  angle: number;
-  lastAngle: number;
+  velX: number;
+  velY: number;
   speed: number;
-  rotationSpeed: number;
-  health: number;
-  maxHealth: number;
-  inventory: { metal: number; copper: number; };
-  obstacles: Record<string, any[]>;
-  resources: Record<string, any[]>;
-  riding: boolean;
-  hoverbike: any;
-  carryingFuelCanister: boolean;
-  isCollectingCanister: boolean;
-  collectingTimer: number;
-  collectingDuration: number;
-  isRefuelingHoverbike: boolean;
-  refuelingTimer: number;
-  refuelingDuration: number;
-  isRepairingHoverbike: boolean;
-  repairingTimer: number;
-  repairingDuration: number;
-  droppingCanister: boolean;
-  canDig: boolean;
+  inventory: { [key: string]: number };
+  angle: number;
   digging: boolean;
   isDigging: boolean;
   digTimer: number;
-  digDuration: number;
   digTarget: any;
+  health: number;
+  maxHealth: number;
+  p: any; 
+  worldX: number;
+  worldY: number;
+  obstacles: Record<string, any[]>;
+  resources: Record<string, any[]>;
+  hoverbike: any;
+  riding: boolean;
+  lastAngle: number;
+  turnSpeed: number;
+  hairColor: {r: number, g: number, b: number};
+  armAnimationOffset: number;
+  carryingFuelCanister: boolean;
+  canisterCollectCooldown: number;
+  isCollectingCanister: boolean;
+  canisterCollectionProgress: number;
+  canisterCollectionTarget: any;
+  isRefuelingHoverbike: boolean;
+  refuelingProgress: number;
+  isRepairingHoverbike: boolean;
+  repairProgress: number;
+  cactusDamageCooldown: number = 0;
+  droppingCanister: boolean;
+  canDig: boolean;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -41,417 +46,804 @@ export default class Player {
     this.y = y;
     this.worldX = worldX;
     this.worldY = worldY;
-    this.angle = 0;
-    this.lastAngle = 0;
-    this.speed = 1.2;
-    this.rotationSpeed = 0.03;
-    this.health = 100;
-    this.maxHealth = 100;
-    this.inventory = { metal: 0, copper: 0 };
     this.obstacles = obstacles;
     this.resources = resources;
-    this.riding = riding;
     this.hoverbike = hoverbike;
-    this.carryingFuelCanister = false;
-    this.isCollectingCanister = false;
-    this.collectingTimer = 0;
-    this.collectingDuration = 180; // 3 seconds at 60fps
-    this.isRefuelingHoverbike = false;
-    this.refuelingTimer = 0;
-    this.refuelingDuration = 180; // 3 seconds at 60fps
-    this.isRepairingHoverbike = false;
-    this.repairingTimer = 0;
-    this.repairingDuration = 300; // 5 seconds at 60fps
-    this.droppingCanister = false;
-    this.canDig = false;
+    this.riding = riding;
+    this.velX = 0;
+    this.velY = 0;
+    this.speed = 0.5;
+    this.inventory = { metal: 0, copper: 0 };
+    this.angle = 0;
+    this.lastAngle = 0;
+    this.turnSpeed = 0.15;
     this.digging = false;
     this.isDigging = false;
     this.digTimer = 0;
-    this.digDuration = 180; // 3 seconds at 60fps
     this.digTarget = null;
-  }
-
-  setWorldCoordinates(worldX: number, worldY: number) {
-    this.worldX = worldX;
-    this.worldY = worldY;
-  }
-
-  setRiding(riding: boolean) {
-    this.riding = riding;
+    this.health = 100;
+    this.maxHealth = 100;
+    this.hairColor = {r: 255, g: 215, b: 140};
+    this.armAnimationOffset = 0;
+    this.carryingFuelCanister = false;
+    this.canisterCollectCooldown = 0;
+    this.isCollectingCanister = false;
+    this.canisterCollectionProgress = 0;
+    this.canisterCollectionTarget = null;
+    this.isRefuelingHoverbike = false;
+    this.refuelingProgress = 0;
+    this.isRepairingHoverbike = false;
+    this.repairProgress = 0;
+    this.droppingCanister = false;
+    this.canDig = false;
   }
 
   update() {
-    if (this.riding) {
+    if (this.canisterCollectCooldown > 0) {
+      this.canisterCollectCooldown--;
+    }
+    
+    if (!this.riding) {
+      if (this.digging) {
+        this.updateDigging();
+        this.armAnimationOffset = this.p.sin(this.p.frameCount * 0.2) * 1.5;
+      } else {
+        this.handleInput();
+        this.applyFriction();
+        
+        if (this.p.abs(this.velX) > 0.1 || this.p.abs(this.velY) > 0.1) {
+          this.armAnimationOffset = this.p.sin(this.p.frameCount * 0.2) * 1.2;
+        } else {
+          this.armAnimationOffset = 0;
+        }
+        
+        let willCollide = false;
+        let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+        let newX = this.x + this.velX;
+        let newY = this.y + this.velY;
+        
+        for (let obs of currentObstacles) {
+          if (obs.type === 'rock' || obs.type === 'hut' || obs.type === 'fuelPump') {
+            let dx = newX - obs.x;
+            let dy = newY - obs.y;
+            
+            let collisionRadius = 0;
+            if (obs.type === 'rock') {
+              let hitboxWidth = 28 * obs.size * (obs.aspectRatio > 1 ? obs.aspectRatio : 1);
+              let hitboxHeight = 28 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
+              collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.5;
+            } else if (obs.type === 'hut') {
+              collisionRadius = 40;
+            } else if (obs.type === 'fuelPump') {
+              collisionRadius = 45;
+            }
+            
+            let distance = this.p.sqrt(dx * dx + dy * dy);
+            if (distance < collisionRadius) {
+              willCollide = true;
+              break;
+            }
+          } else if (obs.type === 'cactus') {
+            let dx = newX - obs.x;
+            let dy = newY - obs.y;
+            let hitboxWidth = 15 * obs.size;
+            let distance = this.p.sqrt(dx * dx + dy * dy);
+            
+            if (distance < hitboxWidth) {
+              willCollide = true;
+              this.applyCactusDamage();
+              break;
+            }
+          } else if (obs.type === 'fuelCanister' && !obs.collected) {
+            let dx = newX - obs.x;
+            let dy = newY - obs.y;
+            let distance = this.p.sqrt(dx * dx + dy * dy);
+            
+            if (distance < 15) {
+              willCollide = true;
+              break;
+            }
+          }
+        }
+        
+        if (!willCollide) {
+          const speedMultiplier = this.carryingFuelCanister ? 0.7 : 1;
+          this.x += this.velX * speedMultiplier;
+          this.y += this.velY * speedMultiplier;
+        } else {
+          this.velX *= -0.5;
+          this.velY *= -0.5;
+        }
+        
+        this.checkForCactusDamage();
+        
+        this.checkForCollectableResources();
+        this.checkForHutSleeping();
+      }
+    } else {
       this.x = this.hoverbike.x;
       this.y = this.hoverbike.y;
       this.angle = this.hoverbike.angle;
-      return;
-    }
-
-    if (this.isCollectingCanister) {
-      this.updateCollectingCanister();
-      return;
-    }
-
-    if (this.isRefuelingHoverbike) {
-      this.updateRefuelingHoverbike();
-      return;
-    }
-
-    if (this.isRepairingHoverbike) {
-      this.updateRepairingHoverbike();
-      return;
     }
     
-    if (this.digging) {
-      this.updateDigging();
-      return;
-    }
-
-    this.handleMovement();
-  }
-
-  handleMovement() {
-    let targetAngle = null;
-
-    if (this.p.keyIsDown(this.p.LEFT_ARROW) || this.p.keyIsDown(65)) {
-      targetAngle = this.angle - this.rotationSpeed;
-    }
-
-    if (this.p.keyIsDown(this.p.RIGHT_ARROW) || this.p.keyIsDown(68)) {
-      targetAngle = this.angle + this.rotationSpeed;
-    }
-
-    if (targetAngle !== null) {
-      this.angle = targetAngle;
-    }
-
-    let moveX = 0;
-    let moveY = 0;
-
-    if (this.p.keyIsDown(this.p.UP_ARROW) || this.p.keyIsDown(87)) {
-      moveX = this.speed * this.p.cos(this.angle - this.p.HALF_PI);
-      moveY = this.speed * this.p.sin(this.angle - this.p.HALF_PI);
-    }
-
-    if (this.p.keyIsDown(this.p.DOWN_ARROW) || this.p.keyIsDown(83)) {
-      moveX = -this.speed * this.p.cos(this.angle - this.p.HALF_PI);
-      moveY = -this.speed * this.p.sin(this.angle - this.p.HALF_PI);
-    }
-
-    // Normalize diagonal movement
-    if (moveX !== 0 && moveY !== 0) {
-      const magnitude = Math.sqrt(moveX * moveX + moveY * moveY);
-      moveX = moveX / magnitude * this.speed;
-      moveY = moveY / magnitude * this.speed;
-    }
-
-    // Collision detection before moving
-    const newX = this.x + moveX;
-    const newY = this.y + moveY;
-
-    if (!this.checkCollisions(newX, newY)) {
-      this.x = newX;
-      this.y = newY;
+    if (this.isCollectingCanister && 
+        (Math.abs(this.velX) > 0.3 || Math.abs(this.velY) > 0.3)) {
+      this.isCollectingCanister = false;
+      this.canisterCollectionProgress = 0;
+      this.canisterCollectionTarget = null;
     }
   }
 
-  checkCollisions(x: number, y: number) {
-    const zoneKey = `${this.worldX},${this.worldY}`;
-    const obstacles = this.obstacles[zoneKey] || [];
+  handleInput() {
+    let moveX = 0, moveY = 0;
+    if (this.p.keyIsDown(this.p.UP_ARROW)) moveY -= this.speed;
+    if (this.p.keyIsDown(this.p.DOWN_ARROW)) moveY += this.speed;
+    if (this.p.keyIsDown(this.p.LEFT_ARROW)) moveX -= this.speed;
+    if (this.p.keyIsDown(this.p.RIGHT_ARROW)) moveX += this.speed;
 
-    for (let obstacle of obstacles) {
-      if (obstacle.type === 'rock') {
-        let rockRadius = 25 * obstacle.size * (obstacle.aspectRatio > 1 ? obstacle.aspectRatio : 1);
-        let distance = this.p.dist(x, y, obstacle.x, obstacle.y);
-        if (distance < rockRadius + 10) {
-          return true;
-        }
-      } else if (obstacle.type === 'bush') {
-        let bushRadius = 15 * obstacle.size;
-        let distance = this.p.dist(x, y, obstacle.x, obstacle.y);
-        if (distance < bushRadius + 10) {
-          return true;
-        }
-      } else if (obstacle.type === 'cactus') {
-        let cactusWidth = 12 * obstacle.size;
-        let cactusHeight = 50 * obstacle.size;
-        if (x > obstacle.x - cactusWidth / 2 && x < obstacle.x + cactusWidth / 2 &&
-            y > obstacle.y - cactusHeight && y < obstacle.y) {
-          return true;
-        }
-      } else if (obstacle.type === 'hut') {
-        if (x > obstacle.x - 40 && x < obstacle.x + 40 &&
-            y > obstacle.y - 50 && y < obstacle.y + 40) {
-          return true;
-        }
-      } else if (obstacle.type === 'fuelPump') {
-        if (x > obstacle.x - 20 && x < obstacle.x + 20 &&
-            y > obstacle.y - 40 && y < obstacle.y + 20) {
-          return true;
-        }
+    let magnitude = this.p.sqrt(moveX * moveX + moveY * moveY);
+    if (magnitude > 0) {
+      moveX /= magnitude;
+      moveY /= magnitude;
+      
+      this.lastAngle = this.angle;
+      
+      const targetAngle = this.p.atan2(moveY, moveX);
+      
+      const angleDiff = targetAngle - this.angle;
+      
+      if (angleDiff > Math.PI) {
+        this.angle += (targetAngle - this.angle - 2 * Math.PI) * this.turnSpeed;
+      } else if (angleDiff < -Math.PI) {
+        this.angle += (targetAngle - this.angle + 2 * Math.PI) * this.turnSpeed;
+      } else {
+        this.angle += angleDiff * this.turnSpeed;
       }
     }
 
-    return false;
+    this.velX += moveX * this.speed * 0.2;
+    this.velY += moveY * this.speed * 0.2;
+    
+    if (this.p.keyIsDown(69)) {
+      this.collectResource();
+      this.handleFuelCanister();
+    }
+  }
+
+  applyFriction() {
+    this.velX *= 0.9;
+    this.velY *= 0.9;
   }
 
   display() {
     this.p.push();
     this.p.translate(this.x, this.y);
-    this.p.rotate(this.angle);
-
-    // Draw body
-    this.p.fill(150);
-    this.p.noStroke();
-    this.p.rectMode(this.p.CENTER);
-    this.p.rect(0, 0, 12, 20);
-
-    // Draw head
-    this.p.fill(200);
-    this.p.ellipse(0, -13, 12, 12);
-
-    // Draw arms
-    this.p.stroke(100);
-    this.p.strokeWeight(2);
-    this.p.line(-8, -5, -15, 5);
-    this.p.line(8, -5, 15, 5);
-
-    // Draw fuel canister if carrying
-    if (this.carryingFuelCanister) {
+    
+    this.p.rotate(this.angle - this.p.PI/2);
+    
+    if (this.riding) {
+      this.displayRidingPlayerTopDown();
+    } else {
+      this.displayStandingPlayerTopDown();
+      
+      if (this.carryingFuelCanister) {
+        this.displayFuelCanister();
+      }
+    }
+    
+    this.p.pop();
+    
+    if (this.digging) {
       this.p.push();
-      this.p.translate(0, 25);
-      this.p.rotate(this.p.PI / 4);
-
-      this.p.fill(220, 50, 50);
-      this.p.stroke(0);
-      this.p.strokeWeight(1);
-      this.p.rectMode(this.p.CENTER);
-      this.p.rect(0, 0, 6, 12, 1);
-
-      this.p.fill(50);
-      this.p.noStroke();
-      this.p.ellipse(0, -7, 4, 4);
-
-      this.p.stroke(50);
-      this.p.strokeWeight(1);
-      this.p.noFill();
-      this.p.arc(0, -4, 6, 6, -this.p.PI, 0);
-
+      this.p.translate(this.x, this.y);
+      this.displayDigProgress();
       this.p.pop();
     }
     
-    // Show digging animation
-    if (this.isDigging) {
-      this.p.push();
-      this.p.rotate(-this.p.PI / 6);
-      this.p.fill(100);
-      this.p.rect(-5, 15, 5, 15);
-      this.p.pop();
-    }
+    this.displayFuelProgressBars();
+  }
 
+  displayFuelCanister() {
+    this.p.push();
+    this.p.translate(0, 5);
+    
+    this.p.fill(220, 50, 50);
+    this.p.stroke(0);
+    this.p.strokeWeight(0.5);
+    this.p.rect(-3, -3, 6, 6, 1);
+    
+    this.p.fill(50);
+    this.p.rect(-1, -4, 2, 1);
+    
+    this.p.stroke(30);
+    this.p.line(-2, -3, 2, -3);
+    
     this.p.pop();
   }
 
-  checkForFuelCanister() {
-    if (this.carryingFuelCanister) {
-      return false;
-    }
+  displayRidingPlayerTopDown() {
+    this.p.fill(0, 0, 0, 40);
+    this.p.noStroke();
+    this.p.ellipse(0, 0, 12, 9);
+    
+    this.p.strokeWeight(0.5);
+    this.p.stroke(0, 0, 0, 200);
+    this.p.fill(90, 130, 90, 255);
+    this.p.ellipse(0, 0, 12, 9);
+    this.p.noStroke();
+    
+    this.p.fill(245, 220, 190);
+    this.p.ellipse(0, 0, 6, 6);
+    
+    this.drawTopDownHair();
+    
+    this.p.fill(245, 220, 190);
+    this.p.ellipse(-4, 6, 4, 4);
+    this.p.ellipse(4, 6, 4, 4);
+  }
 
-    const zoneKey = `${this.worldX},${this.worldY}`;
-    const resources = this.resources[zoneKey] || [];
+  displayStandingPlayerTopDown() {
+    this.p.fill(0, 0, 0, 40);
+    this.p.noStroke();
+    this.p.ellipse(0, 2, 12, 9);
+    
+    this.p.strokeWeight(0.5);
+    this.p.stroke(0, 0, 0, 200);
+    this.p.fill(90, 130, 90, 255);
+    this.p.ellipse(0, 0, 12, 9);
+    this.p.noStroke();
+    
+    this.p.fill(245, 220, 190);
+    this.p.ellipse(0, 0, 6, 6);
+    
+    this.drawTopDownHair();
+    
+    this.p.fill(245, 220, 190);
+    this.p.ellipse(-5, 3 + this.armAnimationOffset, 4, 4);
+    this.p.ellipse(5, 3 - this.armAnimationOffset, 4, 4);
+  }
 
-    for (let i = resources.length - 1; i >= 0; i--) {
-      const resource = resources[i];
-      if (resource.type === 'fuelCanister') {
-        const distance = this.p.dist(this.x, this.y, resource.x, resource.y);
-        if (distance < 20) {
-          this.startCollectingCanister(resource, i);
-          return true;
+  drawTopDownHair() {
+    const { r, g, b } = this.hairColor;
+    
+    this.p.strokeWeight(1);
+    this.p.stroke('#000000e6');
+    this.p.push();
+    this.p.translate(0, -2.5);
+    this.p.fill(r, g, b);
+    this.p.ellipse(0, 0, 6, 6);
+    this.p.noStroke();
+    this.p.fill(r-30, g-30, b-30);
+    this.p.stroke('#000000e6');
+    this.p.strokeWeight(0.5);
+    this.p.fill(r, g, b);
+    this.p.beginShape();
+    this.p.vertex(-2, -1);
+    this.p.vertex(2, -1);
+    this.p.vertex(3, 2);
+    this.p.vertex(3, -5);
+    this.p.vertex(-3, -2);
+    this.p.endShape(this.p.CLOSE);
+    this.p.pop();
+  }
+
+  checkForCollectableResources() {
+    let closestResource = null;
+    let minDistance = Infinity;
+    let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
+    
+    for (let res of currentResources) {
+      if ((res.type === 'metal' || res.type === 'copper')) {
+        const distance = this.p.dist(this.x, this.y, res.x, res.y);
+        if (distance < 30 && distance < minDistance) {
+          closestResource = res;
+          minDistance = distance;
         }
       }
     }
-
-    return false;
-  }
-
-  startCollectingCanister(resource: any, index: number) {
-    this.isCollectingCanister = true;
-    this.collectingTimer = 0;
-  }
-
-  updateCollectingCanister() {
-    this.collectingTimer++;
-
-    if (this.collectingTimer > this.collectingDuration) {
-      this.collectCanister();
+    
+    if (closestResource) {
+      this.p.push();
+      this.p.fill(255, 255, 100, 150);
+      this.p.ellipse(closestResource.x, closestResource.y - 15, 5, 5);
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(8);
+      this.p.text("E", closestResource.x, closestResource.y - 13);
+      this.p.pop();
+    }
+    
+    if (!this.carryingFuelCanister && this.canisterCollectCooldown === 0) {
+      let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+      for (let obs of currentObstacles) {
+        if (obs.type === 'fuelPump' && this.p.dist(this.x, this.y, obs.x, obs.y) < 60) {
+          this.p.push();
+          this.p.fill(255, 255, 100, 150);
+          this.p.ellipse(obs.x, obs.y - 35, 5, 5);
+          this.p.fill(255);
+          this.p.textAlign(this.p.CENTER);
+          this.p.textSize(8);
+          this.p.text("E", obs.x, obs.y - 33);
+          this.p.textSize(6);
+          this.p.text("Get Fuel", obs.x, obs.y - 25);
+          this.p.pop();
+        }
+      }
+    }
+    
+    let closestCanister = null;
+    let minCanisterDistance = Infinity;
+    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+    
+    for (let obs of currentObstacles) {
+      if (obs.type === 'fuelCanister' && !obs.collected) {
+        const distance = this.p.dist(this.x, this.y, obs.x, obs.y);
+        if (distance < 30 && distance < minCanisterDistance) {
+          closestCanister = obs;
+          minCanisterDistance = distance;
+        }
+      }
+    }
+    
+    if (closestCanister) {
+      this.p.push();
+      this.p.fill(255, 255, 100, 150);
+      this.p.ellipse(closestCanister.x, closestCanister.y - 15, 5, 5);
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(8);
+      this.p.text("E", closestCanister.x, closestCanister.y - 13);
+      this.p.pop();
+    }
+    
+    if (this.carryingFuelCanister && 
+        this.hoverbike.worldX === this.worldX && 
+        this.hoverbike.worldY === this.worldY &&
+        this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) < 30 &&
+        this.hoverbike.fuel < this.hoverbike.maxFuel) {
+      this.p.push();
+      this.p.fill(255, 255, 100, 150);
+      this.p.ellipse(this.hoverbike.x, this.hoverbike.y - 15, 5, 5);
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(8);
+      this.p.text("E", this.hoverbike.x, this.hoverbike.y - 13);
+      this.p.textSize(6);
+      this.p.text("Refuel", this.hoverbike.x, this.hoverbike.y - 5);
+      this.p.pop();
     }
   }
 
-  collectCanister() {
-    this.isCollectingCanister = false;
-    this.carryingFuelCanister = true;
+  collectResource() {
+    let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
+    let collectionMade = false;
+    
+    let closestResource = null;
+    let minDistance = Infinity;
+    
+    for (let i = 0; i < currentResources.length; i++) {
+      let res = currentResources[i];
+      const distance = this.p.dist(this.x, this.y, res.x, res.y);
+      
+      if (distance < 30 && distance < minDistance) {
+        closestResource = res;
+        minDistance = distance;
+      }
+    }
+    
+    if (closestResource) {
+      if (closestResource.type === 'metal') {
+        this.inventory.metal++;
+        const index = currentResources.indexOf(closestResource);
+        if (index !== -1) {
+          currentResources.splice(index, 1);
+        }
+        emitGameStateUpdate(this, this.hoverbike);
+        collectionMade = true;
+      } else if (closestResource.type === 'copper' && !this.digging) {
+        this.startDigging(closestResource);
+        collectionMade = true;
+      }
+    }
+    
+    return collectionMade;
+  }
+  
+  startDigging(target: any) {
+    this.digging = true;
+    this.isDigging = true;
+    this.digTimer = 0;
+    this.digTarget = target;
+    emitGameStateUpdate(this, this.hoverbike);
+  }
+  
+  updateDigging() {
+    if (!this.digging) return;
+    
+    this.digTimer++;
+    
+    if (this.digTimer >= 480) {
+      this.digging = false;
+      this.isDigging = false;
+      
+      let copperAmount = this.p.floor(this.p.random(1, 4));
+      this.inventory.copper += copperAmount;
+      
+      let currentResources = this.resources[`${this.worldX},${this.worldY}`];
+      if (currentResources) {
+        let index = currentResources.indexOf(this.digTarget);
+        if (index !== -1) {
+          currentResources.splice(index, 1);
+        }
+      }
+      
+      this.digTarget = null;
+      emitGameStateUpdate(this, this.hoverbike);
+    }
+    
+    if (this.p.keyIsDown(this.p.UP_ARROW) || this.p.keyIsDown(this.p.DOWN_ARROW) || 
+        this.p.keyIsDown(this.p.LEFT_ARROW) || this.p.keyIsDown(this.p.RIGHT_ARROW) ||
+        !this.digTarget || this.p.dist(this.x, this.y, this.digTarget.x, this.digTarget.y) > 30) {
+      this.digging = false;
+      this.isDigging = false;
+      this.digTarget = null;
+    }
+  }
+  
+  displayDigProgress() {
+    let progressWidth = 30;
+    let progressHeight = 4;
+    let progress = this.digTimer / 480;
+    
+    this.p.push();
+    this.p.translate(0, -20);
+    
+    this.p.fill(0, 0, 0, 150);
+    this.p.rect(-progressWidth/2, 0, progressWidth, progressHeight, 2);
+    
+    this.p.fill(50, 200, 50);
+    this.p.rect(-progressWidth/2, 0, progressWidth * progress, progressHeight, 2);
+    
+    this.p.fill(255);
+    this.p.textAlign(this.p.CENTER);
+    this.p.textSize(8);
+    this.p.text("Mining Copper", 0, -5);
+    
+    this.p.pop();
+  }
 
-    const zoneKey = `${this.worldX},${this.worldY}`;
-    const resources = this.resources[zoneKey] || [];
+  handleFuelCanister() {
+    if (this.canisterCollectCooldown > 0) return;
+    
+    if (!this.carryingFuelCanister) {
+      let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+      for (let obs of currentObstacles) {
+        if (obs.type === 'fuelPump' && this.p.dist(this.x, this.y, obs.x, obs.y) < 60) {
+          this.startCanisterCollection(obs);
+          return;
+        }
+      }
+      
+      let closestCanister = null;
+      let minDistance = Infinity;
+      
+      for (let i = 0; i < currentObstacles.length; i++) {
+        let obs = currentObstacles[i];
+        if (obs.type === 'fuelCanister' && !obs.collected) {
+          const distance = this.p.dist(this.x, this.y, obs.x, obs.y);
+          if (distance < 30 && distance < minDistance) {
+            closestCanister = obs;
+            minDistance = distance;
+          }
+        }
+      }
+      
+      if (closestCanister) {
+        closestCanister.collected = true;
+        this.carryingFuelCanister = true;
+        this.canisterCollectCooldown = 30;
+        
+        const index = currentObstacles.indexOf(closestCanister);
+        if (index !== -1) {
+          currentObstacles.splice(index, 1);
+        }
+        return;
+      }
+    } else {
+      let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+      let nearFuelPump = false;
+      
+      for (let obs of currentObstacles) {
+        if (obs.type === 'fuelPump' && this.p.dist(this.x, this.y, obs.x, obs.y) < 60) {
+          nearFuelPump = true;
+          this.carryingFuelCanister = false;
+          this.canisterCollectCooldown = 30;
+          return;
+        }
+      }
+      
+      if (this.hoverbike.worldX === this.worldX && 
+          this.hoverbike.worldY === this.worldY &&
+          this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) < 30 &&
+          this.hoverbike.fuel < this.hoverbike.maxFuel) {
+        
+        this.startHoverbikeRefueling();
+        return;
+      }
+      
+      if (!nearFuelPump) {
+        let dropDistance = 20;
+        let dropX = this.x + Math.cos(this.angle) * dropDistance;
+        let dropY = this.y + Math.sin(this.angle) * dropDistance;
+        
+        currentObstacles.push({
+          type: 'fuelCanister',
+          x: dropX,
+          y: dropY,
+          collected: false
+        });
+        
+        this.carryingFuelCanister = false;
+        this.canisterCollectCooldown = 30;
+      }
+    }
+  }
 
-    for (let i = resources.length - 1; i >= 0; i--) {
-      const resource = resources[i];
-      if (resource.type === 'fuelCanister') {
-        const distance = this.p.dist(this.x, this.y, resource.x, resource.y);
-        if (distance < 20) {
-          resources.splice(i, 1);
+  startCanisterCollection(fuelPump) {
+    this.isCollectingCanister = true;
+    this.canisterCollectionProgress = 0;
+    this.canisterCollectionTarget = fuelPump;
+    
+    const collectInterval = setInterval(() => {
+      if (!this.isCollectingCanister) {
+        clearInterval(collectInterval);
+        return;
+      }
+      
+      if (this.p.dist(this.x, this.y, this.canisterCollectionTarget.x, this.canisterCollectionTarget.y) > 60 || 
+          Math.abs(this.velX) > 0.3 || Math.abs(this.velY) > 0.3) {
+        this.isCollectingCanister = false;
+        clearInterval(collectInterval);
+        return;
+      }
+      
+      this.canisterCollectionProgress += 0.0125;
+      
+      if (this.canisterCollectionProgress >= 1) {
+        this.carryingFuelCanister = true;
+        this.isCollectingCanister = false;
+        this.canisterCollectionTarget = null;
+        this.canisterCollectCooldown = 30;
+        clearInterval(collectInterval);
+      }
+    }, 40);
+  }
+  
+  startHoverbikeRefueling() {
+    this.isRefuelingHoverbike = true;
+    this.refuelingProgress = 0;
+    
+    const refuelInterval = setInterval(() => {
+      if (!this.isRefuelingHoverbike) {
+        clearInterval(refuelInterval);
+        return;
+      }
+      
+      if (this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) > 30) {
+        this.isRefuelingHoverbike = false;
+        clearInterval(refuelInterval);
+        return;
+      }
+      
+      this.refuelingProgress += 0.0125;
+      
+      if (this.refuelingProgress >= 1) {
+        const fuelAmount = this.hoverbike.maxFuel / 2;
+        this.hoverbike.fuel = Math.min(this.hoverbike.fuel + fuelAmount, this.hoverbike.maxFuel);
+        this.carryingFuelCanister = false;
+        this.isRefuelingHoverbike = false;
+        this.canisterCollectCooldown = 30;
+        emitGameStateUpdate(this, this.hoverbike);
+        clearInterval(refuelInterval);
+      }
+    }, 40);
+  }
+  
+  startHoverbikeRepair() {
+    if (this.inventory.metal < 1 || this.hoverbike.health >= this.hoverbike.maxHealth) {
+      return;
+    }
+    
+    this.isRepairingHoverbike = true;
+    this.repairProgress = 0;
+    
+    const repairInterval = setInterval(() => {
+      if (!this.isRepairingHoverbike) {
+        clearInterval(repairInterval);
+        return;
+      }
+      
+      if (this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) > 30) {
+        this.isRepairingHoverbike = false;
+        clearInterval(repairInterval);
+        return;
+      }
+      
+      this.repairProgress += 0.015;
+      
+      if (this.repairProgress >= 1) {
+        this.inventory.metal--;
+        this.hoverbike.health = this.p.min(this.hoverbike.health + 20, this.hoverbike.maxHealth);
+        this.isRepairingHoverbike = false;
+        emitGameStateUpdate(this, this.hoverbike);
+        clearInterval(repairInterval);
+      }
+    }, 40);
+  }
+  
+  displayFuelProgressBars() {
+    if (this.isCollectingCanister && this.canisterCollectionTarget) {
+      this.p.push();
+      this.p.translate(this.canisterCollectionTarget.x, this.canisterCollectionTarget.y - 40);
+      
+      this.p.fill(0, 0, 0, 150);
+      this.p.rect(-15, 0, 30, 4, 2);
+      
+      this.p.fill(220, 50, 50);
+      this.p.rect(-15, 0, 30 * this.canisterCollectionProgress, 4, 2);
+      
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(8);
+      this.p.text("Getting Fuel", 0, -5);
+      
+      this.p.pop();
+    }
+    
+    if (this.isRefuelingHoverbike) {
+      this.p.push();
+      this.p.translate(this.hoverbike.x, this.hoverbike.y - 25);
+      
+      this.p.fill(0, 0, 0, 150);
+      this.p.rect(-15, 0, 30, 4, 2);
+      
+      this.p.fill(220, 50, 50);
+      this.p.rect(-15, 0, 30 * this.refuelingProgress, 4, 2);
+      
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(8);
+      this.p.text("Refueling", 0, -5);
+      
+      this.p.pop();
+    }
+    
+    if (this.isRepairingHoverbike) {
+      this.p.push();
+      this.p.translate(this.hoverbike.x, this.hoverbike.y - 25);
+      
+      this.p.fill(0, 0, 0, 150);
+      this.p.rect(-15, 0, 30, 4, 2);
+      
+      this.p.fill(60, 180, 60);
+      this.p.rect(-15, 0, 30 * this.repairProgress, 4, 2);
+      
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(8);
+      this.p.text("Repairing", 0, -5);
+      
+      if (this.p.frameCount % 3 === 0 && this.p.random() > 0.6) {
+        const sparkX = this.hoverbike.x + this.p.random(-10, 10);
+        const sparkY = this.hoverbike.y + this.p.random(-5, 5);
+        
+        this.p.fill(255, 255, 200);
+        this.p.noStroke();
+        this.p.ellipse(sparkX - this.hoverbike.x, sparkY - this.hoverbike.y, 1.5, 1.5);
+        
+        this.p.fill(255, 255, 150, 100);
+        this.p.ellipse(sparkX - this.hoverbike.x, sparkY - this.hoverbike.y, 3, 3);
+      }
+      
+      this.p.pop();
+    }
+  }
+
+  applyCactusDamage() {
+    if (this.cactusDamageCooldown <= 0) {
+      const oldHealth = this.health;
+      this.health = this.p.max(0, this.health - 5);
+      if (oldHealth !== this.health) {
+        emitGameStateUpdate(this, this.hoverbike);
+      }
+      this.cactusDamageCooldown = 60;
+    }
+  }
+  
+  checkForCactusDamage() {
+    if (this.cactusDamageCooldown > 0) {
+      this.cactusDamageCooldown--;
+      return;
+    }
+    
+    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+    for (let obs of currentObstacles) {
+      if (obs.type === 'cactus') {
+        let dx = this.x - obs.x;
+        let dy = this.y - obs.y;
+        let hitboxWidth = 20 * obs.size;
+        let distance = this.p.sqrt(dx * dx + dy * dy);
+        
+        if (distance < hitboxWidth) {
+          this.applyCactusDamage();
           break;
         }
       }
     }
   }
-
-  checkForHoverbikeRefuel() {
-    if (!this.carryingFuelCanister) {
-      return false;
-    }
-
-    if (this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) < 30 &&
-        this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
-      this.startRefuelingHoverbike();
-      return true;
-    }
-
-    return false;
-  }
-
-  startRefuelingHoverbike() {
-    this.isRefuelingHoverbike = true;
-    this.refuelingTimer = 0;
-  }
-
-  updateRefuelingHoverbike() {
-    this.refuelingTimer++;
-
-    if (this.refuelingTimer > this.refuelingDuration) {
-      this.refuelHoverbike();
-    }
-  }
-
-  refuelHoverbike() {
-    this.isRefuelingHoverbike = false;
-    this.carryingFuelCanister = false;
-    this.hoverbike.fuel = Math.min(this.hoverbike.fuel + 25, this.hoverbike.maxFuel);
-  }
-
-  startHoverbikeRepair() {
-    this.isRepairingHoverbike = true;
-    this.repairingTimer = 0;
-  }
-
-  updateRepairingHoverbike() {
-    this.repairingTimer++;
-
-    if (this.repairingTimer > this.repairingDuration) {
-      this.repairHoverbike();
-    }
-  }
-
-  repairHoverbike() {
-    this.isRepairingHoverbike = false;
-    this.inventory.metal--;
-    this.hoverbike.health = Math.min(this.hoverbike.health + 20, this.hoverbike.maxHealth);
-  }
-
+  
   checkForHutSleeping() {
-    const zoneKey = `${this.worldX},${this.worldY}`;
-    const obstacles = this.obstacles[zoneKey] || [];
-
-    for (let obstacle of obstacles) {
-      if (obstacle.type === 'hut') {
-        if (this.x > obstacle.x - 40 && this.x < obstacle.x + 40 &&
-            this.y > obstacle.y - 50 && this.y < obstacle.y + 40) {
+    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+    for (let obs of currentObstacles) {
+      if (obs.type === 'hut') {
+        let dx = this.x - obs.x;
+        let dy = this.y - (obs.y + 25);
+        let distance = this.p.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 15) {
           return true;
         }
       }
     }
-
     return false;
   }
-  
+
   checkForHutInteraction() {
-    const zoneKey = `${this.worldX},${this.worldY}`;
-    const obstacles = this.obstacles[zoneKey] || [];
-    
-    for (let obstacle of obstacles) {
-      if (obstacle.type === 'hut') {
-        if (this.x > obstacle.x - 40 && this.x < obstacle.x + 40 &&
-            this.y > obstacle.y - 50 && this.y < obstacle.y + 40) {
-          return true;
+    if (this.worldX === 0 && this.worldY === 0) {
+      let currentObstacles = this.obstacles["0,0"] || [];
+      for (let obs of currentObstacles) {
+        if (obs.type === 'hut') {
+          let dx = this.x - obs.x;
+          let dy = this.y - (obs.y + 25);
+          let distance = this.p.sqrt(dx * dx + dy * dy);
+          
+          if (distance < 20) {
+            return true;
+          }
         }
       }
     }
-    
     return false;
   }
-  
-  startDigging() {
-    if (!this.canDig) return;
-    
-    const zoneKey = `${this.worldX},${this.worldY}`;
-    const resources = this.resources[zoneKey] || [];
-    
-    // Find the nearest diggable resource
-    let nearestResource = null;
-    let nearestDistance = Infinity;
-    
-    for (let resource of resources) {
-      if (resource.type === 'metal') {
-        const distance = this.p.dist(this.x, this.y, resource.x, resource.y);
-        if (distance < nearestDistance) {
-          nearestDistance = distance;
-          nearestResource = resource;
+
+  setRiding(value: boolean) {
+    this.riding = value;
+  }
+
+  setWorldCoordinates(x: number, y: number) {
+    this.worldX = x;
+    this.worldY = y;
+  }
+
+  checkIfNearFuelPump() {
+    if (this.worldX === 0 && this.worldY === 0) {
+      const currentObstacles = this.obstacles["0,0"] || [];
+      for (const obs of currentObstacles) {
+        if (obs.type === 'fuelPump') {
+          return this.p.dist(this.x, this.y, obs.x, obs.y) < 70;
         }
       }
     }
-    
-    // Start digging if a resource is nearby
-    if (nearestResource && nearestDistance < 30) {
-      this.digTarget = nearestResource;
-      this.isDigging = true;
-      this.digging = true;
-      this.digTimer = 0;
-    }
+    return false;
   }
-  
-  updateDigging() {
-    this.digTimer++;
-    
-    if (this.digTimer > this.digDuration) {
-      this.finishDigging();
-    }
-  }
-  
-  finishDigging() {
-    this.digging = false;
-    this.isDigging = false;
-    
-    if (this.digTarget) {
-      // Add metal to inventory
-      this.inventory.metal++;
-      
-      // Remove the resource
-      const zoneKey = `${this.worldX},${this.worldY}`;
-      const resources = this.resources[zoneKey] || [];
-      const index = resources.indexOf(this.digTarget);
-      if (index > -1) {
-        resources.splice(index, 1);
-      }
-      
-      this.digTarget = null;
-    }
-  }
-  
+
   cancelDigging() {
-    this.digging = false;
-    this.isDigging = false;
-    this.digTimer = 0;
-    this.digTarget = null;
+    if (this.digging) {
+      this.digging = false;
+      this.isDigging = false;
+      this.digTimer = 0;
+      this.digTarget = null;
+      emitGameStateUpdate(this, this.hoverbike);
+    }
   }
 }
