@@ -30,19 +30,21 @@ const DayNightIndicator: React.FC<DayNightIndicatorProps> = ({
       {/* Sun or Moon icon that rotates around the circle */}
       <div 
         ref={iconWrapperRef}
-        className="absolute w-full h-full flex items-center justify-center"
+        className="absolute w-full h-full"
         style={{
-          transform: `rotate(${dayTimeAngle}rad)`, // Direct angle application
+          transform: `rotate(var(--current-angle))`,
           transition: 'transform 1000ms cubic-bezier(0.4, 0.0, 0.2, 1)'
         }}
       >
         <div className="w-0.5 h-14 flex flex-col items-center">
           <div className="flex-1"></div>
-          {dayTimeIcon === "sun" ? (
-            <Sun className="text-yellow-400" size={16} />
-          ) : (
-            <Moon className="text-blue-200" size={16} />
-          )}
+          <div className="h-4 flex items-center justify-center">
+            {dayTimeIcon === "sun" ? (
+              <Sun className="text-yellow-400" size={16} />
+            ) : (
+              <Moon className="text-blue-200" size={16} />
+            )}
+          </div>
         </div>
       </div>
       
