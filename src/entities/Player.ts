@@ -333,7 +333,7 @@ export default class Player implements PlayerType {
     let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
     
     for (let res of currentResources) {
-      if ((res.type === 'metal' || res.type === 'copper')) {
+      if (res.type === 'metal' || (res.type === 'copper' && this.canDig)) {
         const distance = this.p.dist(this.x, this.y, res.x, res.y);
         if (distance < 30 && distance < minDistance) {
           closestResource = res;
@@ -440,9 +440,16 @@ export default class Player implements PlayerType {
         }
         emitGameStateUpdate(this, this.hoverbike);
         collectionMade = true;
-      } else if (closestResource.type === 'copper' && !this.digging) {
+      } else if (closestResource.type === 'copper' && !this.digging && this.canDig) {
         this.startDigging(closestResource);
         collectionMade = true;
+      } else if (closestResource.type === 'copper' && !this.canDig) {
+        if (this.p.frameCount % 60 === 0) {
+          console.log("First quest must be completed to mine copper");
+          if (this.game && this.game.showMessage) {
+            this.game.showMessage("Complete the first quest to unlock copper mining", 3000);
+          }
+        }
       }
     }
     
@@ -845,5 +852,12 @@ export default class Player implements PlayerType {
       this.digTarget = null;
       emitGameStateUpdate(this, this.hoverbike);
     }
+  }
+
+  isNearHoverbike() {
+    return this.hoverbike && 
+           this.hoverbike.worldX === this.worldX && 
+           this.hoverbike.worldY === this.worldY &&
+           this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) < 30;
   }
 }

@@ -205,8 +205,17 @@ const Index = () => {
       setHoverbikeAngle(hoverbikeAngle !== undefined ? hoverbikeAngle : 0);
       setHoverbikeWorldX(hoverbikeWorldX !== undefined ? hoverbikeWorldX : 0);
       setHoverbikeWorldY(hoverbikeWorldY !== undefined ? hoverbikeWorldY : 0);
-      setDayTimeIcon(dayTimeIcon || "sun");
-      setDayTimeAngle(dayTimeAngle !== undefined ? dayTimeAngle : 0);
+      
+      // Handle dayTimeIcon and dayTimeAngle with special care to avoid jumps
+      if (dayTimeIcon !== undefined) {
+        setDayTimeIcon(dayTimeIcon);
+      }
+      
+      if (dayTimeAngle !== undefined) {
+        // Normalize the angle to avoid jumps
+        let newAngle = dayTimeAngle;
+        setDayTimeAngle(newAngle);
+      }
       
       // Handle game started state changes
       if (gameStarted !== undefined) {

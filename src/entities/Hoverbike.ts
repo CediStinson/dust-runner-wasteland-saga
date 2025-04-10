@@ -266,6 +266,37 @@ export default class Hoverbike implements HoverbikeType {
           this.y += pushY;
           break;
         }
+      } else if (obs.type === 'fuelCanister' && !obs.collected) {
+        let dx = this.x - obs.x;
+        let dy = this.y - obs.y;
+        let distance = this.p.sqrt(dx * dx + dy * dy);
+
+        if (distance < 20) {
+          obs.collected = true;
+          
+          if (this.player && this.player.game) {
+            this.player.game.createExplosion(obs.x, obs.y);
+            
+            const oldHealth = this.health;
+            this.health = this.p.max(0, this.health - 15);
+            if (oldHealth !== this.health) {
+              emitGameStateUpdate(this.player, this);
+            }
+            
+            const knockbackForce = 3;
+            let angle = this.p.atan2(dy, dx);
+            this.velocityX += this.p.cos(angle) * knockbackForce;
+            this.velocityY += this.p.sin(angle) * knockbackForce;
+            
+            this.collisionCooldown = 30;
+          }
+          
+          const index = currentObstacles.indexOf(obs);
+          if (index !== -1) {
+            currentObstacles.splice(index, 1);
+          }
+          break;
+        }
       }
     }
   }
