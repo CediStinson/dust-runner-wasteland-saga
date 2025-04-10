@@ -8,6 +8,8 @@ export default class GameRenderer {
   worldX: number;
   worldY: number;
   timeOfDay: number;
+  screenShakeAmount: number = 0;
+  screenShakeTime: number = 0;
 
   constructor(p: any, worldGenerator: any, player: any, hoverbike: any, worldX: number, worldY: number, timeOfDay: number = 0.25) {
     this.p = p;
@@ -28,26 +30,59 @@ export default class GameRenderer {
     this.timeOfDay = timeOfDay;
   }
 
+  startScreenShake(intensity: number, duration: number) {
+    this.screenShakeAmount = intensity;
+    this.screenShakeTime = duration;
+  }
+
   render() {
-    this.drawBackground();
-    
-    // Draw the tarp first (lower z-index elements)
-    this.drawTarp();
-    
-    this.applyDaytimeTint();
-    this.drawObstacles();
-    this.drawResources();
-    
-    // Draw hoverbike (middle z-index)
-    if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
-      this.hoverbike.display();
+    // Apply screen shake if active
+    if (this.screenShakeTime > 0) {
+      this.p.push();
+      this.p.translate(
+        this.p.random(-this.screenShakeAmount, this.screenShakeAmount),
+        this.p.random(-this.screenShakeAmount, this.screenShakeAmount)
+      );
+      this.screenShakeTime--;
+      
+      // Draw the normal scene
+      this.drawBackground();
+      this.drawTarp();
+      this.applyDaytimeTint();
+      this.drawObstacles();
+      this.drawResources();
+      
+      // Draw hoverbike (middle z-index)
+      if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
+        this.hoverbike.display();
+      }
+      
+      // Draw player (higher z-index)
+      this.player.display();
+      
+      // Draw fuel canisters (high z-index)
+      this.drawFuelCanisters();
+      
+      this.p.pop();
+    } else {
+      // Normal rendering without screen shake
+      this.drawBackground();
+      this.drawTarp();
+      this.applyDaytimeTint();
+      this.drawObstacles();
+      this.drawResources();
+      
+      // Draw hoverbike (middle z-index)
+      if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
+        this.hoverbike.display();
+      }
+      
+      // Draw player (higher z-index)
+      this.player.display();
+      
+      // Draw fuel canisters (high z-index)
+      this.drawFuelCanisters();
     }
-    
-    // Draw player (higher z-index)
-    this.player.display();
-    
-    // Draw fuel canisters (high z-index)
-    this.drawFuelCanisters();
   }
 
   drawBackground() {

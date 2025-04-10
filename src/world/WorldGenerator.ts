@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class WorldGenerator {
@@ -9,6 +10,7 @@ export default class WorldGenerator {
   grassTextures: Record<string, any>;
   windmillAngle: number;
   edgeBuffer: number = 100; // Increased from 50 to 100px buffer from edges
+  COPPER_CHANCE: number = 0.25; // Default copper spawn chance
 
   constructor(p: any) {
     this.p = p;
