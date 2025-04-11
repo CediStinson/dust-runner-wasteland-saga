@@ -1242,11 +1242,11 @@ export default class Game {
     let obstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
     
     // Create multiple explosion particles for a more dramatic effect
-    for (let i = 0; i < 20; i++) {  // Increased from 10 to 20 particles
-      const offsetX = this.p.random(-30, 30);  // Increased spread
-      const offsetY = this.p.random(-30, 30);  // Increased spread
-      const size = this.p.random(0.7, 1.8);    // Larger max size
-      const delay = this.p.floor(this.p.random(0, 15)); // More varied delay
+    for (let i = 0; i < 10; i++) {
+      const offsetX = this.p.random(-20, 20);
+      const offsetY = this.p.random(-20, 20);
+      const size = this.p.random(0.7, 1.3);
+      const delay = this.p.floor(this.p.random(0, 10));
       
       obstacles.push({
         type: 'explosion',
@@ -1258,13 +1258,12 @@ export default class Game {
       });
     }
     
-    // Create more smoke particles that linger longer
-    for (let i = 0; i < 25; i++) {  // Increased from 15 to 25
-      const offsetX = this.p.random(-40, 40);  // Wider spread
-      const offsetY = this.p.random(-40, 40);  // Wider spread
-      const size = this.p.random(0.5, 1.5);    // Larger max size
-      const delay = this.p.floor(this.p.random(5, 25));
-      const duration = this.p.random(90, 150); // More varied durations
+    // Create smoke particles that linger longer
+    for (let i = 0; i < 15; i++) {
+      const offsetX = this.p.random(-30, 30);
+      const offsetY = this.p.random(-30, 30);
+      const size = this.p.random(0.5, 1.0);
+      const delay = this.p.floor(this.p.random(5, 20));
       
       obstacles.push({
         type: 'smoke',
@@ -1272,59 +1271,27 @@ export default class Game {
         y: y + offsetY,
         size: size,
         frame: delay,
-        maxFrames: duration + delay,
+        maxFrames: 90 + delay,
         alpha: 255
       });
     }
     
-    // Add debris particles
-    for (let i = 0; i < 15; i++) {
-      const angle = this.p.random(0, Math.PI * 2);
-      const speed = this.p.random(0.5, 3);
-      const size = this.p.random(1, 4);
-      
-      obstacles.push({
-        type: 'debris',
-        x: x,
-        y: y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        size: size,
-        rotation: this.p.random(0, Math.PI * 2),
-        rotationSpeed: this.p.random(-0.1, 0.1),
-        lifetime: 120 + this.p.random(0, 60),
-        age: 0,
-        color: {
-          r: this.p.random(50, 100),
-          g: this.p.random(30, 60),
-          b: this.p.random(10, 30)
-        }
-      });
-    }
-    
-    // Add a flash effect
-    obstacles.push({
-      type: 'flash',
-      x: x,
-      y: y,
-      size: 1.0,
-      frame: 0,
-      maxFrames: 10
-    });
-    
     // Update obstacles
     this.worldGenerator.getObstacles()[currentAreaKey] = obstacles;
     
-    // Make screen shake effect more intense
-    this.renderer.startScreenShake(1.2, 25);
+    // Make screen shake effect
+    this.renderer.startScreenShake(0.8, 15);
+    
+    // Play explosion sound if available
+    // this.soundManager.playSound('explosion');
     
     // Remove explosion particles after they fade
     setTimeout(() => {
       const currentObstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
       const updatedObstacles = currentObstacles.filter(o => 
-        o.type !== 'explosion' && o.type !== 'smoke' && o.type !== 'flash' && o.type !== 'debris'
+        o.type !== 'explosion' && o.type !== 'smoke'
       );
       this.worldGenerator.getObstacles()[currentAreaKey] = updatedObstacles;
-    }, 3000);  // Increased from 2000 to 3000 ms for longer effect
+    }, 2000);
   }
 }

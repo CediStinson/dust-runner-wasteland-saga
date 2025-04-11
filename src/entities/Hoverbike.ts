@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -33,7 +32,6 @@ export default class Hoverbike implements HoverbikeType {
     timer: number;
   };
   speedLevel: number;
-  outOfFuelTime: number; // Track when bike ran out of fuel
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -65,7 +63,6 @@ export default class Hoverbike implements HoverbikeType {
       timer: 0
     };
     this.speedLevel = 0;
-    this.outOfFuelTime = 0;
   }
 
   update() {
@@ -81,26 +78,9 @@ export default class Hoverbike implements HoverbikeType {
       
       if (this.fuel > 0) {
         this.applyMovement();
-        // Reset out of fuel time when there is fuel
-        this.outOfFuelTime = 0;
       } else {
-        // Just ran out of fuel - start tracking time
-        if (this.outOfFuelTime === 0) {
-          this.outOfFuelTime = this.p.frameCount;
-        }
-        
-        // Apply gradual slowdown - bike drifts longer when out of fuel
-        // Calculate how long it's been since running out of fuel
-        const timeOutOfFuel = this.p.frameCount - this.outOfFuelTime;
-        
-        // Start with a very slow deceleration that increases over time
-        // This creates a nice "coasting to a stop" effect
-        const deceleration = 0.996 - (Math.min(timeOutOfFuel, 180) / 60000);
-        this.velocityX *= deceleration;
-        this.velocityY *= deceleration;
-        
-        // Still apply movement while drifting
-        this.applyMovement();
+        this.velocityX *= 0.995;
+        this.velocityY *= 0.995;
       }
       
       this.checkCollisions();
