@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Save, Settings, LogOut } from 'lucide-react';
 import DayNightIndicator from './ui/game/DayNightIndicator';
@@ -58,34 +57,19 @@ const GameUI: React.FC<GameUIProps> = ({
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Don't render any UI elements if game hasn't started yet
-  if (!gameStarted) return null;
-
-  const handleSaveGame = () => {
-    if (onSaveGame) {
-      onSaveGame();
-    } else {
-      toast({
-        title: "Save function not available",
-        description: "The save function is not currently available.",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  const handleLogout = () => {
-    if (onLogout) {
-      onLogout();
-    }
-  };
-
+  // Always render UI elements even when gameStarted is false
+  // This ensures the HUD is visible during game initialization
   return (
     <>
       <TopBar 
         showControls={showControls}
         setShowControls={setShowControls}
-        handleSaveGame={handleSaveGame}
-        handleLogout={handleLogout}
+        handleSaveGame={onSaveGame || (() => toast({
+          title: "Save function not available",
+          description: "The save function is not currently available.",
+          variant: "destructive",
+        }))}
+        handleLogout={onLogout || (() => {})}
         user={user}
         dayTimeIcon={dayTimeIcon}
         dayTimeAngle={dayTimeAngle}
