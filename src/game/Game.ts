@@ -957,16 +957,12 @@ export default class Game {
     const btnY = this.p.height/2 + 30;
     
     const mouseOver = this.p.mouseX > btnX && this.p.mouseX < btnX + btnWidth && 
-                      this.p.mouseY > btnY && this.p.mouseY < btnY + btnHeight;
-                      
-    if (mouseOver) {
-      this.p.fill(255, 220, 150);
-      if (this.p.mouseIsPressed) {
-        this.gameStarted = true;
-      }
-    } else {
-      this.p.fill(200, 170, 100);
-    }
+                    this.p.mouseY > btnY && this.p.mouseY < btnY + btnHeight;
+  
+    const fillColor = mouseOver ? [255, 220, 150] : [200, 170, 100];
+    this.p.fill(...fillColor);
+    
+    if (mouseOver && this.p.mouseIsPressed) this.gameStarted = true;
     
     this.p.rect(btnX, btnY, btnWidth, btnHeight, 5);
     this.p.fill(40, 30, 20);
