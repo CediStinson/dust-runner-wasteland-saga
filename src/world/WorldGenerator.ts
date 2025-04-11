@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class WorldGenerator {
@@ -401,73 +402,6 @@ export default class WorldGenerator {
     }
     
     this.resources[`${x},${y}`] = areaResources;
-  }
-
-  addObstacle(areaX: number, areaY: number, x: number, y: number, type: string, width: number = 20, height: number = 20, blocksMovement: boolean = true) {
-    const zoneKey = `${areaX},${areaY}`;
-    if (!this.obstacles[zoneKey]) {
-      this.obstacles[zoneKey] = [];
-    }
-    
-    this.obstacles[zoneKey].push({
-      x,
-      y,
-      type,
-      width,
-      height,
-      blocksMovement,
-      color: type === 'tarp' ? { r: 120 + this.p.random(40), g: 100 + this.p.random(40), b: 70 + this.p.random(30) } : null
-    });
-  }
-
-  getAreas() {
-    const areas: Record<string, { obstacles: any[], resources: any[] }> = {};
-    
-    for (const zoneKey of this.generatedAreas) {
-      areas[zoneKey] = {
-        obstacles: this.obstacles[zoneKey] || [],
-        resources: this.resources[zoneKey] || []
-      };
-    }
-    
-    return areas;
-  }
-
-  getFuelCanisters() {
-    const fuelCanisters: Record<string, any[]> = {};
-    
-    for (const zoneKey in this.obstacles) {
-      const zoneCanisters = this.obstacles[zoneKey].filter(o => o.type === 'fuelCanister');
-      if (zoneCanisters.length) {
-        fuelCanisters[zoneKey] = zoneCanisters;
-      }
-    }
-    
-    return fuelCanisters;
-  }
-
-  loadAreas(areas: Record<string, { obstacles: any[], resources: any[] }>) {
-    for (const zoneKey in areas) {
-      this.obstacles[zoneKey] = areas[zoneKey].obstacles;
-      this.resources[zoneKey] = areas[zoneKey].resources;
-      this.generatedAreas.add(zoneKey);
-    }
-  }
-
-  loadFuelCanisters(fuelCanisters: Record<string, any[]>) {
-    for (const zoneKey in fuelCanisters) {
-      if (!this.obstacles[zoneKey]) {
-        this.obstacles[zoneKey] = [];
-      }
-      
-      // Filter out existing fuel canisters
-      this.obstacles[zoneKey] = this.obstacles[zoneKey].filter(o => o.type !== 'fuelCanister');
-      
-      // Add the saved ones
-      for (const canister of fuelCanisters[zoneKey]) {
-        this.obstacles[zoneKey].push(canister);
-      }
-    }
   }
 
   getSandTexture(zoneKey: string) {

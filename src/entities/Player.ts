@@ -217,10 +217,6 @@ export default class Player implements PlayerType {
     this.velY *= 0.9;
   }
 
-  render() {
-    this.display();
-  }
-
   display() {
     this.p.push();
     this.p.translate(this.x, this.y);

@@ -68,26 +68,16 @@ export default class GameRenderer {
     
     // Render the grandpa if we're at the home base
     if (this.grandpa && this.worldX === 0 && this.worldY === 0) {
-      if (typeof this.grandpa.render === 'function') {
-        this.grandpa.render();
-      }
+      this.grandpa.render();
     }
     
     // Render the hoverbike
     if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
-      if (typeof this.hoverbike.render === 'function') {
-        this.hoverbike.render();
-      } else {
-        console.warn('Hoverbike does not have a render method');
-      }
+      this.hoverbike.render();
     }
     
     // Render the player
-    if (typeof this.player.render === 'function') {
-      this.player.render();
-    } else {
-      console.warn('Player does not have a render method');
-    }
+    this.player.render();
     
     this.p.pop();
   }
