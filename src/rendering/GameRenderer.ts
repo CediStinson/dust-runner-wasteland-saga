@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -10,8 +11,10 @@ export default class GameRenderer {
   timeOfDay: number;
   screenShakeAmount: number = 0;
   screenShakeTime: number = 0;
+  dayTimeIcon: string;
+  dayTimeAngle: number;
 
-  constructor(p: any, worldGenerator: any, player: any, hoverbike: any, worldX: number, worldY: number, timeOfDay: number = 0.25) {
+  constructor(p: any, worldGenerator: any, player: any, hoverbike: any, worldX: number, worldY: number, timeOfDay: number = 0.25, dayTimeIcon: string = 'sun', dayTimeAngle: number = Math.PI / 2) {
     this.p = p;
     this.worldGenerator = worldGenerator;
     this.player = player;
@@ -19,6 +22,8 @@ export default class GameRenderer {
     this.worldX = worldX;
     this.worldY = worldY;
     this.timeOfDay = timeOfDay;
+    this.dayTimeIcon = dayTimeIcon;
+    this.dayTimeAngle = dayTimeAngle;
   }
 
   setWorldCoordinates(worldX: number, worldY: number) {
@@ -28,6 +33,14 @@ export default class GameRenderer {
   
   setTimeOfDay(timeOfDay: number) {
     this.timeOfDay = timeOfDay;
+  }
+  
+  setDayTimeIcon(dayTimeIcon: string) {
+    this.dayTimeIcon = dayTimeIcon;
+  }
+  
+  setDayTimeAngle(dayTimeAngle: number) {
+    this.dayTimeAngle = dayTimeAngle;
   }
 
   startScreenShake(intensity: number, duration: number) {
