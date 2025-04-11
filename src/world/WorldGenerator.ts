@@ -11,6 +11,7 @@ export default class WorldGenerator {
   windmillAngle: number;
   edgeBuffer: number = 100; // Increased from 50 to 100px buffer from edges
   COPPER_CHANCE: number = 0.25; // Default copper spawn chance
+  FUEL_CANISTER_CHANCE: number = 0.1; // Default fuel canister spawn chance
 
   constructor(p: any) {
     this.p = p;
@@ -328,10 +329,26 @@ export default class WorldGenerator {
         });
       }
       
+      // Add fuel canisters with FUEL_CANISTER_CHANCE probability
+      for (let i = 0; i < 8; i++) {
+        if (this.p.random() < this.FUEL_CANISTER_CHANCE) {
+          let position = this.getValidPosition();
+          areaResources.push({
+            x: position.x,
+            y: position.y,
+            type: 'fuelCanister',
+            rotation: this.p.random(this.p.TWO_PI),
+            size: this.p.random(0.8, 1.2),
+            hitboxWidth: 15,
+            hitboxHeight: 20
+          });
+        }
+      }
+      
       let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
       
       for (let rock of rocks) {
-        if (this.p.random() < 0.4) {
+        if (this.p.random() < this.COPPER_CHANCE) {
           areaResources.push(this.generateCopperOre(`${x},${y}`, rock));
         }
       }
@@ -356,10 +373,29 @@ export default class WorldGenerator {
         });
       }
       
+      // Add 1-2 fuel canisters in home area, but away from center
+      const canisterCount = Math.floor(this.p.random(1, 3));
+      for (let i = 0; i < canisterCount; i++) {
+        let position;
+        do {
+          position = this.getValidPosition();
+        } while (this.p.dist(position.x, position.y, centerX, centerY) < safeRadius);
+        
+        areaResources.push({
+          x: position.x,
+          y: position.y,
+          type: 'fuelCanister',
+          rotation: this.p.random(this.p.TWO_PI),
+          size: this.p.random(0.8, 1.2),
+          hitboxWidth: 15,
+          hitboxHeight: 20
+        });
+      }
+      
       let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
       
       for (let rock of rocks) {
-        if (this.p.dist(rock.x, rock.y, centerX, centerY) >= safeRadius && this.p.random() < 0.4) {
+        if (this.p.dist(rock.x, rock.y, centerX, centerY) >= safeRadius && this.p.random() < this.COPPER_CHANCE) {
           areaResources.push(this.generateCopperOre(`${x},${y}`, rock));
         }
       }
