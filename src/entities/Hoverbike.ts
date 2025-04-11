@@ -377,6 +377,10 @@ export default class Hoverbike implements HoverbikeType {
     this.p.pop();
   }
   
+  render() {
+    this.display();
+  }
+
   display() {
     if (this.worldX === this.player.worldX && this.worldY === this.player.worldY) {
       this.p.push();

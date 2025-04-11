@@ -431,64 +431,72 @@ export default class Game {
   
   addTarpAtHomeBase() {
     // Add a canvas tarp/tent at home base for sleeping
-    this.worldGenerator.addObstacle(
-      0, // area x
-      0, // area y
-      this.p.width / 2 + 80, // x position
-      this.p.height / 2 - 20, // y position
-      'tarp', // type
-      30, // width
-      15, // height
-      false // doesn't block movement
-    );
-  }
-  
-  addFuelStationAtHomeBase() {
-    // Add a fuel station at home base
-    this.worldGenerator.addObstacle(
-      0,
-      0,
-      this.p.width / 2 - 60,
-      this.p.height / 2 + 60,
-      'fuel_station',
-      40,
-      40,
-      true
-    );
-  }
-  
-  addWalkingMarksAtHomeBase() {
-    // Add walking marks around the home base
-    for (let i = 0; i < 20; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 100 + Math.random() * 200;
-      const x = this.p.width / 2 + Math.cos(angle) * dist;
-      const y = this.p.height / 2 + Math.sin(angle) * dist;
-      
+    if (this.worldGenerator && typeof this.worldGenerator.addObstacle === 'function') {
       this.worldGenerator.addObstacle(
-        0,
-        0,
-        x,
-        y,
-        'footprint',
-        10,
-        5,
-        false
+        0, // area x
+        0, // area y
+        this.p.width / 2 + 80, // x position
+        this.p.height / 2 - 20, // y position
+        'tarp', // type
+        30, // width
+        15, // height
+        false // doesn't block movement
       );
     }
   }
   
+  addFuelStationAtHomeBase() {
+    // Add a fuel station at home base
+    if (this.worldGenerator && typeof this.worldGenerator.addObstacle === 'function') {
+      this.worldGenerator.addObstacle(
+        0,
+        0,
+        this.p.width / 2 - 60,
+        this.p.height / 2 + 60,
+        'fuel_station',
+        40,
+        40,
+        true
+      );
+    }
+  }
+  
+  addWalkingMarksAtHomeBase() {
+    // Add walking marks around the home base
+    if (this.worldGenerator && typeof this.worldGenerator.addObstacle === 'function') {
+      for (let i = 0; i < 20; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 100 + Math.random() * 200;
+        const x = this.p.width / 2 + Math.cos(angle) * dist;
+        const y = this.p.height / 2 + Math.sin(angle) * dist;
+        
+        this.worldGenerator.addObstacle(
+          0,
+          0,
+          x,
+          y,
+          'footprint',
+          10,
+          5,
+          false
+        );
+      }
+    }
+  }
+  
   adjustObstacleHitboxes() {
-    const areas = this.worldGenerator.getAreas();
-    for (const areaKey in areas) {
-      if (areas.hasOwnProperty(areaKey)) {
-        const area = areas[areaKey];
-        for (const obstacle of area.obstacles) {
-          if (obstacle.type === 'rock') {
-            obstacle.height *= 0.7;
-          } else if (obstacle.type === 'cactus') {
-            obstacle.height *= 0.5;
-            obstacle.width *= 0.5;
+    if (this.worldGenerator && typeof this.worldGenerator.getAreas === 'function') {
+      const areas = this.worldGenerator.getAreas();
+      for (const areaKey in areas) {
+        if (areas.hasOwnProperty(areaKey)) {
+          const area = areas[areaKey];
+          for (const obstacle of area.obstacles) {
+            if (obstacle.type === 'rock') {
+              obstacle.height *= 0.7;
+            } else if (obstacle.type === 'cactus') {
+              obstacle.height *= 0.5;
+              obstacle.width *= 0.5;
+            }
           }
         }
       }
@@ -643,7 +651,10 @@ export default class Game {
         this.sleepingInHut = true;
         this.sleepStartTime = this.timeOfDay;
         this.sleepAnimationTimer = 0;
-        this.player.velocity = { x: 0, y: 0 };
+        if (this.player.velX !== undefined && this.player.velY !== undefined) {
+          this.player.velX = 0;
+          this.player.velY = 0;
+        }
       }
     }
   }
@@ -673,15 +684,26 @@ export default class Game {
   }
   
   getWorldData() {
-    return {
-      worldGenerator: {
-        areas: this.worldGenerator.getAreas(),
-        fuelCanisters: this.worldGenerator.getFuelCanisters()
-      },
+    let worldData: any = {
       exploredAreas: Array.from(this.exploredAreas),
       questSystem: this.questSystem,
       timeOfDay: this.timeOfDay
     };
+
+    if (this.worldGenerator) {
+      if (typeof this.worldGenerator.getAreas === 'function') {
+        worldData.worldGenerator = {
+          areas: this.worldGenerator.getAreas()
+        };
+      }
+
+      if (typeof this.worldGenerator.getFuelCanisters === 'function') {
+        if (!worldData.worldGenerator) worldData.worldGenerator = {};
+        worldData.worldGenerator.fuelCanisters = this.worldGenerator.getFuelCanisters();
+      }
+    }
+    
+    return worldData;
   }
   
   loadWorldData(worldData: any) {
@@ -713,9 +735,14 @@ export default class Game {
       this.dayTimeAngle = this.timeOfDay * Math.PI * 2;
     }
     
-    if (worldData.worldGenerator) {
-      this.worldGenerator.loadAreas(worldData.worldGenerator.areas);
-      this.worldGenerator.loadFuelCanisters(worldData.worldGenerator.fuelCanisters);
+    if (worldData.worldGenerator && this.worldGenerator) {
+      if (worldData.worldGenerator.areas && typeof this.worldGenerator.loadAreas === 'function') {
+        this.worldGenerator.loadAreas(worldData.worldGenerator.areas);
+      }
+      
+      if (worldData.worldGenerator.fuelCanisters && typeof this.worldGenerator.loadFuelCanisters === 'function') {
+        this.worldGenerator.loadFuelCanisters(worldData.worldGenerator.fuelCanisters);
+      }
     }
   }
 }
