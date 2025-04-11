@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import GameSketch from '../components/GameSketch';
@@ -136,11 +135,9 @@ const Index = () => {
   const handleLogout = async () => {
     if (user) {
       try {
-        // Dispatch a logout event to reset the game
         const event = new CustomEvent('logoutUser');
         window.dispatchEvent(event);
         
-        // Sign out the user
         await signOut();
         
         toast({
@@ -185,7 +182,6 @@ const Index = () => {
         questSystem
       } = event.detail;
       
-      // Set all values from the event data
       setResources(resources !== undefined ? resources : 0);
       setCopper(copper !== undefined ? copper : 0);
       setHealth(health !== undefined ? health : 100);
@@ -206,32 +202,26 @@ const Index = () => {
       setHoverbikeWorldX(hoverbikeWorldX !== undefined ? hoverbikeWorldX : 0);
       setHoverbikeWorldY(hoverbikeWorldY !== undefined ? hoverbikeWorldY : 0);
       
-      // Handle dayTimeIcon and dayTimeAngle with special care to avoid jumps
       if (dayTimeIcon !== undefined) {
         setDayTimeIcon(dayTimeIcon);
       }
       
       if (dayTimeAngle !== undefined) {
-        // Normalize the angle to avoid jumps
         let newAngle = dayTimeAngle;
         setDayTimeAngle(newAngle);
       }
       
-      // Handle game started state changes
       if (gameStarted !== undefined) {
         setGameStarted(gameStarted);
       }
       
-      // Handle quest system updates
       if (questSystem !== undefined) {
         setQuestSystem(questSystem);
       }
       
-      // Handle world data changes
       if (worldData !== null && worldData !== undefined) {
         setWorldData(worldData);
       } else if (worldData === null) {
-        // Explicitly clear world data if null is passed (for reset)
         setWorldData(null);
       }
     };
@@ -263,6 +253,7 @@ const Index = () => {
         dayTimeAngle={dayTimeAngle}
         onSaveGame={handleSaveGame}
         onLogout={handleLogout}
+        gameStarted={gameStarted}
       />
       
       {!user && !gameStarted && (

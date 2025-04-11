@@ -29,6 +29,7 @@ interface GameUIProps {
   refuelProgress?: number;
   onSaveGame?: () => void;
   onLogout?: () => void;
+  gameStarted?: boolean;
 }
 
 const GameUI: React.FC<GameUIProps> = ({ 
@@ -49,7 +50,8 @@ const GameUI: React.FC<GameUIProps> = ({
   refueling = false,
   refuelProgress = 0,
   onSaveGame,
-  onLogout
+  onLogout,
+  gameStarted = false
 }) => {
   const [showControls, setShowControls] = useState(false);
   const { user } = useAuth();
@@ -73,6 +75,13 @@ const GameUI: React.FC<GameUIProps> = ({
       onLogout();
     }
   };
+
+  // If game is not started, don't show any HUD elements
+  if (!gameStarted) {
+    return (
+      <ControlsModal showControls={showControls} setShowControls={setShowControls} />
+    );
+  }
 
   return (
     <>
