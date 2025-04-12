@@ -160,9 +160,6 @@ export default class Game {
     
     // Fix obstacle hitboxes for common objects
     this.adjustObstacleHitboxes();
-    
-    // Ensure all existing fuel canisters are visible
-    this.ensureFuelCanisterVisibility();
   }
 
   generateTarpColor() {
@@ -455,41 +452,6 @@ export default class Game {
         if (resource.type === 'fuelCanister') {
           resource.hitboxWidth = 15; // Smaller hitbox
           resource.hitboxHeight = 20; // Smaller hitbox
-        }
-      }
-    }
-  }
-
-  ensureFuelCanisterVisibility() {
-    // Check all areas that have been generated
-    const obstacles = this.worldGenerator.getObstacles();
-    for (const areaKey in obstacles) {
-      const areaObstacles = obstacles[areaKey];
-      if (!areaObstacles) continue;
-      
-      // Find all fuel canisters and ensure they have proper rendering properties
-      for (const obstacle of areaObstacles) {
-        if (obstacle.type === 'fuelCanister') {
-          // Ensure standard size and visibility properties
-          if (!obstacle.width) obstacle.width = 8;
-          if (!obstacle.height) obstacle.height = 10;
-          obstacle.visible = true;
-        }
-      }
-    }
-    
-    // Also check resources
-    const resources = this.worldGenerator.getResources();
-    for (const areaKey in resources) {
-      const areaResources = resources[areaKey];
-      if (!areaResources) continue;
-      
-      for (const resource of areaResources) {
-        if (resource.type === 'fuelCanister') {
-          // Ensure standard size and visibility properties
-          if (!resource.width) resource.width = 8;
-          if (!resource.height) resource.height = 10;
-          resource.visible = true;
         }
       }
     }
