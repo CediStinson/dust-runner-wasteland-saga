@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -693,7 +692,198 @@ export default class GameRenderer {
     this.p.pop();
   }
 
-  // If drawFuelCanisters method is not defined, add a placeholder
+  // Add missing drawResources method
+  drawResources() {
+    const currentAreaKey = `${this.worldX},${this.worldY}`;
+    const currentResources = this.worldGenerator.getResources(currentAreaKey) || [];
+    
+    for (let resource of currentResources) {
+      if (resource.type === 'metal') {
+        this.drawMetalResource(resource);
+      } else if (resource.type === 'copper') {
+        this.drawCopperResource(resource);
+      }
+      // Other resource types can be added here
+    }
+  }
+  
+  // Helper method for metal resources
+  drawMetalResource(resource: any) {
+    this.p.push();
+    this.p.translate(resource.x, resource.y);
+    
+    // Draw shadow
+    this.p.fill(0, 0, 0, 40);
+    this.p.ellipse(2, 2, 14, 8);
+    
+    // Draw metal chunk
+    this.p.fill(160, 160, 170);
+    this.p.beginShape();
+    const points = resource.shape || [
+      { x: -5, y: -3 },
+      { x: 0, y: -5 },
+      { x: 5, y: -2 },
+      { x: 6, y: 2 },
+      { x: 2, y: 5 },
+      { x: -3, y: 4 },
+      { x: -6, y: 0 }
+    ];
+    for (let point of points) {
+      this.p.vertex(point.x, point.y);
+    }
+    this.p.endShape(this.p.CLOSE);
+    
+    // Metallic highlights
+    this.p.fill(200, 200, 210, 120);
+    this.p.beginShape();
+    this.p.vertex(-2, -2);
+    this.p.vertex(2, -3);
+    this.p.vertex(3, 0);
+    this.p.vertex(0, 1);
+    this.p.endShape(this.p.CLOSE);
+    
+    this.p.pop();
+  }
+  
+  // Helper method for copper resources
+  drawCopperResource(resource: any) {
+    this.p.push();
+    this.p.translate(resource.x, resource.y);
+    
+    // Draw shadow
+    this.p.fill(0, 0, 0, 40);
+    this.p.ellipse(2, 2, 10, 6);
+    
+    // Draw copper nugget
+    this.p.fill(210, 120, 60);
+    this.p.ellipse(0, 0, 8, 8);
+    
+    // Draw copper shine
+    this.p.fill(230, 150, 90, 150);
+    this.p.ellipse(-1, -1, 3, 3);
+    
+    this.p.pop();
+  }
+
+  // Add missing drawBush method
+  drawBush(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    // Draw shadow
+    this.p.fill(0, 0, 0, 40);
+    this.p.ellipse(3, 3, 18 * obs.size, 10 * obs.size);
+    
+    // Main bush structure - desert shrub
+    const baseColor = obs.color || { r: 80, g: 120, b: 50 }; // Default green if no color
+    
+    // Base layer
+    this.p.fill(baseColor.r, baseColor.g, baseColor.b);
+    
+    // Create irregular bush shape
+    this.p.beginShape();
+    const numPoints = 12;
+    const baseRadius = 8 * obs.size;
+    
+    for (let i = 0; i < numPoints; i++) {
+      const angle = (i / numPoints) * this.p.TWO_PI;
+      const noiseVal = this.p.noise(i * 0.5, obs.x * 0.01, obs.y * 0.01);
+      const radius = baseRadius * (0.7 + 0.5 * noiseVal);
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      this.p.vertex(x, y);
+    }
+    this.p.endShape(this.p.CLOSE);
+    
+    // Highlight areas
+    this.p.fill(baseColor.r + 20, baseColor.g + 20, baseColor.b + 10, 180);
+    this.p.beginShape();
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * this.p.PI;
+      const noiseVal = this.p.noise(i * 0.8, obs.x * 0.01, obs.y * 0.01);
+      const radius = baseRadius * 0.6 * (0.7 + 0.3 * noiseVal);
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius - 2;
+      this.p.vertex(x, y);
+    }
+    this.p.endShape(this.p.CLOSE);
+    
+    // Detail elements - little twigs sticking out
+    this.p.stroke(60, 40, 25);
+    this.p.strokeWeight(1);
+    for (let i = 0; i < 5; i++) {
+      const angle = this.p.random(0, this.p.TWO_PI);
+      const radius = baseRadius * 0.9;
+      const startX = Math.cos(angle) * radius;
+      const startY = Math.sin(angle) * radius;
+      const length = 3 * obs.size;
+      this.p.line(startX, startY, startX + Math.cos(angle) * length, startY + Math.sin(angle) * length);
+    }
+    
+    this.p.noStroke();
+    this.p.pop();
+  }
+  
+  // Add missing drawCactus method
+  drawCactus(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    // Draw shadow
+    this.p.fill(0, 0, 0, 50);
+    this.p.ellipse(5, 5, 15 * obs.size, 8 * obs.size);
+    
+    // Main cactus body
+    this.p.fill(60, 100, 60);
+    this.p.rect(-4 * obs.size, -12 * obs.size, 8 * obs.size, 24 * obs.size, 3 * obs.size);
+    
+    // Arms
+    const armHeight = 14 * obs.size;
+    const armWidth = 6 * obs.size;
+    
+    // Left arm
+    this.p.push();
+    this.p.translate(-4 * obs.size, -5 * obs.size);
+    this.p.rotate(-this.p.PI / 5);
+    this.p.rect(0, -armHeight, armWidth, armHeight, 2 * obs.size);
+    this.p.pop();
+    
+    // Right arm (optional, only on some cacti)
+    if (obs.hasRightArm !== false) {
+      this.p.push();
+      this.p.translate(4 * obs.size, -2 * obs.size);
+      this.p.rotate(this.p.PI / 6);
+      this.p.rect(0, -armHeight * 0.8, armWidth, armHeight * 0.8, 2 * obs.size);
+      this.p.pop();
+    }
+    
+    // Cactus details - spines
+    this.p.stroke(220, 220, 200);
+    this.p.strokeWeight(1);
+    
+    // Spines on main body
+    for (let i = -10; i < 10; i += 2) {
+      const offsetX = i % 4 === 0 ? 4 : -4;
+      this.p.line(0, i * obs.size, offsetX * obs.size, i * obs.size);
+    }
+    
+    // Highlights
+    this.p.noStroke();
+    this.p.fill(80, 130, 80, 150);
+    this.p.rect(-2 * obs.size, -10 * obs.size, 3 * obs.size, 20 * obs.size, 2);
+    
+    // Cactus flower on top (optional)
+    if (obs.hasFlower) {
+      this.p.fill(240, 150, 170);
+      this.p.ellipse(0, -13 * obs.size, 5 * obs.size, 5 * obs.size);
+      this.p.fill(250, 220, 100);
+      this.p.ellipse(0, -13 * obs.size, 3 * obs.size, 3 * obs.size);
+    }
+    
+    this.p.pop();
+  }
+
+  // Add missing drawFuelCanisters method
   drawFuelCanisters() {
     const currentAreaKey = `${this.worldX},${this.worldY}`;
     const currentResources = this.worldGenerator.getResources(currentAreaKey) || [];
