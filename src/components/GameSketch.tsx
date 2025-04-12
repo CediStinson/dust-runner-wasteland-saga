@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
@@ -56,8 +55,8 @@ const GameSketch = () => {
               sleepingInHut: game.sleepingInHut, 
               isUnderTarp: game.isPlayerUnderTarp(),
               questSystem: game.questSystem,
-              // Send player dig capability status
-              canDig: game.player?.canDig || false
+              canDig: game.player?.canDig || false,
+              fuelCanistersVisible: true
             }
           });
           window.dispatchEvent(event);
