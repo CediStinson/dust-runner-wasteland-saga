@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -664,3 +665,43 @@ export default class GameRenderer {
     
     // Worn parking spot
     this.p.fill(70, 70, 75, 100);
+
+    // Close the translate for fuel station area
+    this.p.pop();
+
+    // Close the entire method
+    this.p.pop();
+  }
+
+  // Add missing drawFuelCanister method
+  drawFuelCanister(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+
+    // Draw shadow
+    this.p.fill(0, 0, 0, 50);
+    this.p.ellipse(2, 2, 20, 10);
+
+    // Draw fuel canister body
+    this.p.fill(180, 50, 50); // Red color
+    this.p.rect(-5, -10, 10, 15, 2);
+
+    // Draw fuel cap
+    this.p.fill(100, 100, 100);
+    this.p.rect(-3, -12, 6, 2, 1);
+
+    this.p.pop();
+  }
+
+  // If drawFuelCanisters method is not defined, add a placeholder
+  drawFuelCanisters() {
+    const currentAreaKey = `${this.worldX},${this.worldY}`;
+    const currentResources = this.worldGenerator.getResources(currentAreaKey) || [];
+    
+    for (let resource of currentResources) {
+      if (resource.type === 'fuelCanister') {
+        this.drawFuelCanister(resource);
+      }
+    }
+  }
+}
