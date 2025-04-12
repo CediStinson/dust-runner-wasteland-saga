@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Save, Settings, LogOut } from 'lucide-react';
 import DayNightIndicator from './ui/game/DayNightIndicator';
@@ -5,6 +6,7 @@ import CompassIndicator from './ui/game/CompassIndicator';
 import ResourcesDisplay from './ui/game/ResourcesDisplay';
 import StatusBars from './ui/game/StatusBars';
 import ControlsModal from './ui/game/ControlsModal';
+import AmbienceLighting from './ui/game/AmbienceLighting';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +63,8 @@ const GameUI: React.FC<GameUIProps> = ({
   // This ensures the HUD is visible during game initialization
   return (
     <>
+      <AmbienceLighting dayTimeIcon={dayTimeIcon} dayTimeAngle={dayTimeAngle} />
+      
       <TopBar 
         showControls={showControls}
         setShowControls={setShowControls}
