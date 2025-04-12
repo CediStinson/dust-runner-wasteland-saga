@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
@@ -26,6 +25,24 @@ const GameSketch = () => {
         
         // Emit game state updates including day/night cycle info
         if (p.frameCount % 60 === 0) {  // Update UI every second
+          // Get the current area key
+          const currentAreaKey = `${game.player?.worldX || 0},${game.player?.worldY || 0}`;
+          
+          // Count available fuel canisters in the current area
+          const currentObstacles = game.worldGenerator?.getObstacles()[currentAreaKey] || [];
+          const fuelCanistersInArea = currentObstacles.filter(
+            (obs: any) => obs.type === 'fuelCanister' && !obs.collected
+          ).length;
+          
+          // Count fuel canisters in resources too (in case they're stored there)
+          const currentResources = game.worldGenerator?.getResources()[currentAreaKey] || [];
+          const fuelCanistersInResources = currentResources.filter(
+            (res: any) => res.type === 'fuelCanister' && !res.collected
+          ).length;
+          
+          // Total available fuel canisters
+          const totalFuelCanisters = fuelCanistersInArea + fuelCanistersInResources;
+          
           const event = new CustomEvent('gameStateUpdate', {
             detail: {
               resources: game.player?.inventory?.metal || 0,
@@ -56,6 +73,7 @@ const GameSketch = () => {
               sleepingInHut: game.sleepingInHut, 
               isUnderTarp: game.isPlayerUnderTarp(),
               questSystem: game.questSystem,
+              fuelCanistersNearby: totalFuelCanisters, // Add info about nearby fuel canisters
               // Send player dig capability status
               canDig: game.player?.canDig || false
             }

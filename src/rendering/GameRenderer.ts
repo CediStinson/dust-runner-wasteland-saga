@@ -793,6 +793,8 @@ export default class GameRenderer {
         this.drawCopper(resource);
       } else if (resource.type === 'health') {
         this.drawHealth(resource);
+      } else if (resource.type === 'fuelCanister') {
+        this.drawFuelCanister(resource);
       }
     }
   }
@@ -919,74 +921,98 @@ export default class GameRenderer {
     const currentAreaKey = `${this.worldX},${this.worldY}`;
     const currentObstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
     
+    // Check resources for fuel canisters too (in case they're stored as resources)
+    const currentResources = this.worldGenerator.getResources()[currentAreaKey] || [];
+    
     for (const obstacle of currentObstacles) {
       if (obstacle.type === 'fuelCanister' && !obstacle.collected) {
-        this.p.push();
-        this.p.translate(obstacle.x, obstacle.y);
-        
-        // Draw shadow under the canister
-        this.p.fill(0, 0, 0, 50);
-        this.p.noStroke();
-        this.p.ellipse(0, 2, 10, 6);
-        
-        // Canister base color (slightly darker red for worn look)
-        this.p.fill(190, 45, 45);
-        this.p.stroke(0);
-        this.p.strokeWeight(1);
-        this.p.rect(-4, -5, 8, 10, 1);
-        
-        // Weathered scratches and details
-        this.p.stroke(120, 30, 30);
-        this.p.strokeWeight(0.5);
-        this.p.line(-3, -3, -1, -1);
-        this.p.line(1, 2, 3, 4);
-        this.p.line(-2, 3, 0, 3);
-        
-        // Rust spots
-        this.p.noStroke();
-        this.p.fill(130, 70, 40, 180);
-        this.p.ellipse(-2, 2, 2, 1);
-        this.p.ellipse(3, -2, 1.5, 1);
-        this.p.ellipse(0, 0, 1, 2);
-        
-        // Dirt streaks
-        this.p.fill(80, 60, 40, 120);
-        this.p.rect(2, -3, 1, 5, 0.5);
-        this.p.rect(-3, 0, 4, 1, 0.5);
-        
-        // Worn metal highlights
-        this.p.fill(220, 170, 170, 100);
-        this.p.rect(-3, -4, 2, 1, 0.5);
-        this.p.rect(2, 2, 1, 2, 0.5);
-        
-        // Canister cap (darker and worn looking)
-        this.p.fill(40);
-        this.p.stroke(0);
-        this.p.strokeWeight(1);
-        this.p.rect(-2, -7, 4, 2);
-        
-        // Worn cap details
-        this.p.stroke(100);
-        this.p.strokeWeight(0.5);
-        this.p.line(-1, -6.5, 1, -6.5);
-        
-        // Canister handle (worn metal)
-        this.p.stroke(80, 80, 90);
-        this.p.strokeWeight(1);
-        this.p.line(-3, -5, 3, -5);
-        
-        // Fuel level indicator (faded)
-        this.p.noStroke();
-        this.p.fill(150, 150, 150, 180);
-        this.p.rect(3, -4, 0.5, 7);
-        
-        // Safety warnings (faded text)
-        this.p.fill(240, 220, 0, 100);
-        this.p.rect(-3.5, -2, 2, 0.5);
-        this.p.rect(-3.5, -1, 2, 0.5);
-        
-        this.p.pop();
+        this.drawFuelCanister(obstacle);
       }
     }
+    
+    // Also check in resources (just to be safe)
+    for (const resource of currentResources) {
+      if (resource.type === 'fuelCanister' && !resource.collected) {
+        this.drawFuelCanister(resource);
+      }
+    }
+  }
+
+  drawFuelCanister(item: any) {
+    if (item.collected) return;
+    
+    this.p.push();
+    this.p.translate(item.x, item.y);
+    
+    // Draw shadow under the canister
+    this.p.fill(0, 0, 0, 50);
+    this.p.noStroke();
+    this.p.ellipse(2, 2, 10, 6);
+    
+    // Canister base color (slightly darker red for worn look)
+    this.p.fill(190, 45, 45);
+    this.p.stroke(0);
+    this.p.strokeWeight(1);
+    this.p.rect(-4, -5, 8, 10, 1);
+    
+    // Weathered scratches and details
+    this.p.stroke(120, 30, 30);
+    this.p.strokeWeight(0.5);
+    this.p.line(-3, -3, -1, -1);
+    this.p.line(1, 2, 3, 4);
+    this.p.line(-2, 3, 0, 3);
+    
+    // Rust spots
+    this.p.noStroke();
+    this.p.fill(130, 70, 40, 180);
+    this.p.ellipse(-2, 2, 2, 1);
+    this.p.ellipse(3, -2, 1.5, 1);
+    this.p.ellipse(0, 0, 1, 2);
+    
+    // Dirt streaks
+    this.p.fill(80, 60, 40, 120);
+    this.p.rect(2, -3, 1, 5, 0.5);
+    this.p.rect(-3, 0, 4, 1, 0.5);
+    
+    // Worn metal highlights
+    this.p.fill(220, 170, 170, 100);
+    this.p.rect(-3, -4, 2, 1, 0.5);
+    this.p.rect(2, 2, 1, 2, 0.5);
+    
+    // Canister cap (darker and worn looking)
+    this.p.fill(40);
+    this.p.stroke(0);
+    this.p.strokeWeight(1);
+    this.p.rect(-2, -7, 4, 2);
+    
+    // Worn cap details
+    this.p.stroke(100);
+    this.p.strokeWeight(0.5);
+    this.p.line(-1, -6.5, 1, -6.5);
+    
+    // Canister handle (worn metal)
+    this.p.stroke(80, 80, 90);
+    this.p.strokeWeight(1);
+    this.p.line(-3, -5, 3, -5);
+    
+    // Fuel level indicator (faded)
+    this.p.noStroke();
+    this.p.fill(150, 150, 150, 180);
+    this.p.rect(3, -4, 0.5, 7);
+    
+    // Safety warnings (faded text)
+    this.p.fill(240, 220, 0, 100);
+    this.p.rect(-3.5, -2, 2, 0.5);
+    this.p.rect(-3.5, -1, 2, 0.5);
+    
+    // Add a subtle glow/highlight effect to make it more visible
+    const pulseSize = 1 + Math.sin(this.p.frameCount * 0.05) * 0.1;
+    this.p.noFill();
+    this.p.stroke(255, 200, 0, 40 + Math.abs(Math.sin(this.p.frameCount * 0.05) * 20));
+    this.p.strokeWeight(0.8);
+    this.p.ellipse(0, 0, 14 * pulseSize, 16 * pulseSize);
+    this.p.noStroke();
+    
+    this.p.pop();
   }
 }
