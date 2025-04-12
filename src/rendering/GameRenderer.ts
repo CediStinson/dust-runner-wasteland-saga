@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -613,54 +614,358 @@ export default class GameRenderer {
       this.p.ellipse(-14, -16, 3, 3);
     }
 
-    // ----- FUEL STATION AREA -----
-    
-    // Fuel dispenser in front of the pumpjack
+    this.p.pop();
+  }
+  
+  drawBush(obs: any) {
     this.p.push();
-    this.p.translate(0, 30); // Position in front of the pumpjack
+    this.p.translate(obs.x, obs.y);
     
-    // Dispenser base
-    this.p.fill(70, 70, 75);
-    this.p.rect(-10, -5, 20, 15, 2);
+    // Shadow
+    this.p.fill(40, 40, 40, 50);
+    this.p.ellipse(3, 3, 18 * obs.size, 10 * obs.size);
     
-    // Dispenser body
-    this.p.fill(90, 50, 40); // Rusty red
-    this.p.rect(-8, -15, 16, 12, 1);
+    // Base color - brownish stems
+    this.p.fill(100, 80, 40);
+    this.p.ellipse(0, 0, 8 * obs.size, 8 * obs.size);
     
-    // Display panel
-    this.p.fill(40, 40, 45);
-    this.p.rect(-5, -13, 10, 8, 1);
-    
-    // Display digits/numbers
-    this.p.fill(180, 60, 40);
-    for (let i = 0; i < 3; i++) {
-      this.p.rect(-3 + i * 2, -11, 1.5, 4, 0.5);
+    // Foliage - main bush shape
+    for (let i = 0; i < 8; i++) {
+      let angle = i * this.p.TWO_PI / 8;
+      let r = obs.size * (6 + this.p.random(-1, 1));
+      let x = Math.cos(angle) * r;
+      let y = Math.sin(angle) * r;
+      
+      // Random bush cluster colors - desert plants
+      let randomHue = this.p.random(10);
+      if (randomHue < 3) {
+        // Sage green / gray-green
+        this.p.fill(120 + this.p.random(-20, 20), 
+                 130 + this.p.random(-10, 10), 
+                 110 + this.p.random(-10, 10));
+      } else if (randomHue < 6) {
+        // Dusty olive
+        this.p.fill(130 + this.p.random(-10, 10), 
+                 120 + this.p.random(-10, 10), 
+                 80 + this.p.random(-20, 20));
+      } else {
+        // Brownish green
+        this.p.fill(110 + this.p.random(-10, 10), 
+                 100 + this.p.random(-20, 20), 
+                 70 + this.p.random(-10, 10));
+      }
+      
+      this.p.ellipse(x, y, 10 * obs.size, 10 * obs.size);
     }
     
-    // Fuel nozzle holder
-    this.p.fill(60, 60, 65);
-    this.p.rect(-6, -3, 12, 3, 1);
+    // Additional detail - small branches/twigs sticking out
+    this.p.stroke(80, 60, 40);
+    this.p.strokeWeight(1);
+    for (let i = 0; i < 5; i++) {
+      let angle = this.p.random(this.p.TWO_PI);
+      let len = this.p.random(4, 8) * obs.size;
+      let x1 = Math.cos(angle) * 4 * obs.size;
+      let y1 = Math.sin(angle) * 4 * obs.size;
+      let x2 = Math.cos(angle) * len;
+      let y2 = Math.sin(angle) * len;
+      this.p.line(x1, y1, x2, y2);
+    }
     
-    // Fuel nozzle
-    this.p.fill(80, 80, 85);
-    this.p.rect(3, -2, 3, 6, 1);
+    // If it's a flowering bush, add small flowers
+    if (obs.flowering) {
+      this.p.noStroke();
+      for (let i = 0; i < 6; i++) {
+        let angle = this.p.random(this.p.TWO_PI);
+        let r = this.p.random(4, 9) * obs.size;
+        let x = Math.cos(angle) * r;
+        let y = Math.sin(angle) * r;
+        
+        // Small desert flower - defaults to yellow but can be other colors
+        let flowerColor = obs.flowerColor || {r: 240, g: 220, b: 110};
+        this.p.fill(flowerColor.r, flowerColor.g, flowerColor.b);
+        this.p.ellipse(x, y, 3 * obs.size, 3 * obs.size);
+        
+        // Flower center
+        this.p.fill(220, 180, 20);
+        this.p.ellipse(x, y, 1 * obs.size, 1 * obs.size);
+      }
+    }
     
-    // Fuel hose
-    this.p.stroke(40, 40, 45);
+    this.p.pop();
+  }
+  
+  drawCactus(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    // Shadow
+    this.p.fill(40, 40, 40, 50);
+    this.p.ellipse(3, 5, 10 * obs.size, 6 * obs.size);
+    
+    // Main cactus body - saguaro type
+    this.p.fill(60, 110, 80); // Cactus green
+    this.p.rect(-2 * obs.size, -10 * obs.size, 4 * obs.size, 20 * obs.size, 4);
+    
+    // Cactus arms
+    this.p.push();
+    this.p.translate(-2 * obs.size, -5 * obs.size);
+    this.p.rotate(this.p.radians(-30));
+    this.p.rect(0, 0, 3 * obs.size, 10 * obs.size, 3);
+    this.p.pop();
+    
+    this.p.push();
+    this.p.translate(2 * obs.size, -3 * obs.size);
+    this.p.rotate(this.p.radians(40));
+    this.p.rect(0, 0, 3 * obs.size, 8 * obs.size, 3);
+    this.p.pop();
+    
+    // Cactus details - ridges
+    this.p.stroke(40, 90, 60);
+    this.p.strokeWeight(0.5);
+    
+    // Vertical lines on main body
+    this.p.line(0, -10 * obs.size, 0, 10 * obs.size);
+    this.p.line(-1 * obs.size, -10 * obs.size, -1 * obs.size, 10 * obs.size);
+    this.p.line(1 * obs.size, -10 * obs.size, 1 * obs.size, 10 * obs.size);
+    
+    // Spikes
+    this.p.stroke(220, 220, 180);
+    this.p.strokeWeight(0.8);
+    
+    for (let i = -8; i <= 8; i += 2) {
+      // Spikes on main body
+      this.p.line(-2 * obs.size, i * obs.size, -4 * obs.size, i * obs.size);
+      this.p.line(2 * obs.size, i * obs.size, 4 * obs.size, i * obs.size);
+    }
+    
+    // If the cactus has flowers
+    if (obs.flowering) {
+      this.p.noStroke();
+      this.p.fill(240, 100, 120); // Bright pink flowers typical of desert cacti
+      
+      // Top flower
+      this.p.ellipse(0, -11 * obs.size, 5 * obs.size, 5 * obs.size);
+      
+      // Side flowers
+      this.p.ellipse(-4 * obs.size, -6 * obs.size, 3 * obs.size, 3 * obs.size);
+      this.p.ellipse(4 * obs.size, -4 * obs.size, 3 * obs.size, 3 * obs.size);
+      
+      // Yellow centers
+      this.p.fill(250, 240, 110);
+      this.p.ellipse(0, -11 * obs.size, 2 * obs.size, 2 * obs.size);
+      this.p.ellipse(-4 * obs.size, -6 * obs.size, 1 * obs.size, 1 * obs.size);
+      this.p.ellipse(4 * obs.size, -4 * obs.size, 1 * obs.size, 1 * obs.size);
+    }
+    
+    this.p.pop();
+  }
+  
+  drawResources() {
+    // Get resources for current location
+    let resources = this.worldGenerator.getResources()[`${this.worldX},${this.worldY}`] || [];
+    
+    for (let res of resources) {
+      if (res.type === 'metal') {
+        this.drawMetalResource(res);
+      } else if (res.type === 'copper') {
+        this.drawCopperResource(res);
+      } else if (res.type === 'fuelCanister') {
+        this.drawFuelCanister(res);
+      }
+    }
+  }
+  
+  drawMetalResource(res: any) {
+    this.p.push();
+    this.p.translate(res.x, res.y);
+    
+    // Draw a subtle crater or disturbance in the ground
+    this.p.fill(150, 130, 100);
+    this.p.noStroke();
+    this.p.ellipse(0, 0, 25, 20);
+    
+    // Draw partially exposed metal chunks
+    this.p.fill(120, 120, 140);
+    this.p.ellipse(-5, -3, 8, 6);
+    this.p.rect(-2, 2, 7, 5, 1);
+    
+    // Add metallic highlights
+    this.p.fill(180, 180, 200, 150);
+    this.p.ellipse(-5, -4, 3, 2);
+    this.p.rect(0, 3, 3, 2, 1);
+    
+    // Add a small icon above if the resource is diggable
+    if (res.diggable) {
+      this.p.fill(255, 255, 255, this.p.map(Math.sin(this.p.frameCount * 0.1), -1, 1, 100, 200));
+      this.p.ellipse(0, -15, 5, 5);
+    }
+    
+    this.p.pop();
+  }
+  
+  drawCopperResource(res: any) {
+    this.p.push();
+    this.p.translate(res.x, res.y);
+    
+    // Draw a subtle crater or disturbance in the ground
+    this.p.fill(160, 140, 110);
+    this.p.noStroke();
+    this.p.ellipse(0, 0, 22, 18);
+    
+    // Draw partially exposed copper chunks with distinctive color
+    this.p.fill(180, 100, 60); // Copper-orange color
+    this.p.ellipse(-4, -2, 7, 5);
+    this.p.rect(-1, 1, 6, 4, 1);
+    
+    // Add coppery highlights with patina
+    this.p.fill(100, 160, 140, 120); // Turquoise patina
+    this.p.ellipse(-3, -1, 3, 2);
+    
+    this.p.fill(220, 150, 100, 150); // Shiny copper highlight
+    this.p.ellipse(1, 2, 2, 2);
+    
+    // Add a small icon above if the resource is diggable
+    if (res.diggable) {
+      this.p.fill(255, 255, 255, this.p.map(Math.sin(this.p.frameCount * 0.1), -1, 1, 100, 200));
+      this.p.ellipse(0, -15, 5, 5);
+    }
+    
+    this.p.pop();
+  }
+  
+  drawFuelCanister(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    // Draw shadow
+    this.p.fill(0, 0, 0, 60);
+    this.p.ellipse(3, 3, 14, 6);
+    
+    // Main canister body - cylinder shape
+    this.p.fill(220, 60, 40); // Red canister
+    this.p.rect(-5, -8, 10, 16, 1);
+    
+    // Top cap
+    this.p.fill(50, 50, 50);
+    this.p.rect(-3, -10, 6, 2, 1);
+    
+    // Spout/nozzle
+    this.p.fill(70, 70, 70);
+    this.p.rect(-1, -12, 2, 2);
+    
+    // Handle
+    this.p.stroke(70, 70, 70);
     this.p.strokeWeight(2);
     this.p.noFill();
-    this.p.bezier(4, 0, 8, 4, 12, 5, 14, 2);
+    this.p.arc(0, -8, 8, 4, this.p.PI, this.p.TWO_PI);
+    
+    // Canister details - stripes or markings
     this.p.noStroke();
+    this.p.fill(240, 240, 0); // Yellow warning stripe
+    this.p.rect(-5, -2, 10, 3);
     
-    // Rust patches on dispenser
-    this.p.fill(110, 70, 50, 180);
-    this.p.rect(-8, -8, 4, 5, 1);
-    this.p.ellipse(5, -10, 4, 3);
+    // Fuel icon or text
+    this.p.fill(240, 240, 240);
+    this.p.textSize(3);
+    this.p.textAlign(this.p.CENTER, this.p.CENTER);
+    this.p.text("FUEL", 0, -4);
     
-    // Ground marker lines
-    this.p.fill(255, 255, 0, 120); // Faded yellow
-    this.p.rect(-15, 12, 30, 2);
-    this.p.rect(-15, 16, 30, 2);
+    // Highlight glint
+    this.p.fill(255, 255, 255, 100);
+    this.p.ellipse(3, -5, 2, 6);
     
-    // Worn parking spot
-    this.p.fill(70, 70, 75, 100);
+    // If the canister is glowing/highlighted (for visibility)
+    if (obs.highlightEffect) {
+      const pulseIntensity = Math.sin(this.p.frameCount * 0.1) * 0.5 + 0.5;
+      this.p.stroke(255, 255, 100, 100 * pulseIntensity);
+      this.p.strokeWeight(2 + pulseIntensity);
+      this.p.noFill();
+      this.p.ellipse(0, 0, 20, 20);
+      this.p.stroke(255, 255, 100, 50 * pulseIntensity);
+      this.p.strokeWeight(4 + pulseIntensity);
+      this.p.ellipse(0, 0, 26, 26);
+    }
+    
+    this.p.pop();
+  }
+  
+  drawFuelCanisters() {
+    // Draw fuel canisters in the current area
+    const currentAreaKey = `${this.worldX},${this.worldY}`;
+    
+    // Get canisters from both obstacles and resources
+    let obstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
+    let resources = this.worldGenerator.getResources()[currentAreaKey] || [];
+    
+    // Draw canisters from obstacles array
+    for (let obs of obstacles) {
+      if (obs.type === 'fuelCanister') {
+        // Add highlight effect to make them more visible
+        obs.highlightEffect = true;
+        this.drawFuelCanister(obs);
+      }
+    }
+    
+    // Draw canisters from resources array
+    for (let res of resources) {
+      if (res.type === 'fuelCanister') {
+        // Add highlight effect to make them more visible
+        res.highlightEffect = true;
+        this.drawFuelCanister(res);
+      }
+    }
+  }
+  
+  drawFuelCanisterExplosion(x: number, y: number, stage: number = 0) {
+    this.p.push();
+    this.p.translate(x, y);
+    
+    // Calculate explosion size based on stage (0-1)
+    // 0 = beginning of explosion, 1 = end of explosion
+    const maxRadius = 40;
+    const radius = maxRadius * stage;
+    const opacity = 255 * (1 - stage);
+    
+    // Outer explosion ring
+    this.p.noStroke();
+    this.p.fill(255, 200, 0, opacity);
+    this.p.ellipse(0, 0, radius * 2, radius * 2);
+    
+    // Inner explosion
+    this.p.fill(255, 255, 200, opacity * 0.8);
+    this.p.ellipse(0, 0, radius, radius);
+    
+    // Core
+    this.p.fill(255, 255, 255, opacity * 0.6);
+    this.p.ellipse(0, 0, radius * 0.5, radius * 0.5);
+    
+    // Flying debris particles
+    const particleCount = 20;
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (i / particleCount) * this.p.TWO_PI;
+      const distance = radius * 0.6 + (radius * 0.4 * this.p.noise(i, stage * 5));
+      const px = Math.cos(angle) * distance;
+      const py = Math.sin(angle) * distance;
+      
+      // Alternating colors for debris
+      if (i % 3 === 0) {
+        this.p.fill(220, 60, 40, opacity); // Red (canister color)
+      } else if (i % 3 === 1) {
+        this.p.fill(255, 200, 0, opacity); // Yellow/orange (flame)
+      } else {
+        this.p.fill(100, 100, 100, opacity); // Gray (metal)
+      }
+      
+      const size = 3 * (1 - stage * 0.7);
+      this.p.ellipse(px, py, size, size);
+    }
+    
+    // Shock wave ring
+    this.p.noFill();
+    this.p.stroke(255, 255, 255, 255 * (0.8 - stage * 0.8));
+    this.p.strokeWeight(2);
+    this.p.ellipse(0, 0, radius * 2.5, radius * 2.5);
+    
+    this.p.pop();
+  }
+}
