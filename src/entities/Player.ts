@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -526,6 +527,8 @@ export default class Player implements PlayerType {
     
     if (!this.carryingFuelCanister) {
       let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+      
+      // Check for fuel pump first
       for (let obs of currentObstacles) {
         if (obs.type === 'fuelPump' && this.p.dist(this.x, this.y, obs.x, obs.y) < 60) {
           this.startCanisterCollection(obs);
@@ -533,6 +536,7 @@ export default class Player implements PlayerType {
         }
       }
       
+      // Then check for existing fuel canisters in the world
       let closestCanister = null;
       let minDistance = Infinity;
       
@@ -556,6 +560,8 @@ export default class Player implements PlayerType {
         if (index !== -1) {
           currentObstacles.splice(index, 1);
         }
+        
+        emitGameStateUpdate(this, this.hoverbike);
         return;
       }
     } else {
@@ -567,6 +573,7 @@ export default class Player implements PlayerType {
           nearFuelPump = true;
           this.carryingFuelCanister = false;
           this.canisterCollectCooldown = 30;
+          emitGameStateUpdate(this, this.hoverbike);
           return;
         }
       }
@@ -594,6 +601,7 @@ export default class Player implements PlayerType {
         
         this.carryingFuelCanister = false;
         this.canisterCollectCooldown = 30;
+        emitGameStateUpdate(this, this.hoverbike);
       }
     }
   }
