@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -61,7 +62,7 @@ export default class GameRenderer {
       this.drawBackground();
       this.drawTarp();
       this.applyDaytimeTint();
-      this.renderObstacles();
+      this.drawObstacles();
       this.drawResources();
       
       // Draw hoverbike (middle z-index)
@@ -81,7 +82,7 @@ export default class GameRenderer {
       this.drawBackground();
       this.drawTarp();
       this.applyDaytimeTint();
-      this.renderObstacles();
+      this.drawObstacles();
       this.drawResources();
       
       // Draw hoverbike (middle z-index)
@@ -255,177 +256,6 @@ export default class GameRenderer {
         this.p.pop();
       }
     }
-  }
-  
-  renderObstacles() {
-    let currentObstacles = this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`] || [];
-    
-    for (const obstacle of currentObstacles) {
-      if (obstacle.type === 'rock') {
-        this.drawRock(obstacle);
-      } else if (obstacle.type === 'hut') {
-        this.drawHut(obstacle);
-      } else if (obstacle.type === 'bush') {
-        this.drawBush(obstacle);
-      } else if (obstacle.type === 'cactus') {
-        this.drawCactus(obstacle);
-      } else if (obstacle.type === 'fuelPump') {
-        this.drawFuelPump(obstacle);
-      } else if (obstacle.type === 'fuelStain') {
-        this.drawFuelStain(obstacle);
-      } else if (obstacle.type === 'walkingMarks') {
-        this.drawWalkingMarks(obstacle);
-      } else if (obstacle.type === 'militaryCrate') {
-        this.renderMilitaryCrate(obstacle);
-      } else if (obstacle.type === 'outpost') {
-        this.renderOutpost(obstacle);
-      }
-    }
-  }
-  
-  renderMilitaryCrate(crate) {
-    this.p.push();
-    this.p.translate(crate.x, crate.y);
-    
-    // Draw crate shadow
-    this.p.fill(0, 0, 0, 40);
-    this.p.noStroke();
-    this.p.ellipse(0, 5, 35, 12);
-    
-    // Scale crate
-    const scale = crate.size || 1.0;
-    this.p.scale(scale);
-    
-    if (!crate.opened) {
-      // Draw closed crate
-      this.p.fill(60, 70, 65);
-      this.p.stroke(40);
-      this.p.strokeWeight(1);
-      this.p.rect(-15, -12, 30, 20, 2);
-      
-      // Draw crate details
-      this.p.fill(50, 60, 55);
-      this.p.rect(-12, -9, 24, 3);
-      
-      // Draw hinges
-      this.p.fill(40);
-      this.p.rect(-14, -12, 3, 2);
-      this.p.rect(11, -12, 3, 2);
-      
-      // Draw lock
-      this.p.fill(80);
-      this.p.rect(-3, -8, 6, 4);
-      
-      // Draw military symbol
-      this.p.fill(100, 30, 30);
-      this.p.noStroke();
-      this.p.beginShape();
-      this.p.vertex(-6, 0);
-      this.p.vertex(0, -5);
-      this.p.vertex(6, 0);
-      this.p.vertex(0, 5);
-      this.p.endShape(this.p.CLOSE);
-      
-      // If player is nearby, show "Press E" prompt
-      const distance = this.p.dist(this.player.x, this.player.y, crate.x, crate.y);
-      if (distance < 40) {
-        this.p.fill(255);
-        this.p.noStroke();
-        this.p.textAlign(this.p.CENTER);
-        this.p.textSize(10);
-        this.p.text("Press E", 0, -18);
-      }
-    } else {
-      // Draw opened crate
-      // Base
-      this.p.fill(60, 70, 65);
-      this.p.stroke(40);
-      this.p.strokeWeight(1);
-      this.p.rect(-15, -8, 30, 16, 2);
-      
-      // Lid opened
-      this.p.fill(55, 65, 60);
-      this.p.beginShape();
-      this.p.vertex(-15, -8);
-      this.p.vertex(15, -8);
-      this.p.vertex(15, -20);
-      this.p.vertex(-15, -20);
-      this.p.endShape(this.p.CLOSE);
-      
-      // Inside crate (empty)
-      this.p.fill(40, 45, 42);
-      this.p.rect(-12, -5, 24, 10);
-      
-      // Hinges
-      this.p.fill(40);
-      this.p.rect(-14, -8, 3, 2);
-      this.p.rect(11, -8, 3, 2);
-    }
-    
-    this.p.pop();
-  }
-
-  renderOutpost(outpost) {
-    this.p.push();
-    this.p.translate(outpost.x, outpost.y);
-    
-    // Draw outpost shadow
-    this.p.fill(0, 0, 0, 40);
-    this.p.noStroke();
-    this.p.ellipse(5, 8, 70, 20);
-    
-    // Scale outpost
-    const scale = outpost.size || 1.2;
-    this.p.scale(scale);
-    
-    // Main building structure
-    this.p.fill(80, 90, 95);
-    this.p.stroke(60, 70, 75);
-    this.p.strokeWeight(1);
-    this.p.rect(-25, -30, 50, 40, 3);
-    
-    // Doorway
-    this.p.fill(50, 55, 60);
-    this.p.rect(-8, -5, 16, 15, 2);
-    
-    // Windows (broken)
-    this.p.fill(70, 100, 110, 180);
-    this.p.rect(-18, -22, 10, 8);
-    this.p.rect(8, -22, 10, 8);
-    
-    // Cracked window lines
-    this.p.stroke(200, 220, 230, 150);
-    this.p.strokeWeight(0.5);
-    this.p.line(-18, -18, -8, -22);
-    this.p.line(12, -19, 18, -14);
-    
-    // Antenna/dish
-    this.p.fill(90);
-    this.p.stroke(70);
-    this.p.strokeWeight(1);
-    this.p.rect(-20, -35, 2, 10);
-    this.p.ellipse(-15, -35, 10, 5);
-    
-    // Roof damage
-    this.p.fill(60, 65, 70);
-    this.p.noStroke();
-    this.p.beginShape();
-    this.p.vertex(10, -30);
-    this.p.vertex(20, -30);
-    this.p.vertex(15, -25);
-    this.p.endShape(this.p.CLOSE);
-    
-    // If player is nearby, show "Press E" prompt
-    const distance = this.p.dist(this.player.x, this.player.y, outpost.x, outpost.y);
-    if (distance < 40) {
-      this.p.fill(255);
-      this.p.noStroke();
-      this.p.textAlign(this.p.CENTER);
-      this.p.textSize(10);
-      this.p.text("Press E", 0, -40);
-    }
-    
-    this.p.pop();
   }
   
   drawObstacles() {

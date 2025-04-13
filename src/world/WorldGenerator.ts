@@ -11,10 +11,6 @@ export default class WorldGenerator {
   edgeBuffer: number = 100; // Increased from 50 to 100px buffer from edges
   COPPER_CHANCE: number = 0.25; // Default copper spawn chance
   FUEL_CANISTER_CHANCE: number = 0.1; // Default fuel canister spawn chance
-  militaryCratePlaced: boolean = false;
-  militaryCrateCoords: {x: number, y: number} = {x: 0, y: 0};
-  questOutpostCoords: {x: number, y: number} = {x: 0, y: 0};
-  militaryCrateOpened: boolean = false;
 
   constructor(p: any) {
     this.p = p;
@@ -24,14 +20,6 @@ export default class WorldGenerator {
     this.sandTextures = {};
     this.grassTextures = {};
     this.windmillAngle = 0;
-    
-    // Generate quest outpost coordinates (5-8 tiles away from home)
-    const angle = this.p.random(0, this.p.TWO_PI);
-    const distance = this.p.random(5, 8);
-    this.questOutpostCoords = {
-      x: Math.round(Math.cos(angle) * distance),
-      y: Math.round(Math.sin(angle) * distance)
-    };
   }
 
   generateRockShape(size: number, aspectRatio: number) {
@@ -275,43 +263,6 @@ export default class WorldGenerator {
           });
         }
       } else {
-        // Check if this is one of the 8 tiles directly adjacent to home base
-        // and we haven't placed the military crate yet
-        if (!this.militaryCratePlaced && 
-            (Math.abs(x) <= 1 && Math.abs(y) <= 1) && 
-            !(x === 0 && y === 0)) {
-          
-          // Place the military crate in this area
-          const position = this.getValidPosition();
-          
-          areaObstacles.push({ 
-            x: position.x, 
-            y: position.y, 
-            type: 'militaryCrate',
-            opened: false,
-            size: 1.0
-          });
-          
-          this.militaryCratePlaced = true;
-          this.militaryCrateCoords = {x, y};
-          console.log(`Military crate placed at world coordinates: ${x},${y}`);
-        }
-        
-        // Check if this is the quest outpost location
-        if (x === this.questOutpostCoords.x && y === this.questOutpostCoords.y) {
-          // Place an outpost structure
-          const position = this.getValidPosition();
-          
-          areaObstacles.push({ 
-            x: position.x, 
-            y: position.y, 
-            type: 'outpost',
-            size: 1.2
-          });
-          
-          console.log(`Quest outpost placed at world coordinates: ${x},${y}`);
-        }
-        
         for (let i = 0; i < 10; i++) {
           let size = this.p.random(0.3, 2.0);
           let aspectRatio = this.p.random(0.5, 2.0);
@@ -478,29 +429,5 @@ export default class WorldGenerator {
 
   updateWindmillAngle() {
     this.windmillAngle += 0.05;
-  }
-
-  isMilitaryCrateOpened() {
-    return this.militaryCrateOpened;
-  }
-  
-  openMilitaryCrate() {
-    this.militaryCrateOpened = true;
-    
-    // Find and mark the crate as opened
-    const crateAreaKey = `${this.militaryCrateCoords.x},${this.militaryCrateCoords.y}`;
-    const obstacles = this.obstacles[crateAreaKey] || [];
-    
-    for (let obstacle of obstacles) {
-      if (obstacle.type === 'militaryCrate') {
-        obstacle.opened = true;
-        break;
-      }
-    }
-    
-    return {
-      questCoords: this.questOutpostCoords,
-      diaryEntry: `Day 47: A military crate from the old Global Crisis Response Unit! Inside was a reference to Outpost Delta-7 at coordinates X:${this.questOutpostCoords.x}, Y:${this.questOutpostCoords.y}. It might hold technology to help restore the land. My grandfather mentioned these outposts in his stories. I need to find it.`
-    };
   }
 }
