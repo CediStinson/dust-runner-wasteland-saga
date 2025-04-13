@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import GameSketch from '../components/GameSketch';
