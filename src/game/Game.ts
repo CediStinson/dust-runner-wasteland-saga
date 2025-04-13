@@ -47,6 +47,7 @@ export default class Game {
       completionMessageTimer: number;
     };
   };
+  diaryEntries: string[];
 
   constructor(p: any) {
     this.p = p;
@@ -65,6 +66,15 @@ export default class Game {
     this.sleepStartTime = 0;
     this.sleepAnimationTimer = 0;
     this.sleepParticles = [];
+    
+    // Initialize diary entries
+    this.diaryEntries = [
+      "Day 1: The world wasn't always like this. In 2097, after decades of environmental neglect, the Great Dust Event began. Pollutants in the atmosphere combined with natural dust storms created a cascade effect that covered Earth's surface in a thick layer of sand and dust.",
+      "Day 15: My grandfather told stories about how corporations kept mining and drilling despite warnings. Eventually, the atmosphere couldn't recover. The dust clouds blocked the sun, and temperatures fluctuated wildly. Most of civilization collapsed, leaving behind only scattered settlements.",
+      "Day 32: I found maps at the old research station. They show this area was once green farmland. Hard to believe anything could grow here now. I must find more information about what happened to the people who lived here.",
+      "",
+      ""
+    ];
     
     // Quest system initialization
     this.questSystem = {
@@ -1053,6 +1063,11 @@ export default class Game {
       return;
     }
     
+    // Check for military crate interaction
+    if (key === 'e' || key === 'E') {
+      this.checkMilitaryCrateInteraction();
+    }
+    
     if (key === 'f' || key === 'F') {
       if (this.riding) {
         this.riding = false;
@@ -1078,6 +1093,128 @@ export default class Game {
         this.showTarpMessage();
       }
     }
+  }
+
+  checkMilitaryCrateInteraction() {
+    const currentAreaKey = `${this.worldX},${this.worldY}`;
+    const obstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
+    
+    // Find military crates in the current area
+    for (const obstacle of obstacles) {
+      if (obstacle.type === 'militaryCrate' && !obstacle.opened) {
+        // Check if player is close enough to interact
+        const dx = this.player.x - obstacle.x;
+        const dy = this.player.y - obstacle.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 40) { // Interaction radius
+          // Open the crate and get quest info
+          const questInfo = this.worldGenerator.openMilitaryCrate();
+          obstacle.opened = true;
+          
+          // Add diary entry
+          this.diaryEntries[3] = questInfo.diaryEntry;
+          
+          // Show quest message
+          this.showQuestMessage(questInfo);
+          
+          // Update UI with new diary entry
+          this.emitDiaryUpdate();
+          break;
+        }
+      }
+    }
+    
+    // Check for outpost interaction
+    if (this.worldX === this.worldGenerator.questOutpostCoords.x && 
+        this.worldY === this.worldGenerator.questOutpostCoords.y) {
+      
+      const outposts = obstacles.filter(o => o.type === 'outpost');
+      
+      for (const outpost of outposts) {
+        const dx = this.player.x - outpost.x;
+        const dy = this.player.y - outpost.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 40) { // Interaction radius
+          // Add diary entry if not already added
+          if (!this.diaryEntries[4] || !this.diaryEntries[4].includes("Outpost Delta-7")) {
+            this.diaryEntries[4] = "Day 48: I've found Outpost Delta-7! The facility is in ruins, but I discovered old data logs. They reveal scientists were developing atmospheric purifiers before the Great Dust Event. If I can find more facilities like this, maybe there's still hope to restore parts of the planet. For now, I'll keep exploring and collecting resources.";
+            
+            // Show discovery message
+            this.showOutpostDiscoveryMessage();
+            
+            // Update UI with new diary entry
+            this.emitDiaryUpdate();
+          }
+          break;
+        }
+      }
+    }
+  }
+  
+  showQuestMessage(questInfo: any) {
+    this.p.push();
+    this.p.fill(0, 0, 0, 150);
+    this.p.stroke(200, 200, 100, 50);
+    this.p.strokeWeight(2);
+    this.p.rect(this.p.width / 2 - 250, this.p.height / 2 - 50, 500, 100, 10);
+
+    this.p.noStroke();
+    this.p.fill(255, 255, 150);
+    this.p.textSize(16);
+    this.p.textAlign(this.p.CENTER);
+    this.p.text("Military Crate Found!", this.p.width / 2, this.p.height / 2 - 20);
+    this.p.text(`Coordinates to Outpost Delta-7: X:${questInfo.questCoords.x}, Y:${questInfo.questCoords.y}`, this.p.width / 2, this.p.height / 2);
+    this.p.text("Check your diary for more information.", this.p.width / 2, this.p.height / 2 + 20);
+    this.p.pop();
+    
+    // Make the discovery appear for a moment
+    setTimeout(() => {
+      const event = new CustomEvent('gameStateUpdate', {
+        detail: {
+          diaryEntries: this.diaryEntries
+        }
+      });
+      window.dispatchEvent(event);
+    }, 3000);
+  }
+  
+  showOutpostDiscoveryMessage() {
+    this.p.push();
+    this.p.fill(0, 0, 0, 150);
+    this.p.stroke(200, 200, 100, 50);
+    this.p.strokeWeight(2);
+    this.p.rect(this.p.width / 2 - 250, this.p.height / 2 - 50, 500, 100, 10);
+
+    this.p.noStroke();
+    this.p.fill(255, 255, 150);
+    this.p.textSize(16);
+    this.p.textAlign(this.p.CENTER);
+    this.p.text("Outpost Delta-7 Discovered!", this.p.width / 2, this.p.height / 2 - 20);
+    this.p.text("You found logs about atmospheric purifiers.", this.p.width / 2, this.p.height / 2);
+    this.p.text("Check your diary for more information.", this.p.width / 2, this.p.height / 2 + 20);
+    this.p.pop();
+    
+    // Make the discovery appear for a moment
+    setTimeout(() => {
+      const event = new CustomEvent('gameStateUpdate', {
+        detail: {
+          diaryEntries: this.diaryEntries
+        }
+      });
+      window.dispatchEvent(event);
+    }, 3000);
+  }
+  
+  emitDiaryUpdate() {
+    // Update UI with diary entries
+    const event = new CustomEvent('gameStateUpdate', {
+      detail: {
+        diaryEntries: this.diaryEntries
+      }
+    });
+    window.dispatchEvent(event);
   }
 
   showTarpMessage() {
@@ -1156,7 +1293,8 @@ export default class Game {
     return {
       exploredAreas: exploredAreasArray,
       obstacles,
-      resources
+      resources,
+      diaryEntries: this.diaryEntries
     };
   }
   
@@ -1177,6 +1315,11 @@ export default class Game {
       for (const areaKey in worldData.resources) {
         this.worldGenerator.getResources()[areaKey] = worldData.resources[areaKey];
       }
+    }
+    
+    // Restore diary entries
+    if (worldData.diaryEntries) {
+      this.diaryEntries = worldData.diaryEntries;
     }
     
     // Ensure the current area is properly loaded
