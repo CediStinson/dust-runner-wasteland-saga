@@ -73,10 +73,7 @@ const GameSketch = () => {
               isUnderTarp: game.isPlayerUnderTarp(),
               questSystem: game.questSystem,
               fuelCanistersNearby: totalFuelCanisters,
-              canDig: game.player?.canDig || false,
-              diaryEntries: game.diaryEntries,
-              militaryCrateLocation: game.militaryCrateLocation,
-              foundMilitaryCrate: game.foundMilitaryCrate
+              canDig: game.player?.canDig || false
             }
           });
           window.dispatchEvent(event);
@@ -233,20 +230,6 @@ const GameSketch = () => {
         }
         
         gameRef.current.worldGenerator.generateNewArea(gameRef.current.worldX, gameRef.current.worldY);
-        
-        // Load diary entries if available
-        if (savedState.diaryEntries && Array.isArray(savedState.diaryEntries)) {
-          gameRef.current.diaryEntries = savedState.diaryEntries;
-        }
-        
-        // Load military crate quest data if available
-        if (savedState.militaryCrateLocation) {
-          gameRef.current.militaryCrateLocation = savedState.militaryCrateLocation;
-        }
-        
-        if (savedState.foundMilitaryCrate !== undefined) {
-          gameRef.current.foundMilitaryCrate = savedState.foundMilitaryCrate;
-        }
       }
     };
     
