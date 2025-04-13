@@ -1,253 +1,113 @@
-
 import React, { useState } from 'react';
-import { Save, Settings, LogOut, BookText } from 'lucide-react';
-import DayNightIndicator from './ui/game/DayNightIndicator';
-import CompassIndicator from './ui/game/CompassIndicator';
-import ResourcesDisplay from './ui/game/ResourcesDisplay';
-import StatusBars from './ui/game/StatusBars';
-import ControlsModal from './ui/game/ControlsModal';
-import AmbienceLighting from './ui/game/AmbienceLighting';
-import DiaryModal from './ui/game/DiaryModal';
-import { useAuth } from '@/context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
+import { X, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-interface GameUIProps {
-  resources?: number;
-  copper?: number;
-  health?: number;
-  maxHealth?: number;
-  fuel?: number;
-  maxFuel?: number;
-  playerHealth?: number;
-  maxPlayerHealth?: number;
-  worldX?: number;
-  worldY?: number;
-  baseWorldX?: number;
-  baseWorldY?: number;
-  dayTimeIcon?: string;
-  dayTimeAngle?: number;
-  refueling?: boolean;
-  refuelProgress?: number;
-  onSaveGame?: () => void;
-  onLogout?: () => void;
-  gameStarted?: boolean;
-}
-
-const GameUI: React.FC<GameUIProps> = ({ 
-  resources = 0,
-  copper = 0,
-  health = 100,
-  maxHealth = 100,
-  fuel = 100,
-  maxFuel = 100,
-  playerHealth = 100,
-  maxPlayerHealth = 100,
-  worldX = 0,
-  worldY = 0,
-  baseWorldX = 0,
-  baseWorldY = 0,
-  dayTimeIcon = "sun",
-  dayTimeAngle = 0,
-  refueling = false,
-  refuelProgress = 0,
-  onSaveGame,
-  onLogout,
-  gameStarted = false
-}) => {
-  const [showControls, setShowControls] = useState(false);
-  const [showDiary, setShowDiary] = useState(false);
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  // Always render UI elements even when gameStarted is false
-  // This ensures the HUD is visible during game initialization
-  return (
-    <>
-      <AmbienceLighting dayTimeIcon={dayTimeIcon} dayTimeAngle={dayTimeAngle} />
-      
-      <TopBar 
-        showControls={showControls}
-        setShowControls={setShowControls}
-        showDiary={showDiary}
-        setShowDiary={setShowDiary}
-        handleSaveGame={onSaveGame || (() => toast({
-          title: "Save function not available",
-          description: "The save function is not currently available.",
-          variant: "destructive",
-        }))}
-        handleLogout={onLogout || (() => {})}
-        user={user}
-        dayTimeIcon={dayTimeIcon}
-        dayTimeAngle={dayTimeAngle}
-        worldX={worldX}
-        worldY={worldY}
-        baseWorldX={baseWorldX}
-        baseWorldY={baseWorldY}
-      />
-      
-      <ControlsModal showControls={showControls} setShowControls={setShowControls} />
-      <DiaryModal showDiary={showDiary} setShowDiary={setShowDiary} />
-      
-      {refueling && <RefuelingIndicator progress={refuelProgress} />}
-      
-      <BottomBar 
-        resources={resources}
-        copper={copper}
-        playerHealth={playerHealth}
-        maxPlayerHealth={maxPlayerHealth}
-        health={health}
-        maxHealth={maxHealth}
-        fuel={fuel}
-        maxFuel={maxFuel}
-      />
-    </>
-  );
-};
-
-interface TopBarProps {
-  showControls: boolean;
-  setShowControls: (show: boolean) => void;
+interface DiaryModalProps {
   showDiary: boolean;
   setShowDiary: (show: boolean) => void;
-  handleSaveGame: () => void;
-  handleLogout: () => void;
-  user: any;
-  dayTimeIcon: string;
-  dayTimeAngle: number;
-  worldX: number;
-  worldY: number;
-  baseWorldX: number;
-  baseWorldY: number;
+  diaryEntries?: string[];
 }
 
-const TopBar: React.FC<TopBarProps> = ({
-  showControls,
-  setShowControls,
-  showDiary,
+const DiaryModal: React.FC<DiaryModalProps> = ({ 
+  showDiary, 
   setShowDiary,
-  handleSaveGame,
-  handleLogout,
-  user,
-  dayTimeIcon,
-  dayTimeAngle,
-  worldX,
-  worldY,
-  baseWorldX,
-  baseWorldY
+  diaryEntries = [
+    "Day 1: The world wasn't always like this. In 2097, after decades of environmental neglect, the Great Dust Event began. Pollutants in the atmosphere combined with natural dust storms created a cascade effect that covered Earth's surface in a thick layer of sand and dust.",
+    "Day 15: My grandfather told stories about how corporations kept mining and drilling despite warnings. Eventually, the atmosphere couldn't recover. The dust clouds blocked the sun, and temperatures fluctuated wildly. Most of civilization collapsed, leaving behind only scattered settlements.",
+    "Day 32: I found maps at the old research station. They show this area was once green farmland. Hard to believe anything could grow here now. I must find more information about what happened to the people who lived here.",
+    "Day 47: A military crate from the old Global Crisis Response Unit! Inside was a reference to Outpost Delta-7, which might hold technology to help restore the land. My grandfather mentioned these outposts in his stories. I need to find it.",
+    "", // Empty page 5 - will be filled when finding military crate
+  ]
 }) => {
+  const [currentPage, setCurrentPage] = useState(0);
+  
+  const totalPages = diaryEntries.length;
+  
+  if (!showDiary) return null;
+  
+  const handleClose = () => {
+    setShowDiary(false);
+  };
+  
+  const goToNextPage = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+  
+  const goToPreviousPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+  
   return (
-    <div className="absolute top-0 left-0 right-0 p-2.5 pointer-events-none">
-      <div className="container mx-auto flex justify-between">
-        <div className="pointer-events-auto flex gap-2">
-          <button 
-            onClick={() => setShowControls(!showControls)}
-            className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
-            aria-label="Settings"
-          >
-            <Settings size={18} />
-          </button>
-          
-          <button 
-            onClick={() => setShowDiary(!showDiary)}
-            className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
-            aria-label="Diary"
-          >
-            <BookText size={18} />
-          </button>
-          
-          <button 
-            onClick={handleSaveGame}
-            className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
-            aria-label="Save"
-          >
-            <Save size={18} />
-          </button>
-          
-          {user && (
-            <button 
-              onClick={handleLogout}
-              className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
-              aria-label="Logout"
-            >
-              <LogOut size={18} />
-            </button>
-          )}
+    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60" onClick={handleClose}></div>
+      
+      {/* Diary container */}
+      <div className="relative bg-stone-200 w-[90%] max-w-2xl h-[80%] rounded-lg shadow-lg overflow-hidden">
+        {/* Close button */}
+        <button 
+          onClick={handleClose}
+          className="absolute top-4 right-4 text-stone-700 hover:text-stone-900"
+          aria-label="Close"
+        >
+          <X size={24} />
+        </button>
+        
+        {/* Diary header */}
+        <div className="bg-stone-300 p-4 border-b border-stone-400">
+          <div className="flex items-center">
+            <BookOpen size={24} className="text-stone-700 mr-2" />
+            <h2 className="text-xl font-serif text-stone-800">Wasteland Diary</h2>
+          </div>
+          <p className="text-stone-600 text-sm">Pages found: {diaryEntries.filter(entry => entry).length}/{totalPages}</p>
         </div>
         
-        <div className="flex flex-col items-center scale-85 origin-top">
-          <DayNightIndicator dayTimeIcon={dayTimeIcon} dayTimeAngle={dayTimeAngle} />
-          
-          <CompassIndicator 
-            worldX={worldX} 
-            worldY={worldY} 
-            baseWorldX={baseWorldX} 
-            baseWorldY={baseWorldY} 
-          />
+        {/* Diary content */}
+        <div className="p-8 h-[calc(100%-8rem)] overflow-auto flex items-center justify-center">
+          <div className="w-full max-w-md min-h-[400px] bg-stone-100 p-6 shadow-inner rounded border border-stone-300 flex flex-col">
+            {/* Page content */}
+            {diaryEntries[currentPage] ? (
+              <p className="text-stone-800 font-serif leading-relaxed flex-1">{diaryEntries[currentPage]}</p>
+            ) : (
+              <div className="flex items-center justify-center h-full text-stone-500 italic flex-1">
+                <p>This page is blank. Explore the wasteland to discover entries.</p>
+              </div>
+            )}
+            
+            {/* Page number */}
+            <div className="text-center text-stone-500 pt-4 border-t border-stone-300 mt-4">
+              Page {currentPage + 1} of {totalPages}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  );
-};
-
-interface RefuelingIndicatorProps {
-  progress: number;
-}
-
-const RefuelingIndicator: React.FC<RefuelingIndicatorProps> = ({ progress }) => {
-  return (
-    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-      <div className="bg-black/70 p-2 rounded-lg backdrop-blur-md border border-white/20">
-        <div className="text-white text-center mb-1 text-sm">Refueling...</div>
-        <div className="w-48 h-2.5 bg-gray-800 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-yellow-400"
-            style={{ width: `${progress * 100}%`, transition: 'width 0.3s ease-out' }}
-          ></div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-interface BottomBarProps {
-  resources: number;
-  copper: number;
-  playerHealth: number;
-  maxPlayerHealth: number;
-  health: number;
-  maxHealth: number;
-  fuel: number;
-  maxFuel: number;
-}
-
-const BottomBar: React.FC<BottomBarProps> = ({
-  resources,
-  copper,
-  playerHealth,
-  maxPlayerHealth,
-  health,
-  maxHealth,
-  fuel,
-  maxFuel
-}) => {
-  return (
-    <div className="absolute bottom-0 left-0 right-0 p-2.5 pointer-events-none">
-      <div className="container mx-auto flex justify-between items-end">
-        <ResourcesDisplay resources={resources} copper={copper} />
         
-        <StatusBars 
-          playerHealth={playerHealth}
-          maxPlayerHealth={maxPlayerHealth}
-          health={health}
-          maxHealth={maxHealth}
-          fuel={fuel}
-          maxFuel={maxFuel}
-        />
+        {/* Navigation buttons */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 flex justify-between bg-stone-300 border-t border-stone-400">
+          <Button 
+            variant="outline" 
+            onClick={goToPreviousPage} 
+            disabled={currentPage === 0}
+            className="flex items-center"
+          >
+            <ChevronLeft size={16} className="mr-1" /> Previous
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            onClick={goToNextPage} 
+            disabled={currentPage === totalPages - 1}
+            className="flex items-center"
+          >
+            Next <ChevronRight size={16} className="ml-1" />
+          </Button>
+        </div>
       </div>
     </div>
   );
 };
 
-export default GameUI;
+export default DiaryModal;
