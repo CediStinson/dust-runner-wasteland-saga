@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -539,7 +538,10 @@ export default class Player implements PlayerType {
       // Then check for existing fuel canisters in the world
       let closestCanister = null;
       let minDistance = Infinity;
+      let canisterContainer = null;
+      let canisterIndex = -1;
       
+      // Check obstacles for fuel canisters
       for (let i = 0; i < currentObstacles.length; i++) {
         let obs = currentObstacles[i];
         if (obs.type === 'fuelCanister' && !obs.collected) {
@@ -547,19 +549,34 @@ export default class Player implements PlayerType {
           if (distance < 30 && distance < minDistance) {
             closestCanister = obs;
             minDistance = distance;
+            canisterContainer = currentObstacles;
+            canisterIndex = i;
           }
         }
       }
       
-      if (closestCanister) {
+      // Check resources for fuel canisters too
+      let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
+      for (let i = 0; i < currentResources.length; i++) {
+        let res = currentResources[i];
+        if (res.type === 'fuelCanister' && !res.collected) {
+          const distance = this.p.dist(this.x, this.y, res.x, res.y);
+          if (distance < 30 && distance < minDistance) {
+            closestCanister = res;
+            minDistance = distance;
+            canisterContainer = currentResources;
+            canisterIndex = i;
+          }
+        }
+      }
+      
+      if (closestCanister && canisterContainer && canisterIndex >= 0) {
         closestCanister.collected = true;
         this.carryingFuelCanister = true;
         this.canisterCollectCooldown = 30;
         
-        const index = currentObstacles.indexOf(closestCanister);
-        if (index !== -1) {
-          currentObstacles.splice(index, 1);
-        }
+        // Remove the canister from its container
+        canisterContainer.splice(canisterIndex, 1);
         
         emitGameStateUpdate(this, this.hoverbike);
         return;

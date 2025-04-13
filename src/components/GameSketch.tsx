@@ -28,20 +28,19 @@ const GameSketch = () => {
           // Get the current area key
           const currentAreaKey = `${game.player?.worldX || 0},${game.player?.worldY || 0}`;
           
-          // Count available fuel canisters in the current area
+          // Count available fuel canisters in the current area (both in obstacles and resources)
           const currentObstacles = game.worldGenerator?.getObstacles()[currentAreaKey] || [];
-          const fuelCanistersInArea = currentObstacles.filter(
+          const fuelCanistersInObstacles = currentObstacles.filter(
             (obs: any) => obs.type === 'fuelCanister' && !obs.collected
           ).length;
           
-          // Count fuel canisters in resources too (in case they're stored there)
           const currentResources = game.worldGenerator?.getResources()[currentAreaKey] || [];
           const fuelCanistersInResources = currentResources.filter(
             (res: any) => res.type === 'fuelCanister' && !res.collected
           ).length;
           
           // Total available fuel canisters
-          const totalFuelCanisters = fuelCanistersInArea + fuelCanistersInResources;
+          const totalFuelCanisters = fuelCanistersInObstacles + fuelCanistersInResources;
           
           const event = new CustomEvent('gameStateUpdate', {
             detail: {
@@ -73,8 +72,7 @@ const GameSketch = () => {
               sleepingInHut: game.sleepingInHut, 
               isUnderTarp: game.isPlayerUnderTarp(),
               questSystem: game.questSystem,
-              fuelCanistersNearby: totalFuelCanisters, // Add info about nearby fuel canisters
-              // Send player dig capability status
+              fuelCanistersNearby: totalFuelCanisters,
               canDig: game.player?.canDig || false
             }
           });
