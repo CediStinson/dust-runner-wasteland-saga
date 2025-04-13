@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -101,9 +102,11 @@ export default class Player implements PlayerType {
         
         let willCollide = false;
         let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+        let currentResources = this.resources[`${this.worldX},${this.worldY}`] || [];
         let newX = this.x + this.velX;
         let newY = this.y + this.velY;
         
+        // Check collision with obstacles
         for (let obs of currentObstacles) {
           if (obs.type === 'rock' || obs.type === 'hut' || obs.type === 'fuelPump') {
             let dx = newX - obs.x;
@@ -144,6 +147,22 @@ export default class Player implements PlayerType {
             if (distance < 15) {
               willCollide = true;
               break;
+            }
+          }
+        }
+        
+        // Check collision with fuel canisters in resources
+        if (!willCollide) {
+          for (let res of currentResources) {
+            if (res.type === 'fuelCanister' && !res.collected) {
+              let dx = newX - res.x;
+              let dy = newY - res.y;
+              let distance = this.p.sqrt(dx * dx + dy * dy);
+              
+              if (distance < 15) {
+                willCollide = true;
+                break;
+              }
             }
           }
         }

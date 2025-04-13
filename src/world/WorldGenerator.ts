@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class WorldGenerator {
@@ -329,20 +328,19 @@ export default class WorldGenerator {
         });
       }
       
-      // Add fuel canisters with FUEL_CANISTER_CHANCE probability
-      for (let i = 0; i < 8; i++) {
-        if (this.p.random() < this.FUEL_CANISTER_CHANCE) {
-          let position = this.getValidPosition();
-          areaResources.push({
-            x: position.x,
-            y: position.y,
-            type: 'fuelCanister',
-            rotation: this.p.random(this.p.TWO_PI),
-            size: this.p.random(0.8, 1.2),
-            hitboxWidth: 15,
-            hitboxHeight: 20
-          });
-        }
+      // Add maximum of 1 fuel canister per tile with 10% chance
+      if (this.p.random() < this.FUEL_CANISTER_CHANCE) {
+        let position = this.getValidPosition();
+        areaResources.push({
+          x: position.x,
+          y: position.y,
+          type: 'fuelCanister',
+          rotation: this.p.random(this.p.TWO_PI),
+          size: this.p.random(0.8, 1.2),
+          collected: false,
+          hitboxWidth: 15,
+          hitboxHeight: 20
+        });
       }
       
       let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
@@ -373,9 +371,8 @@ export default class WorldGenerator {
         });
       }
       
-      // Add 1-2 fuel canisters in home area, but away from center
-      const canisterCount = Math.floor(this.p.random(1, 3));
-      for (let i = 0; i < canisterCount; i++) {
+      // Add exactly 1 fuel canister in home area, but away from center
+      if (this.p.random() < this.FUEL_CANISTER_CHANCE) {
         let position;
         do {
           position = this.getValidPosition();
@@ -387,6 +384,7 @@ export default class WorldGenerator {
           type: 'fuelCanister',
           rotation: this.p.random(this.p.TWO_PI),
           size: this.p.random(0.8, 1.2),
+          collected: false,
           hitboxWidth: 15,
           hitboxHeight: 20
         });
