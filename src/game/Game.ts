@@ -46,7 +46,19 @@ export default class Game {
       showCompletionMessage: boolean;
       completionMessageTimer: number;
     };
+    militaryCrateQuest: {
+      active: boolean;
+      completed: boolean;
+      crateFound: boolean;
+      crateOpened: boolean;
+      showCompletionMessage: boolean;
+      completionMessageTimer: number;
+      outpostCoordinates: {x: number, y: number};
+    }
   };
+  militaryCrateLocation: {x: number, y: number};
+  diaryEntries: string[];
+  foundMilitaryCrate: boolean;
 
   constructor(p: any) {
     this.p = p;
@@ -65,6 +77,16 @@ export default class Game {
     this.sleepStartTime = 0;
     this.sleepAnimationTimer = 0;
     this.sleepParticles = [];
+    this.foundMilitaryCrate = false;
+    
+    // Initialize diary entries
+    this.diaryEntries = [
+      "Day 1: The world wasn't always like this. In 2097, after decades of environmental neglect, the Great Dust Event began. Pollutants in the atmosphere combined with natural dust storms created a cascade effect that covered Earth's surface in a thick layer of sand and dust.",
+      "Day 15: My grandfather told stories about how corporations kept mining and drilling despite warnings. Eventually, the atmosphere couldn't recover. The dust clouds blocked the sun, and temperatures fluctuated wildly. Most of civilization collapsed, leaving behind only scattered settlements.",
+      "Day 32: I found maps at the old research station. They show this area was once green farmland. Hard to believe anything could grow here now. I must find more information about what happened to the people who lived here.",
+      "Day 47: A military crate from the old Global Crisis Response Unit! Inside was a reference to Outpost Delta-7, which might hold technology to help restore the land. My grandfather mentioned these outposts in his stories. I need to find it.",
+      "", // Empty page 5 - will be filled when finding military crate
+    ];
     
     // Quest system initialization
     this.questSystem = {
@@ -85,8 +107,20 @@ export default class Game {
         rewardGiven: false,
         showCompletionMessage: false,
         completionMessageTimer: 0
+      },
+      militaryCrateQuest: {
+        active: false,
+        completed: false,
+        crateFound: false,
+        crateOpened: false,
+        showCompletionMessage: false,
+        completionMessageTimer: 0,
+        outpostCoordinates: { x: 0, y: 0 }
       }
     };
+    
+    // Place military crate in a random adjacent tile
+    this.placeMilitaryCrate();
     
     // Generate random tarp color in brown/red/green tones
     this.tarpColor = this.generateTarpColor();
@@ -160,6 +194,132 @@ export default class Game {
     
     // Fix obstacle hitboxes for common objects
     this.adjustObstacleHitboxes();
+  }
+
+  placeMilitaryCrate() {
+    const adjacentTiles = [
+      {x: 1, y: 0},
+      {x: 1, y: 1},
+      {x: 0, y: 1},
+      {x: -1, y: 1},
+      {x: -1, y: 0},
+      {x: -1, y: -1},
+      {x: 0, y: -1},
+      {x: 1, y: -1}
+    ];
+    
+    // Select a random tile
+    const randomIndex = Math.floor(this.p.random(0, adjacentTiles.length));
+    this.militaryCrateLocation = adjacentTiles[randomIndex];
+    
+    // Generate outpost coordinates for the quest (5-8 tiles away)
+    const generateOutpostCoordinates = () => {
+      // Generate a random distance between 5 and 8
+      const distance = Math.floor(this.p.random(5, 9));
+      // Generate a random angle
+      const angle = this.p.random(0, Math.PI * 2);
+      
+      // Convert to grid coordinates
+      const x = Math.round(Math.cos(angle) * distance);
+      const y = Math.round(Math.sin(angle) * distance);
+      
+      return {x, y};
+    };
+    
+    this.questSystem.militaryCrateQuest.outpostCoordinates = generateOutpostCoordinates();
+  }
+
+  checkForMilitaryCrate() {
+    if (this.worldX === this.militaryCrateLocation.x && 
+        this.worldY === this.militaryCrateLocation.y && 
+        !this.foundMilitaryCrate) {
+      
+      const areaKey = `${this.worldX},${this.worldY}`;
+      let obstacles = this.worldGenerator.getObstacles()[areaKey] || [];
+      
+      // Check if crate already exists
+      const hasCrate = obstacles.some(obs => obs.type === 'militaryCrate');
+      
+      if (!hasCrate) {
+        // Position the crate in a visible location but not right in the center
+        const crateX = this.p.width / 2 + this.p.random(-150, 150);
+        const crateY = this.p.height / 2 + this.p.random(-150, 150);
+        
+        obstacles.push({
+          type: 'militaryCrate',
+          x: crateX,
+          y: crateY,
+          width: 40,
+          height: 30,
+          opened: false,
+          hitboxWidth: 40,
+          hitboxHeight: 30
+        });
+        
+        this.worldGenerator.getObstacles()[areaKey] = obstacles;
+        this.foundMilitaryCrate = true;
+        this.questSystem.militaryCrateQuest.crateFound = true;
+        this.questSystem.militaryCrateQuest.active = true;
+        
+        // Update UI
+        emitGameStateUpdate(this.player, this.hoverbike);
+      }
+    }
+  }
+
+  checkMilitaryCrateInteraction() {
+    if (!this.questSystem.militaryCrateQuest.crateOpened && 
+        this.questSystem.militaryCrateQuest.crateFound) {
+      
+      const areaKey = `${this.worldX},${this.worldY}`;
+      let obstacles = this.worldGenerator.getObstacles()[areaKey] || [];
+      
+      for (const obs of obstacles) {
+        if (obs.type === 'militaryCrate' && !obs.opened) {
+          const dx = this.player.x - obs.x;
+          const dy = this.player.y - obs.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < 40 && this.p.keyIsDown(69)) { // E key
+            // Open the crate
+            obs.opened = true;
+            this.questSystem.militaryCrateQuest.crateOpened = true;
+            this.questSystem.militaryCrateQuest.showCompletionMessage = true;
+            
+            // Update diary entry with outpost coordinates
+            const coords = this.questSystem.militaryCrateQuest.outpostCoordinates;
+            this.diaryEntries[4] = `Day 58: I found a military crate! Inside was a coded message about a research outpost at coordinates (${coords.x}, ${coords.y}) relative to my home base. According to the documents, Outpost Delta-7 was working on atmospheric purification technology before the Great Dust Event. Their research might help us reclaim parts of the wasteland.`;
+            
+            // Create floating text to indicate interaction
+            obstacles.push({
+              type: 'floatingText',
+              text: 'Crate opened! New diary entry available.',
+              x: obs.x,
+              y: obs.y - 40,
+              color: { r: 255, g: 220, b: 100 },
+              lifetime: 180, // 3 seconds at 60fps
+              age: 0
+            });
+            
+            // Update UI
+            emitGameStateUpdate(this.player, this.hoverbike);
+            
+            // Remove the floating text after its lifetime
+            setTimeout(() => {
+              const currentObstacles = this.worldGenerator.getObstacles()[areaKey] || [];
+              const textIndex = currentObstacles.findIndex(o => 
+                o.type === 'floatingText' && 
+                o.text === 'Crate opened! New diary entry available.'
+              );
+              
+              if (textIndex !== -1) {
+                currentObstacles.splice(textIndex, 1);
+              }
+            }, 3000);
+          }
+        }
+      }
+    }
   }
 
   generateTarpColor() {
@@ -480,6 +640,12 @@ export default class Game {
     
     this.player.update();
     
+    // Check for military crate when entering the correct tile
+    this.checkForMilitaryCrate();
+    
+    // Check for military crate interaction
+    this.checkMilitaryCrateInteraction();
+    
     // Update quest system
     this.updateQuestSystem();
     
@@ -798,6 +964,7 @@ export default class Game {
     // First check if there's an active quest
     const roofQuest = this.questSystem.roofRepairQuest;
     const resourceQuest = this.questSystem.resourceCollectionQuest;
+    const militaryQuest = this.questSystem.militaryCrateQuest;
     
     if (roofQuest.active && !roofQuest.completed) {
       this.renderActiveQuest(
@@ -812,6 +979,21 @@ export default class Game {
         `Collect Copper: ${resourceQuest.copperCollected}/${resourceQuest.requiredCopper}`,
         ""
       );
+    } else if (militaryQuest.active) {
+      if (!militaryQuest.crateOpened) {
+        this.renderActiveQuest(
+          "Quest: You found a military crate!",
+          "Press E when near to open it",
+          ""
+        );
+      } else {
+        const coords = militaryQuest.outpostCoordinates;
+        this.renderActiveQuest(
+          "Quest: Find Outpost Delta-7",
+          `Travel to coordinates (${coords.x}, ${coords.y}) from home base`,
+          "Check your diary for more information"
+        );
+      }
     }
     
     // Handle quest completion messages
@@ -827,6 +1009,19 @@ export default class Game {
         "your hoverbike's fuel tank! It can now hold 25% more fuel,",
         "allowing for much longer exploration journeys."
       );
+    } else if (militaryQuest.showCompletionMessage) {
+      this.renderQuestCompletion(
+        "The military crate contains coordinates to Outpost Delta-7.",
+        `Travel to (${militaryQuest.outpostCoordinates.x}, ${militaryQuest.outpostCoordinates.y}) from your home base.`,
+        "A new diary entry has been added with more information."
+      );
+      
+      // Reset the completion message timer
+      militaryQuest.completionMessageTimer++;
+      if (militaryQuest.completionMessageTimer > 300) { // 5 seconds
+        militaryQuest.showCompletionMessage = false;
+        militaryQuest.completionMessageTimer = 0;
+      }
     }
   }
   
