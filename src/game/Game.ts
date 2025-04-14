@@ -839,11 +839,11 @@ export default class Game {
     if (!worldData) return;
     
     if (worldData.obstacles) {
-      this.worldGenerator.setObstacles(worldData.obstacles);
+      this.worldGenerator.obstacles = worldData.obstacles;
     }
     
     if (worldData.resources) {
-      this.worldGenerator.setResources(worldData.resources);
+      this.worldGenerator.resources = worldData.resources;
     }
     
     if (worldData.exploredAreas && Array.isArray(worldData.exploredAreas)) {
