@@ -762,3 +762,6 @@ export default class Game {
         resourceQuest.showCompletionMessage = false;
         resourceQuest.completionMessageTimer = 0;
       }
+    }
+  }
+}
