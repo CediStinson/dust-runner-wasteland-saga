@@ -6,12 +6,18 @@ import { Button } from '@/components/ui/button';
 interface DiaryModalProps {
   showDiary: boolean;
   setShowDiary: (show: boolean) => void;
-  diaryEntries?: string[];
 }
 
-const DiaryModal: React.FC<DiaryModalProps> = ({ showDiary, setShowDiary, diaryEntries = ["", "", "", "", ""] }) => {
+const DiaryModal: React.FC<DiaryModalProps> = ({ showDiary, setShowDiary }) => {
   const [currentPage, setCurrentPage] = useState(0);
-  
+  const [diaryEntries] = useState<string[]>([
+    "", // Empty page 1
+    "", // Empty page 2
+    "", // Empty page 3
+    "", // Empty page 4
+    "", // Empty page 5
+  ]);
+
   const totalPages = diaryEntries.length;
   
   if (!showDiary) return null;
