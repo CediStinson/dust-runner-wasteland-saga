@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Save, Settings, LogOut } from 'lucide-react';
 import DayNightIndicator from './ui/game/DayNightIndicator';
@@ -70,6 +71,8 @@ const GameUI: React.FC<GameUIProps> = ({
       <TopBar 
         showControls={showControls}
         setShowControls={setShowControls}
+        showDiary={showDiary}
+        setShowDiary={setShowDiary}
         handleSaveGame={onSaveGame || (() => toast({
           title: "Save function not available",
           description: "The save function is not currently available.",
@@ -87,10 +90,6 @@ const GameUI: React.FC<GameUIProps> = ({
       
       <ControlsModal showControls={showControls} setShowControls={setShowControls} />
       <DiaryModal showDiary={showDiary} setShowDiary={setShowDiary} diaryEntries={diaryEntries} />
-      
-      {gameStarted && (
-        <DiaryButton onClick={() => setShowDiary(true)} />
-      )}
       
       {refueling && <RefuelingIndicator progress={refuelProgress} />}
       
@@ -111,6 +110,8 @@ const GameUI: React.FC<GameUIProps> = ({
 interface TopBarProps {
   showControls: boolean;
   setShowControls: (show: boolean) => void;
+  showDiary: boolean;
+  setShowDiary: (show: boolean) => void;
   handleSaveGame: () => void;
   handleLogout: () => void;
   user: any;
@@ -125,6 +126,8 @@ interface TopBarProps {
 const TopBar: React.FC<TopBarProps> = ({
   showControls,
   setShowControls,
+  showDiary,
+  setShowDiary,
   handleSaveGame,
   handleLogout,
   user,
@@ -146,6 +149,8 @@ const TopBar: React.FC<TopBarProps> = ({
           >
             <Settings size={18} />
           </button>
+          
+          <DiaryButton onClick={() => setShowDiary(true)} />
           
           <button 
             onClick={handleSaveGame}
