@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import GameSketch from '../components/GameSketch';
 import GameUI from '../components/GameUI';
-import GameSaveManager from '../components/GameSaveManager';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -38,6 +37,13 @@ const Index = () => {
   const [worldData, setWorldData] = useState<any>(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [questSystem, setQuestSystem] = useState<any>(null);
+  const [diaryEntries, setDiaryEntries] = useState<string[]>([
+    "Day 1: The world wasn't always like this. In 2097, after decades of environmental neglect, the Great Dust Event began. Pollutants in the atmosphere combined with natural dust storms created a cascade effect that covered Earth's surface in a thick layer of sand and dust.",
+    "Day 15: My grandfather told stories about how corporations kept mining and drilling despite warnings. Eventually, the atmosphere couldn't recover. The dust clouds blocked the sun, and temperatures fluctuated wildly. Most of civilization collapsed, leaving behind only scattered settlements.",
+    "Day 32: I found maps at the old research station. They show this area was once green farmland. Hard to believe anything could grow here now. I must find more information about what happened to the people who lived here.",
+    "Day 47: A military crate from the old Global Crisis Response Unit! Inside was a reference to Outpost Delta-7, which might hold technology to help restore the land. My grandfather mentioned these outposts in his stories. I need to find it.",
+    ""
+  ]);
   
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -68,7 +74,8 @@ const Index = () => {
       dayTimeAngle,
       worldData,
       gameStarted,
-      questSystem
+      questSystem,
+      diaryEntries
     };
   };
   
@@ -122,6 +129,10 @@ const Index = () => {
     setHoverbikeWorldX(savedState.hoverbikeWorldX || 0);
     setHoverbikeWorldY(savedState.hoverbikeWorldY || 0);
     setGameStarted(savedState.gameStarted || false);
+    
+    if (savedState.diaryEntries && Array.isArray(savedState.diaryEntries)) {
+      setDiaryEntries(savedState.diaryEntries);
+    }
     
     if (savedState.worldData) {
       setWorldData(savedState.worldData);
@@ -182,7 +193,7 @@ const Index = () => {
         carryingFuelCanister,
         hoverbikeX, hoverbikeY, hoverbikeAngle, hoverbikeWorldX, hoverbikeWorldY,
         baseWorldX, baseWorldY, dayTimeIcon, dayTimeAngle, worldData, gameStarted,
-        questSystem
+        questSystem, diaryEntries
       } = event.detail;
       
       // Set all values from the event data
@@ -227,6 +238,11 @@ const Index = () => {
         setQuestSystem(questSystem);
       }
       
+      // Handle diary entries updates
+      if (diaryEntries !== undefined && Array.isArray(diaryEntries)) {
+        setDiaryEntries(diaryEntries);
+      }
+      
       // Handle world data changes
       if (worldData !== null && worldData !== undefined) {
         setWorldData(worldData);
@@ -263,6 +279,8 @@ const Index = () => {
         dayTimeAngle={dayTimeAngle}
         onSaveGame={handleSaveGame}
         onLogout={handleLogout}
+        gameStarted={gameStarted}
+        diaryEntries={diaryEntries}
       />
       
       {!user && !gameStarted && (

@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
@@ -73,7 +74,8 @@ const GameSketch = () => {
               isUnderTarp: game.isPlayerUnderTarp(),
               questSystem: game.questSystem,
               fuelCanistersNearby: totalFuelCanisters,
-              canDig: game.player?.canDig || false
+              canDig: game.player?.canDig || false,
+              diaryEntries: game.diaryEntries
             }
           });
           window.dispatchEvent(event);
@@ -139,6 +141,10 @@ const GameSketch = () => {
         
         if (gameRef.current.player && savedState.playerHealth !== undefined) {
           gameRef.current.player.health = savedState.playerHealth;
+        }
+        
+        if (savedState.diaryEntries && Array.isArray(savedState.diaryEntries)) {
+          gameRef.current.diaryEntries = savedState.diaryEntries;
         }
         
         if (gameRef.current.player) {
