@@ -58,7 +58,7 @@ export default class Game {
     };
     diaryEntries: string[];
   };
-  militaryCrateLocation: { x: number, y: number };
+  militaryCrateLocation: { worldX: number, worldY: number, x?: number, y?: number };
 
   constructor(p: any) {
     this.p = p;
@@ -212,7 +212,12 @@ export default class Game {
     const location = possibleLocations[randomIndex];
     
     // Store the crate location for reference
-    this.militaryCrateLocation = location;
+    this.militaryCrateLocation = {
+      worldX: location.worldX,
+      worldY: location.worldY,
+      x: this.p.width / 2,
+      y: this.p.height / 2
+    };
     
     // Generate the world at this location if not already generated
     const areaKey = `${location.worldX},${location.worldY}`;
@@ -334,8 +339,9 @@ export default class Game {
   }
 
   checkMilitaryCrateInteraction() {
-    if (this.worldX === this.militaryCrateLocation?.x && 
-        this.worldY === this.militaryCrateLocation?.y) {
+    if (this.militaryCrateLocation && 
+        this.worldX === this.militaryCrateLocation.worldX && 
+        this.worldY === this.militaryCrateLocation.worldY) {
       
       const crateKey = `${this.worldX},${this.worldY}`;
       const obstacles = this.worldGenerator.getObstacles()[crateKey] || [];
