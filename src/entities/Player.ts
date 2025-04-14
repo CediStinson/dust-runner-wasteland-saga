@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -78,10 +79,6 @@ export default class Player implements PlayerType {
     this.repairProgress = 0;
     this.droppingCanister = false;
     this.canDig = false;
-  }
-
-  setRiding(isRiding: boolean) {
-    this.riding = isRiding;
   }
 
   update() {
@@ -769,4 +766,144 @@ export default class Player implements PlayerType {
       this.p.fill(255);
       this.p.textAlign(this.p.CENTER);
       this.p.textSize(8);
-      this.p.text("Refueling
+      this.p.text("Refueling", 0, -5);
+      
+      this.p.pop();
+    }
+    
+    if (this.isRepairingHoverbike) {
+      this.p.push();
+      this.p.translate(this.hoverbike.x, this.hoverbike.y - 25);
+      
+      this.p.fill(0, 0, 0, 150);
+      this.p.rect(-15, 0, 30, 4, 2);
+      
+      this.p.fill(60, 180, 60);
+      this.p.rect(-15, 0, 30 * this.repairProgress, 4, 2);
+      
+      this.p.fill(255);
+      this.p.textAlign(this.p.CENTER);
+      this.p.textSize(8);
+      this.p.text("Repairing", 0, -5);
+      
+      if (this.p.frameCount % 3 === 0 && this.p.random() > 0.6) {
+        const sparkX = this.hoverbike.x + this.p.random(-10, 10);
+        const sparkY = this.hoverbike.y + this.p.random(-5, 5);
+        
+        this.p.fill(255, 255, 200);
+        this.p.noStroke();
+        this.p.ellipse(sparkX - this.hoverbike.x, sparkY - this.hoverbike.y, 1.5, 1.5);
+        
+        this.p.fill(255, 255, 150, 100);
+        this.p.ellipse(sparkX - this.hoverbike.x, sparkY - this.hoverbike.y, 3, 3);
+      }
+      
+      this.p.pop();
+    }
+  }
+
+  applyCactusDamage() {
+    if (this.cactusDamageCooldown <= 0) {
+      const oldHealth = this.health;
+      this.health = this.p.max(0, this.health - 5);
+      if (oldHealth !== this.health) {
+        emitGameStateUpdate(this, this.hoverbike);
+      }
+      this.cactusDamageCooldown = 60;
+    }
+  }
+  
+  checkForCactusDamage() {
+    if (this.cactusDamageCooldown > 0) {
+      this.cactusDamageCooldown--;
+      return;
+    }
+    
+    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+    for (let obs of currentObstacles) {
+      if (obs.type === 'cactus') {
+        let dx = this.x - obs.x;
+        let dy = this.y - obs.y;
+        let hitboxWidth = 20 * obs.size;
+        let distance = this.p.sqrt(dx * dx + dy * dy);
+        
+        if (distance < hitboxWidth) {
+          this.applyCactusDamage();
+          break;
+        }
+      }
+    }
+  }
+  
+  checkForHutSleeping() {
+    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
+    for (let obs of currentObstacles) {
+      if (obs.type === 'hut') {
+        let dx = this.x - obs.x;
+        let dy = this.y - (obs.y + 25);
+        let distance = this.p.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 15) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  checkForHutInteraction() {
+    if (this.worldX === 0 && this.worldY === 0) {
+      let currentObstacles = this.obstacles["0,0"] || [];
+      for (let obs of currentObstacles) {
+        if (obs.type === 'hut') {
+          let dx = this.x - obs.x;
+          let dy = this.y - (obs.y + 25);
+          let distance = this.p.sqrt(dx * dx + dy * dy);
+          
+          if (distance < 20) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  setRiding(value: boolean) {
+    this.riding = value;
+  }
+
+  setWorldCoordinates(x: number, y: number) {
+    this.worldX = x;
+    this.worldY = y;
+  }
+
+  checkIfNearFuelPump() {
+    if (this.worldX === 0 && this.worldY === 0) {
+      const currentObstacles = this.obstacles["0,0"] || [];
+      for (const obs of currentObstacles) {
+        if (obs.type === 'fuelPump') {
+          return this.p.dist(this.x, this.y, obs.x, obs.y) < 70;
+        }
+      }
+    }
+    return false;
+  }
+
+  cancelDigging() {
+    if (this.digging) {
+      this.digging = false;
+      this.isDigging = false;
+      this.digTimer = 0;
+      this.digTarget = null;
+      emitGameStateUpdate(this, this.hoverbike);
+    }
+  }
+
+  isNearHoverbike() {
+    return this.hoverbike && 
+           this.hoverbike.worldX === this.worldX && 
+           this.hoverbike.worldY === this.worldY &&
+           this.p.dist(this.x, this.y, this.hoverbike.x, this.hoverbike.y) < 30;
+  }
+}
