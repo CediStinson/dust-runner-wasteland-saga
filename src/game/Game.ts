@@ -46,7 +46,19 @@ export default class Game {
       showCompletionMessage: boolean;
       completionMessageTimer: number;
     };
+    militaryCrateQuest: {
+      active: boolean;
+      completed: boolean;
+      crateOpened: boolean;
+      targetX: number;
+      targetY: number;
+      showCompletionMessage: boolean;
+      completionMessageTimer: number;
+      rewardGiven: boolean;
+    };
+    diaryEntries: string[];
   };
+  militaryCrateLocation: { x: number, y: number };
 
   constructor(p: any) {
     this.p = p;
@@ -85,7 +97,24 @@ export default class Game {
         rewardGiven: false,
         showCompletionMessage: false,
         completionMessageTimer: 0
-      }
+      },
+      militaryCrateQuest: {
+        active: false,
+        completed: false,
+        crateOpened: false,
+        targetX: 0,
+        targetY: 0,
+        showCompletionMessage: false,
+        completionMessageTimer: 0,
+        rewardGiven: false
+      },
+      diaryEntries: [
+        "", // Empty page 1
+        "", // Empty page 2
+        "", // Empty page 3
+        "", // Empty page 4
+        "", // Empty page 5
+      ]
     };
     
     // Generate random tarp color in brown/red/green tones
@@ -155,11 +184,178 @@ export default class Game {
     // Add walking marks
     this.addWalkingMarksAtHomeBase();
     
+    // Place military crate
+    this.placeMilitaryCrate();
+    
     // Modify the world generator to make copper rarer
     this.worldGenerator.COPPER_CHANCE = 0.05; // Make copper 5 times rarer (was ~0.25)
     
     // Fix obstacle hitboxes for common objects
     this.adjustObstacleHitboxes();
+  }
+
+  placeMilitaryCrate() {
+    // Define possible locations (8 tiles around home base)
+    const possibleLocations = [
+      { worldX: -1, worldY: -1 }, // Northwest
+      { worldX: 0, worldY: -1 },  // North
+      { worldX: 1, worldY: -1 },  // Northeast
+      { worldX: -1, worldY: 0 },  // West
+      { worldX: 1, worldY: 0 },   // East
+      { worldX: -1, worldY: 1 },  // Southwest
+      { worldX: 0, worldY: 1 },   // South
+      { worldX: 1, worldY: 1 }    // Southeast
+    ];
+    
+    // Choose a random location
+    const randomIndex = Math.floor(this.p.random(possibleLocations.length));
+    const location = possibleLocations[randomIndex];
+    
+    // Store the crate location for reference
+    this.militaryCrateLocation = location;
+    
+    // Generate the world at this location if not already generated
+    const areaKey = `${location.worldX},${location.worldY}`;
+    if (!this.worldGenerator.getObstacles()[areaKey]) {
+      this.worldGenerator.generateNewArea(location.worldX, location.worldY);
+    }
+    
+    // Get the obstacles for this area
+    let obstacles = this.worldGenerator.getObstacles()[areaKey] || [];
+    
+    // Add the military crate
+    obstacles.push({
+      type: 'militaryCrate',
+      x: this.p.width / 2,
+      y: this.p.height / 2,
+      opened: false,
+      size: 1.0
+    });
+    
+    // Update the obstacles for this area
+    this.worldGenerator.getObstacles()[areaKey] = obstacles;
+    
+    console.log(`Placed military crate at world coordinates: ${location.worldX}, ${location.worldY}`);
+  }
+
+  startMilitaryCrateQuest() {
+    // Generate a random destination 5-8 tiles away in any direction
+    let targetX, targetY;
+    
+    do {
+      // Generate coordinates with values between -8 and 8
+      targetX = Math.floor(this.p.random(-8, 9));
+      targetY = Math.floor(this.p.random(-8, 9));
+      
+      // Calculate Manhattan distance from home base (0,0)
+      const distanceFromHome = Math.abs(targetX) + Math.abs(targetY);
+      
+      // If the distance is between 5 and 8 (inclusive), break the loop
+      if (distanceFromHome >= 5 && distanceFromHome <= 8) {
+        break;
+      }
+      
+      // Keep trying until we find a suitable location
+    } while (true);
+    
+    console.log(`Military crate quest target location: ${targetX}, ${targetY}`);
+    
+    // Update quest system with the target location
+    this.questSystem.militaryCrateQuest.active = true;
+    this.questSystem.militaryCrateQuest.crateOpened = true;
+    this.questSystem.militaryCrateQuest.targetX = targetX;
+    this.questSystem.militaryCrateQuest.targetY = targetY;
+    this.questSystem.militaryCrateQuest.completed = false;
+    
+    // Add diary entry
+    this.addMilitaryQuestDiaryEntry(targetX, targetY);
+    
+    // Update UI
+    emitGameStateUpdate(this.player, this.hoverbike);
+  }
+
+  addMilitaryQuestDiaryEntry(targetX: number, targetY: number) {
+    const diaryEntry = `After the Final Storm, the Earth became a wasteland—dust-covered and dead. Oceans are gone, cities lost.\n\nThis crate held something... maybe hope.\n\nHead to the old world trace at coordinates (${targetX}, ${targetY}).`;
+    
+    // Add entry to first empty diary slot
+    for (let i = 0; i < this.questSystem.diaryEntries.length; i++) {
+      if (!this.questSystem.diaryEntries[i]) {
+        this.questSystem.diaryEntries[i] = diaryEntry;
+        break;
+      }
+    }
+    
+    console.log("Added military crate quest diary entry");
+  }
+
+  checkMilitaryCrateQuestCompletion() {
+    const quest = this.questSystem.militaryCrateQuest;
+    
+    if (quest.active && !quest.completed) {
+      // Check if player is at the target location
+      if (this.worldX === quest.targetX && this.worldY === quest.targetY) {
+        this.completeMilitaryCrateQuest();
+      }
+    }
+  }
+
+  completeMilitaryCrateQuest() {
+    const quest = this.questSystem.militaryCrateQuest;
+    
+    if (!quest.rewardGiven) {
+      // Mark quest as completed
+      quest.completed = true;
+      quest.rewardGiven = true;
+      quest.showCompletionMessage = true;
+      quest.completionMessageTimer = 0;
+      
+      // Give rewards - increase player max health
+      this.player.maxHealth += 20;
+      this.player.health = Math.min(this.player.health + 20, this.player.maxHealth);
+      
+      // Update UI
+      emitGameStateUpdate(this.player, this.hoverbike);
+      
+      console.log("Military crate quest completed!");
+    }
+  }
+
+  checkHutInteraction() {
+    const quest = this.questSystem.roofRepairQuest;
+    
+    if (quest.active && !quest.completed && quest.metalCollected >= quest.requiredMetal) {
+      // Check if player is pressing E near the hut
+      if (this.player.checkForHutInteraction() && this.p.keyIsDown(69)) { // E key
+        this.completeRoofRepairQuest();
+      }
+    }
+    
+    this.checkMilitaryCrateInteraction();
+  }
+
+  checkMilitaryCrateInteraction() {
+    if (this.worldX === this.militaryCrateLocation?.x && 
+        this.worldY === this.militaryCrateLocation?.y) {
+      
+      const crateKey = `${this.worldX},${this.worldY}`;
+      const obstacles = this.worldGenerator.getObstacles()[crateKey] || [];
+      
+      // Find the military crate
+      const crate = obstacles.find(obs => obs.type === 'militaryCrate');
+      
+      if (crate && !crate.opened && 
+          this.p.dist(this.player.x, this.player.y, crate.x, crate.y) < 40 && 
+          this.p.keyIsDown(69)) { // E key
+        
+        // Open the crate
+        crate.opened = true;
+        
+        // Start the quest if not already active
+        if (!this.questSystem.militaryCrateQuest.active) {
+          this.startMilitaryCrateQuest();
+        }
+      }
+    }
   }
 
   generateTarpColor() {
@@ -483,6 +679,9 @@ export default class Game {
     // Update quest system
     this.updateQuestSystem();
     
+    // Check for military crate quest completion
+    this.checkMilitaryCrateQuestCompletion();
+    
     // Check if player is entering the hut at night
     if (!this.riding && this.worldX === 0 && this.worldY === 0) {
       if (this.player.checkForHutSleeping() && this.isNightTime()) {
@@ -551,6 +750,18 @@ export default class Game {
         resourceQuest.completionMessageTimer = 0;
       }
     }
+    
+    // Handle military crate quest completion message
+    const militaryQuest = this.questSystem.militaryCrateQuest;
+    
+    if (militaryQuest.showCompletionMessage) {
+      militaryQuest.completionMessageTimer++;
+      
+      if (militaryQuest.completionMessageTimer > 600) { // 10 seconds at 60fps
+        militaryQuest.showCompletionMessage = false;
+        militaryQuest.completionMessageTimer = 0;
+      }
+    }
   }
   
   checkHutInteraction() {
@@ -562,6 +773,8 @@ export default class Game {
         this.completeRoofRepairQuest();
       }
     }
+    
+    this.checkMilitaryCrateInteraction();
   }
   
   completeRoofRepairQuest() {
@@ -798,6 +1011,7 @@ export default class Game {
     // First check if there's an active quest
     const roofQuest = this.questSystem.roofRepairQuest;
     const resourceQuest = this.questSystem.resourceCollectionQuest;
+    const militaryQuest = this.questSystem.militaryCrateQuest;
     
     if (roofQuest.active && !roofQuest.completed) {
       this.renderActiveQuest(
@@ -814,6 +1028,19 @@ export default class Game {
       );
     }
     
+    // Render military crate quest if active
+    if (militaryQuest.active && !militaryQuest.completed) {
+      // Position below any existing quest UI
+      const verticalOffset = (roofQuest.active || resourceQuest.active) ? 70 : 0;
+      
+      this.renderActiveQuest(
+        "Side Quest: Search the marked coordinates",
+        `Travel to (${militaryQuest.targetX}, ${militaryQuest.targetY})`,
+        "",
+        verticalOffset
+      );
+    }
+    
     // Handle quest completion messages
     if (roofQuest.showCompletionMessage) {
       this.renderQuestCompletion(
@@ -827,15 +1054,21 @@ export default class Game {
         "your hoverbike's fuel tank! It can now hold 25% more fuel,",
         "allowing for much longer exploration journeys."
       );
+    } else if (militaryQuest.showCompletionMessage) {
+      this.renderQuestCompletion(
+        "You've found traces of pre-wasteland civilization!",
+        "The military supplies you discovered include medicine",
+        "that increases your maximum health by 20 points!"
+      );
     }
   }
   
-  renderActiveQuest(title: string, progress: string, hint: string) {
+  renderActiveQuest(title: string, progress: string, hint: string, verticalOffset: number = 0) {
     // Center at bottom, fixed width
     const boxWidth = 380;
     const boxHeight = 60;
     const boxX = (this.p.width - boxWidth) / 2;
-    const boxY = this.p.height - 100; // Lower position to avoid overlapping with UI elements
+    const boxY = this.p.height - 100 - verticalOffset; // Adjust position based on offset
 
     this.p.push();
     this.p.fill(0, 0, 0, 150);
@@ -1156,7 +1389,11 @@ export default class Game {
     return {
       exploredAreas: exploredAreasArray,
       obstacles,
-      resources
+      resources,
+      questSystem: {
+        diaryEntries: this.questSystem.diaryEntries,
+        militaryCrateQuest: this.questSystem.militaryCrateQuest
+      }
     };
   }
   
@@ -1176,6 +1413,20 @@ export default class Game {
     if (worldData.resources) {
       for (const areaKey in worldData.resources) {
         this.worldGenerator.getResources()[areaKey] = worldData.resources[areaKey];
+      }
+    }
+    
+    // Load quest data
+    if (worldData.questSystem) {
+      if (worldData.questSystem.diaryEntries) {
+        this.questSystem.diaryEntries = worldData.questSystem.diaryEntries;
+      }
+      
+      if (worldData.questSystem.militaryCrateQuest) {
+        this.questSystem.militaryCrateQuest = {
+          ...this.questSystem.militaryCrateQuest,
+          ...worldData.questSystem.militaryCrateQuest
+        };
       }
     }
     

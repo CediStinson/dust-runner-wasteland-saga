@@ -73,7 +73,9 @@ const GameSketch = () => {
               isUnderTarp: game.isPlayerUnderTarp(),
               questSystem: game.questSystem,
               fuelCanistersNearby: totalFuelCanisters,
-              canDig: game.player?.canDig || false
+              canDig: game.player?.canDig || false,
+              diaryEntries: game.questSystem.diaryEntries,
+              riding: game.riding
             }
           });
           window.dispatchEvent(event);
@@ -211,9 +213,9 @@ const GameSketch = () => {
             }
           }
           
-          gameRef.current.riding = false;
+          gameRef.current.riding = savedState.riding || false;
           if (gameRef.current.player) {
-            gameRef.current.player.riding = false;
+            gameRef.current.player.riding = savedState.riding || false;
           }
           
           if (gameRef.current.renderer) {
@@ -273,7 +275,8 @@ const GameSketch = () => {
             dayTimeAngle: 0,
             worldData: null,
             gameStarted: false,
-            sleepingInHut: false
+            sleepingInHut: false,
+            diaryEntries: ["", "", "", "", ""]
           }
         });
         window.dispatchEvent(resetEvent);
