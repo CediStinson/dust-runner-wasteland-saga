@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
@@ -75,7 +74,8 @@ const GameSketch = () => {
               questSystem: game.questSystem,
               fuelCanistersNearby: totalFuelCanisters,
               canDig: game.player?.canDig || false,
-              diaryEntries: game.diaryEntries
+              diaryEntries: game.diaryEntries,
+              riding: game.riding
             }
           });
           window.dispatchEvent(event);

@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -79,6 +78,10 @@ export default class Player implements PlayerType {
     this.repairProgress = 0;
     this.droppingCanister = false;
     this.canDig = false;
+  }
+
+  setRiding(isRiding: boolean) {
+    this.riding = isRiding;
   }
 
   update() {
@@ -869,8 +872,8 @@ export default class Player implements PlayerType {
     return false;
   }
 
-  setRiding(value: boolean) {
-    this.riding = value;
+  setRiding(isRiding: boolean) {
+    this.riding = isRiding;
   }
 
   setWorldCoordinates(x: number, y: number) {

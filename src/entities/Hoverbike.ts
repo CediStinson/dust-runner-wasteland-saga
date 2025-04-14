@@ -32,7 +32,7 @@ export default class Hoverbike implements HoverbikeType {
     timer: number;
   };
   speedLevel: number;
-  outOfFuelTime: number; // Track when bike ran out of fuel
+  outOfFuelTime: number;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -75,6 +75,11 @@ export default class Hoverbike implements HoverbikeType {
     this.lastRiding = this.player.riding;
 
     if (this.player.riding) {
+      // Ensure world coordinates match when riding
+      if (this.worldX !== this.player.worldX || this.worldY !== this.player.worldY) {
+        this.setWorldCoordinates(this.player.worldX, this.player.worldY);
+      }
+      
       this.isRiding = true;
       this.handleControls();
       

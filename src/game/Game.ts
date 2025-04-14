@@ -481,6 +481,9 @@ export default class Game {
       this.hasMilitaryCrateSpawned = true;
     }
     
+    // Update riding state for player and hoverbike
+    this.player.riding = this.riding;
+    
     if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
       this.hoverbike.update();
       this.checkHoverbikeCanisterCollisions();
@@ -817,6 +820,10 @@ export default class Game {
         if (distance < 50) {
           this.riding = true;
           this.player.riding = true;
+          
+          // Make sure hoverbike's world coordinates match the player's
+          this.hoverbike.worldX = this.worldX;
+          this.hoverbike.worldY = this.worldY;
         }
       }
     }
