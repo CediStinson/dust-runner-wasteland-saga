@@ -764,4 +764,350 @@ export default class Game {
       }
     }
   }
+
+  render() {
+    this.renderer.render();
+  }
+
+  getWorldData() {
+    return {
+      obstacles: this.worldGenerator.getObstacles(),
+      resources: this.worldGenerator.getResources(),
+      exploredAreas: Array.from(this.exploredAreas)
+    };
+  }
+
+  isPlayerUnderTarp() {
+    if (this.worldX !== 0 || this.worldY !== 0) return false;
+    
+    const homeAreaKey = "0,0";
+    const homeObstacles = this.worldGenerator.getObstacles()[homeAreaKey] || [];
+    const tarp = homeObstacles.find(obs => obs.type === 'tarp');
+    
+    if (!tarp || !this.player) return false;
+    
+    const distanceX = Math.abs(this.player.x - tarp.x);
+    const distanceY = Math.abs(this.player.y - tarp.y);
+    
+    return distanceX < tarp.width / 2 && distanceY < tarp.height / 2;
+  }
+
+  handleKey(key: string) {
+    if (!this.gameStarted) {
+      if (key === ' ' || key.toLowerCase() === 'enter') {
+        this.gameStarted = true;
+      }
+      return;
+    }
+    
+    if (key === 'e' || key === 'E') {
+      if (this.riding) {
+        this.riding = false;
+        this.player.riding = false;
+        this.player.x = this.hoverbike.x + 30;
+        this.player.y = this.hoverbike.y;
+      } else {
+        const distance = this.p.dist(
+          this.player.x,
+          this.player.y,
+          this.hoverbike.x,
+          this.hoverbike.y
+        );
+        
+        if (distance < 50) {
+          this.riding = true;
+          this.player.riding = true;
+        }
+      }
+    }
+  }
+
+  handleClick(mouseX: number, mouseY: number) {
+    if (!this.gameStarted) {
+      this.gameStarted = true;
+      return;
+    }
+  }
+
+  resize() {
+    if (this.renderer) {
+      // Update any necessary dimensions
+    }
+  }
+
+  loadWorldData(worldData: any) {
+    if (!worldData) return;
+    
+    if (worldData.obstacles) {
+      this.worldGenerator.setObstacles(worldData.obstacles);
+    }
+    
+    if (worldData.resources) {
+      this.worldGenerator.setResources(worldData.resources);
+    }
+    
+    if (worldData.exploredAreas && Array.isArray(worldData.exploredAreas)) {
+      this.exploredAreas = new Set(worldData.exploredAreas);
+    }
+  }
+
+  resetToStartScreen() {
+    this.gameStarted = false;
+    this.riding = false;
+    
+    if (this.player) {
+      this.player.riding = false;
+      this.player.setWorldCoordinates(0, 0);
+      this.player.x = this.p.width / 2;
+      this.player.y = this.p.height / 2 - 50;
+      this.player.health = this.player.maxHealth;
+      this.player.inventory.metal = 0;
+      this.player.inventory.copper = 0;
+      this.player.carryingFuelCanister = false;
+    }
+    
+    if (this.hoverbike) {
+      this.hoverbike.setWorldCoordinates(0, 0);
+      this.hoverbike.x = this.p.width / 2 - 120;
+      this.hoverbike.y = this.p.height / 2 - 50;
+      this.hoverbike.fuel = this.hoverbike.maxFuel;
+      this.hoverbike.health = this.hoverbike.maxHealth;
+    }
+    
+    this.worldX = 0;
+    this.worldY = 0;
+    this.timeOfDay = 0.25;
+  }
+
+  updateTimeOfDay() {
+    if (this.sleepingInHut) return;
+    
+    // Normal day/night cycle
+    const totalCycleLength = this.dayLength + this.nightLength;
+    const frameIncrement = 1 / totalCycleLength;
+    
+    this.timeOfDay += frameIncrement;
+    if (this.timeOfDay >= 1) {
+      this.timeOfDay = 0;
+    }
+    
+    // Update dayTimeIcon and angle
+    if (this.timeOfDay >= 0 && this.timeOfDay < 0.25) {
+      this.dayTimeIcon = "moon";
+    } else if (this.timeOfDay >= 0.25 && this.timeOfDay < 0.5) {
+      this.dayTimeIcon = "sunrise";
+    } else if (this.timeOfDay >= 0.5 && this.timeOfDay < 0.75) {
+      this.dayTimeIcon = "sun";
+    } else {
+      this.dayTimeIcon = "sunset";
+    }
+    
+    this.dayTimeAngle = this.timeOfDay * Math.PI * 2;
+  }
+
+  updateSleeping() {
+    if (!this.sleepingInHut) return;
+    
+    this.sleepAnimationTimer++;
+    
+    // Update sleep animation
+    if (this.sleepParticles.length < 5 && this.p.random(0, 1) > 0.9) {
+      this.sleepParticles.push({
+        x: this.player.x + this.p.random(-10, 10),
+        y: this.player.y - 10 + this.p.random(-5, 5),
+        z: 0,
+        opacity: 255,
+        yOffset: 0,
+        size: this.p.random(2, 4)
+      });
+    }
+    
+    // Update existing particles
+    for (let i = this.sleepParticles.length - 1; i >= 0; i--) {
+      const particle = this.sleepParticles[i];
+      particle.yOffset -= 0.5;
+      particle.opacity -= 2;
+      
+      if (particle.opacity <= 0) {
+        this.sleepParticles.splice(i, 1);
+      }
+    }
+    
+    // Fast forward time while sleeping
+    this.timeOfDay += 0.005;
+    if (this.timeOfDay >= 1) {
+      this.timeOfDay = 0;
+    }
+    
+    // End sleeping when it's morning
+    if (this.timeOfDay > 0.25 && this.timeOfDay < 0.3) {
+      this.sleepingInHut = false;
+      this.sleepParticles = [];
+      
+      // Healing effect from sleeping
+      if (this.player) {
+        this.player.health = Math.min(this.player.health + 20, this.player.maxHealth);
+      }
+    }
+  }
+
+  checkHoverbikeCanisterCollisions() {
+    if (!this.player.carryingFuelCanister) return;
+    
+    const distance = this.p.dist(
+      this.player.x,
+      this.player.y,
+      this.hoverbike.x,
+      this.hoverbike.y
+    );
+    
+    if (distance < 50 && this.p.keyIsDown(69)) { // 'E' key
+      this.player.carryingFuelCanister = false;
+      this.hoverbike.fuel = Math.min(this.hoverbike.fuel + 50, this.hoverbike.maxFuel);
+      
+      // Show refueling effect
+      const areaKey = `${this.worldX},${this.worldY}`;
+      const obstacles = this.worldGenerator.getObstacles()[areaKey] || [];
+      
+      for (let i = 0; i < 10; i++) {
+        obstacles.push({
+          type: 'dust',
+          x: this.hoverbike.x + this.p.random(-15, 15),
+          y: this.hoverbike.y + this.p.random(-15, 15),
+          size: this.p.random(0.3, 1.0),
+          alpha: 200,
+          velocityX: this.p.random(-0.5, 0.5),
+          velocityY: this.p.random(-1, -0.2),
+          lifetime: 30 + Math.floor(this.p.random(0, 30)),
+          age: 0
+        });
+      }
+      
+      this.worldGenerator.getObstacles()[areaKey] = obstacles;
+    }
+  }
+
+  isNightTime() {
+    return this.timeOfDay < 0.25 || this.timeOfDay > 0.75;
+  }
+
+  startSleeping() {
+    if (this.sleepingInHut) return;
+    
+    this.sleepingInHut = true;
+    this.sleepStartTime = this.timeOfDay;
+    this.sleepAnimationTimer = 0;
+    this.sleepParticles = [];
+    
+    // Show sleep effect
+    const areaKey = `${this.worldX},${this.worldY}`;
+    const obstacles = this.worldGenerator.getObstacles()[areaKey] || [];
+    
+    obstacles.push({
+      type: 'floatingText',
+      text: "Zzzz...",
+      x: this.player.x,
+      y: this.player.y - 20,
+      color: { r: 200, g: 200, b: 255 },
+      lifetime: 120,
+      age: 0,
+      opacity: 255,
+      offsetY: 0
+    });
+    
+    this.worldGenerator.getObstacles()[areaKey] = obstacles;
+  }
+
+  checkHutInteraction() {
+    const areaKey = `${this.worldX},${this.worldY}`;
+    const obstacles = this.worldGenerator.getObstacles()[areaKey] || [];
+    
+    const hut = obstacles.find(obj => obj.type === 'hut');
+    
+    if (!hut) return;
+    
+    const distance = this.p.dist(this.player.x, this.player.y, hut.x, hut.y);
+    
+    if (distance < 50 && this.p.keyIsDown(69)) { // 'E' key
+      // Handle hut interaction
+      if (this.isNightTime()) {
+        this.startSleeping();
+      } else {
+        // Show message that it's not night time yet
+        obstacles.push({
+          type: 'floatingText',
+          text: "I should wait until nightfall to sleep...",
+          x: this.player.x,
+          y: this.player.y - 20,
+          color: { r: 200, g: 200, b: 255 },
+          lifetime: 120,
+          age: 0,
+          opacity: 255,
+          offsetY: 0
+        });
+        
+        this.worldGenerator.getObstacles()[areaKey] = obstacles;
+      }
+    }
+  }
+
+  checkBorder() {
+    // If player is too close to the edge, they'll move to the next area
+    const margin = 20;
+    
+    if (this.player.x < margin) {
+      this.worldX--;
+      this.player.x = this.p.width - margin * 2;
+      this.player.setWorldCoordinates(this.worldX, this.worldY);
+      this.renderer.setWorldCoordinates(this.worldX, this.worldY);
+      this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+      this.exploredAreas.add(`${this.worldX},${this.worldY}`);
+    } else if (this.player.x > this.p.width - margin) {
+      this.worldX++;
+      this.player.x = margin * 2;
+      this.player.setWorldCoordinates(this.worldX, this.worldY);
+      this.renderer.setWorldCoordinates(this.worldX, this.worldY);
+      this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+      this.exploredAreas.add(`${this.worldX},${this.worldY}`);
+    }
+    
+    if (this.player.y < margin) {
+      this.worldY--;
+      this.player.y = this.p.height - margin * 2;
+      this.player.setWorldCoordinates(this.worldX, this.worldY);
+      this.renderer.setWorldCoordinates(this.worldX, this.worldY);
+      this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+      this.exploredAreas.add(`${this.worldX},${this.worldY}`);
+    } else if (this.player.y > this.p.height - margin) {
+      this.worldY++;
+      this.player.y = margin * 2;
+      this.player.setWorldCoordinates(this.worldX, this.worldY);
+      this.renderer.setWorldCoordinates(this.worldX, this.worldY);
+      this.worldGenerator.generateNewArea(this.worldX, this.worldY);
+      this.exploredAreas.add(`${this.worldX},${this.worldY}`);
+    }
+  }
+
+  completeResourceQuest() {
+    const quest = this.questSystem.resourceCollectionQuest;
+    if (quest.active && !quest.completed && quest.copperCollected >= quest.requiredCopper) {
+      quest.completed = true;
+      quest.showCompletionMessage = true;
+      quest.completionMessageTimer = 0;
+      
+      // Give reward - increase player's max health
+      if (!quest.rewardGiven) {
+        this.player.maxHealth += 20;
+        this.player.health += 20;
+        quest.rewardGiven = true;
+        
+        this.showFloatingMessage(
+          "Copper collection complete! Max health increased!",
+          this.p.width / 2,
+          this.p.height / 2 - 80,
+          { r: 150, g: 255, b: 150 }
+        );
+      }
+    }
+  }
 }
