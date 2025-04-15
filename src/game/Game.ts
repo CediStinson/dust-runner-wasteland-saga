@@ -471,6 +471,311 @@ export default class Game {
     console.log(`Placed military crate at world coordinates: ${location.worldX}, ${location.worldY}`);
   }
 
+  getWorldData() {
+    return {
+      worldX: this.worldX,
+      worldY: this.worldY,
+      obstacles: this.worldGenerator.getObstacles(),
+      resources: this.worldGenerator.getResources(),
+      exploredAreas: Array.from(this.exploredAreas),
+      questSystem: this.questSystem
+    };
+  }
+
+  loadWorldData(worldData: any) {
+    if (!worldData) return;
+    
+    if (worldData.obstacles) {
+      this.worldGenerator.setObstacles(worldData.obstacles);
+    }
+    
+    if (worldData.resources) {
+      this.worldGenerator.setResources(worldData.resources);
+    }
+    
+    if (worldData.exploredAreas && Array.isArray(worldData.exploredAreas)) {
+      this.exploredAreas = new Set(worldData.exploredAreas);
+    }
+    
+    if (worldData.questSystem) {
+      this.questSystem = worldData.questSystem;
+    }
+  }
+
+  handleKey(key: string) {
+    if (!this.gameStarted) {
+      if (key === 'Enter' || key === ' ') {
+        this.gameStarted = true;
+      }
+      return;
+    }
+    
+    if (key === 'e' || key === 'E') {
+      this.checkMilitaryCrateInteraction();
+    }
+  }
+  
+  checkMilitaryCrateInteraction() {
+    if (!this.gameStarted) return;
+    
+    const militaryQuest = this.questSystem.militaryCrateQuest;
+    
+    if (this.worldX === this.militaryCrateLocation.worldX && 
+        this.worldY === this.militaryCrateLocation.worldY) {
+      
+      const areaKey = `${this.worldX},${this.worldY}`;
+      const obstacles = this.worldGenerator.getObstacles()[areaKey] || [];
+      const crate = obstacles.find(obs => obs.type === 'militaryCrate');
+      
+      if (crate && !crate.opened) {
+        const dx = this.player.x - crate.x;
+        const dy = this.player.y - crate.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 50) {
+          crate.opened = true;
+          
+          if (!militaryQuest.active) {
+            this.startMilitaryCrateQuest();
+          }
+        }
+      }
+    }
+  }
+  
+  startMilitaryCrateQuest() {
+    const militaryQuest = this.questSystem.militaryCrateQuest;
+    
+    militaryQuest.active = true;
+    militaryQuest.crateOpened = true;
+    
+    // Generate target location 5-8 tiles away
+    let targetX = 0;
+    let targetY = 0;
+    
+    do {
+      const angle = this.p.random(0, Math.PI * 2);
+      const distance = Math.floor(this.p.random(5, 9));
+      
+      targetX = Math.round(Math.cos(angle) * distance);
+      targetY = Math.round(Math.sin(angle) * distance);
+    } while (Math.abs(targetX) + Math.abs(targetY) < 5);
+    
+    militaryQuest.targetX = targetX;
+    militaryQuest.targetY = targetY;
+    
+    // Create diary entry
+    this.questSystem.diaryEntries[0] = "After the Final Storm, the Earth became a wasteland—dust-covered and dead. Oceans are gone, cities lost.";
+    this.questSystem.diaryEntries[1] = "This crate held something... maybe hope.";
+    this.questSystem.diaryEntries[2] = `Head to the old world trace at (${targetX}, ${targetY}).`;
+  }
+
+  handleClick(mouseX: number, mouseY: number) {
+    if (!this.gameStarted) {
+      // Check if click is on start button
+      const centerX = this.p.width / 2;
+      const centerY = this.p.height / 2 + 50;
+      const buttonWidth = 200;
+      const buttonHeight = 50;
+      
+      if (
+        mouseX >= centerX - buttonWidth / 2 &&
+        mouseX <= centerX + buttonWidth / 2 &&
+        mouseY >= centerY - buttonHeight / 2 &&
+        mouseY <= centerY + buttonHeight / 2
+      ) {
+        this.gameStarted = true;
+      }
+      return;
+    }
+  }
+
+  resize() {
+    if (this.renderer) {
+      this.renderer.resize();
+    }
+  }
+
+  checkHoverbikeCanisterCollisions() {
+    if (!this.hoverbike || this.riding) return;
+    
+    const currentAreaKey = `${this.worldX},${this.worldY}`;
+    const obstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
+    const resources = this.worldGenerator.getResources()[currentAreaKey] || [];
+    
+    // Check collisions with fuel canisters in obstacles
+    for (const obstacle of obstacles) {
+      if (obstacle.type === 'fuelCanister' && !obstacle.collected) {
+        const dx = this.hoverbike.x - obstacle.x;
+        const dy = this.hoverbike.y - obstacle.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 30) {
+          obstacle.collected = true;
+          this.hoverbike.fuel = Math.min(this.hoverbike.fuel + 15, this.hoverbike.maxFuel);
+        }
+      }
+    }
+    
+    // Check collisions with fuel canisters in resources
+    for (const resource of resources) {
+      if (resource.type === 'fuelCanister' && !resource.collected) {
+        const dx = this.hoverbike.x - resource.x;
+        const dy = this.hoverbike.y - resource.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 30) {
+          resource.collected = true;
+          this.hoverbike.fuel = Math.min(this.hoverbike.fuel + 15, this.hoverbike.maxFuel);
+        }
+      }
+    }
+  }
+
+  checkBorder() {
+    const margin = 50;
+    let needsNewArea = false;
+    let newWorldX = this.worldX;
+    let newWorldY = this.worldY;
+    
+    if (this.player.x < margin) {
+      newWorldX = this.worldX - 1;
+      this.player.x = this.p.width - margin - 10;
+      needsNewArea = true;
+    } else if (this.player.x > this.p.width - margin) {
+      newWorldX = this.worldX + 1;
+      this.player.x = margin + 10;
+      needsNewArea = true;
+    }
+    
+    if (this.player.y < margin) {
+      newWorldY = this.worldY - 1;
+      this.player.y = this.p.height - margin - 10;
+      needsNewArea = true;
+    } else if (this.player.y > this.p.height - margin) {
+      newWorldY = this.worldY + 1;
+      this.player.y = margin + 10;
+      needsNewArea = true;
+    }
+    
+    if (needsNewArea) {
+      this.handleAreaTransition(newWorldX, newWorldY);
+    }
+  }
+  
+  handleAreaTransition(newWorldX: number, newWorldY: number) {
+    // Stop player movement to prevent sliding between areas
+    this.player.velX = 0;
+    this.player.velY = 0;
+    
+    // Update world coordinates
+    this.worldX = newWorldX;
+    this.worldY = newWorldY;
+    this.player.setWorldCoordinates(newWorldX, newWorldY);
+    
+    // Generate the new area if needed
+    const areaKey = `${newWorldX},${newWorldY}`;
+    if (!this.worldGenerator.getObstacles()[areaKey]) {
+      this.worldGenerator.generateNewArea(newWorldX, newWorldY);
+    }
+    
+    // Mark as explored
+    this.exploredAreas.add(areaKey);
+    
+    // Update game renderer
+    this.renderer.setWorldCoordinates(newWorldX, newWorldY);
+  }
+
+  resetToStartScreen() {
+    this.gameStarted = false;
+    this.worldX = 0;
+    this.worldY = 0;
+    
+    this.player.x = this.p.width / 2;
+    this.player.y = this.p.height / 2 - 50;
+    this.player.setWorldCoordinates(0, 0);
+    
+    this.hoverbike.x = this.p.width / 2 - 120;
+    this.hoverbike.y = this.p.height / 2 - 50;
+    this.hoverbike.setWorldCoordinates(0, 0);
+    
+    this.riding = false;
+    this.player.riding = false;
+  }
+
+  renderMainMenu() {
+    // Background
+    this.p.background(40, 35, 50);
+    
+    // Title
+    this.p.fill(255, 220, 150);
+    this.p.textSize(48);
+    this.p.textAlign(this.p.CENTER, this.p.CENTER);
+    this.p.text("WASTELAND RIDER", this.p.width / 2, this.p.height / 2 - 100);
+    
+    this.p.textSize(16);
+    this.p.fill(200, 200, 200);
+    this.p.text("Explore the wasteland. Survive the journey.", this.p.width / 2, this.p.height / 2 - 50);
+    
+    // Start button
+    this.p.fill(100, 100, 150);
+    this.p.rect(this.p.width / 2 - 100, this.p.height / 2 + 25, 200, 50, 5);
+    this.p.fill(255);
+    this.p.text("START GAME", this.p.width / 2, this.p.height / 2 + 50);
+    
+    // Controls info
+    this.p.textSize(12);
+    this.p.fill(150, 150, 150);
+    this.p.text("WASD or Arrow Keys to move | E to interact | Space to get on/off hoverbike", 
+               this.p.width / 2, this.p.height - 30);
+  }
+
+  renderSleepAnimation() {
+    this.p.push();
+    this.p.fill(0, 0, 0, 150);
+    this.p.rect(0, 0, this.p.width, this.p.height);
+    
+    this.p.fill(255, 255, 255, 100);
+    this.p.textSize(24);
+    this.p.textAlign(this.p.CENTER, this.p.CENTER);
+    this.p.text("Sleeping...", this.p.width / 2, this.p.height / 2 - 40);
+    
+    // Draw sleep particles
+    for (const particle of this.sleepParticles) {
+      const x = particle.x + Math.sin(particle.z * 0.05) * 20;
+      const y = particle.y + particle.yOffset;
+      
+      this.p.fill(255, 255, 255, particle.opacity);
+      this.p.textSize(particle.size);
+      this.p.text("z", x, y);
+    }
+    this.p.pop();
+  }
+
+  renderQuestCompletion(line1: string, line2: string, line3: string) {
+    const boxWidth = 500;
+    const boxHeight = 100;
+    const boxX = (this.p.width - boxWidth) / 2;
+    const boxY = 100;
+    
+    this.p.push();
+    this.p.fill(0, 0, 0, 180);
+    this.p.stroke(255, 220, 100, 100);
+    this.p.strokeWeight(2);
+    this.p.rect(boxX, boxY, boxWidth, boxHeight, 8);
+    
+    this.p.noStroke();
+    this.p.fill(255, 220, 100);
+    this.p.textAlign(this.p.CENTER, this.p.TOP);
+    this.p.textSize(16);
+    
+    this.p.text(line1, boxX + boxWidth / 2, boxY + 20);
+    this.p.text(line2, boxX + boxWidth / 2, boxY + 45);
+    this.p.text(line3, boxX + boxWidth / 2, boxY + 70);
+    
+    this.p.pop();
+  }
+
   update() {
     if (!this.gameStarted) {
       return;
