@@ -1,5 +1,4 @@
-
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
 
@@ -74,8 +73,7 @@ const GameSketch = () => {
               isUnderTarp: game.isPlayerUnderTarp(),
               questSystem: game.questSystem,
               fuelCanistersNearby: totalFuelCanisters,
-              canDig: game.player?.canDig || false,
-              diaryEntries: game.questSystem?.diaryEntries || ["", "", "", "", ""]
+              canDig: game.player?.canDig || false
             }
           });
           window.dispatchEvent(event);

@@ -1,31 +1,24 @@
 
-import React, { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, Map, Book } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface DiaryModalProps {
   showDiary: boolean;
   setShowDiary: (show: boolean) => void;
-  diaryEntries?: string[];
 }
 
-const DiaryModal: React.FC<DiaryModalProps> = ({ showDiary, setShowDiary, diaryEntries = [] }) => {
+const DiaryModal: React.FC<DiaryModalProps> = ({ showDiary, setShowDiary }) => {
   const [currentPage, setCurrentPage] = useState(0);
-  const [localEntries, setLocalEntries] = useState<string[]>([
+  const [diaryEntries] = useState<string[]>([
     "", // Empty page 1
     "", // Empty page 2
     "", // Empty page 3
     "", // Empty page 4
     "", // Empty page 5
   ]);
-  
-  useEffect(() => {
-    if (diaryEntries && diaryEntries.length > 0) {
-      setLocalEntries(diaryEntries);
-    }
-  }, [diaryEntries]);
 
-  const totalPages = localEntries.length;
+  const totalPages = diaryEntries.length;
   
   if (!showDiary) return null;
   
@@ -63,33 +56,19 @@ const DiaryModal: React.FC<DiaryModalProps> = ({ showDiary, setShowDiary, diaryE
         
         {/* Diary header */}
         <div className="bg-stone-300 p-4 border-b border-stone-400">
-          <div className="flex items-center gap-2">
-            <Book size={20} className="text-stone-700" />
-            <h2 className="text-xl font-serif text-stone-800">Wasteland Diary</h2>
-          </div>
-          <p className="text-stone-600 text-sm">Pages found: {localEntries.filter(entry => entry).length}/{totalPages}</p>
+          <h2 className="text-xl font-serif text-stone-800">Wasteland Diary</h2>
+          <p className="text-stone-600 text-sm">Pages found: {diaryEntries.filter(entry => entry).length}/{totalPages}</p>
         </div>
         
         {/* Diary content */}
         <div className="p-8 h-[calc(100%-8rem)] overflow-auto flex items-center justify-center">
           <div className="w-full max-w-md min-h-[400px] bg-stone-100 p-6 shadow-inner rounded border border-stone-300 flex flex-col">
             {/* Page content */}
-            {localEntries[currentPage] ? (
-              <p className="text-stone-800 font-serif leading-relaxed flex-1 whitespace-pre-wrap">{localEntries[currentPage]}</p>
+            {diaryEntries[currentPage] ? (
+              <p className="text-stone-800 font-serif leading-relaxed flex-1">{diaryEntries[currentPage]}</p>
             ) : (
               <div className="flex items-center justify-center h-full text-stone-500 italic flex-1">
                 <p>This page is blank. Explore the wasteland to discover entries.</p>
-              </div>
-            )}
-            
-            {/* Coordinates section - only shown if the entry contains coordinates */}
-            {localEntries[currentPage] && localEntries[currentPage].includes('(') && 
-             localEntries[currentPage].includes(')') && (
-              <div className="mt-4 pt-3 border-t border-stone-300">
-                <div className="flex items-center gap-2 text-stone-600">
-                  <Map size={16} />
-                  <span className="text-sm">Target location marked on this page</span>
-                </div>
               </div>
             )}
             
