@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -5,19 +6,33 @@ import WorldGenerator from '../world/WorldGenerator';
 import GameRenderer from '../rendering/GameRenderer';
 import { emitGameStateUpdate } from '../utils/gameUtils';
 
-// Import all the newly created utilities
-import { initializeQuestSystem, updateQuestSystem as updateQuestSystemModule, checkHutInteraction } from './quests/QuestSystem';
-import { placeMilitaryCrate } from './quests/MilitaryCrateQuest';
+// Import core modules
+import { initializeQuestSystem } from './quests/QuestSystem';
 import { updateQuestSystem } from './quests/QuestUpdater';
+import { placeMilitaryCrate } from './quests/MilitaryCrateQuest';
 import { renderQuestUI } from './rendering/QuestRenderer';
-import { addTarpAtHomeBase, addFuelStationAtHomeBase, addWalkingMarksAtHomeBase } from './world/HomeBase';
-import { isPlayerUnderTarpWrapper, showTarpMessage } from './world/HomeBaseHelper';
-import { adjustObstacleHitboxes, checkHoverbikeCanisterCollisions } from './world/WorldInteraction';
+import { isPlayerUnderTarpWrapper } from './world/HomeBaseHelper';
+import { checkHoverbikeCanisterCollisions } from './world/WorldInteraction';
 import { isNightTime, updateTimeOfDay } from './world/TimeSystem';
 import { startSleeping, updateSleeping, endSleeping, renderSleepAnimation } from './player/SleepSystem';
 import { renderMainMenu } from './ui/MainMenu';
 import { checkBorder } from './world/WorldBorder';
-import { getWorldData, loadWorldData } from './world/WorldDataManager';
+
+// Import new modules
+import { 
+  handleKeyPress, 
+  handleMouseClick,
+  handleHutInteraction 
+} from './player/PlayerInteractionHandler';
+import { 
+  generateTarpColor,
+  initializeEnvironment 
+} from './world/EnvironmentalEffects';
+import { 
+  getWorldData,
+  loadWorldData,
+  resetGameState 
+} from './state/SaveLoadManager';
 
 export default class Game {
   p: any;
@@ -66,7 +81,7 @@ export default class Game {
     this.questSystem = initializeQuestSystem();
     
     // Generate random tarp color
-    this.tarpColor = this.generateTarpColor();
+    this.tarpColor = generateTarpColor();
     
     this.worldGenerator = new WorldGenerator(p);
     // Adjust WorldGenerator's canister spawn rate
@@ -115,61 +130,17 @@ export default class Game {
       this.timeOfDay
     );
     
-    // Generate the initial area
-    this.worldGenerator.generateNewArea(0, 0);
-    this.exploredAreas.add('0,0'); // Mark initial area as explored
+    // Mark initial area as explored
+    this.exploredAreas.add('0,0');
     
     // Initialize UI values
     emitGameStateUpdate(this.player, this.hoverbike);
     
-    // Add the fuel station at home base
-    addFuelStationAtHomeBase(this.p, this.worldGenerator);
-    
-    // Add the tarp at home base
-    addTarpAtHomeBase(this.p, this.worldGenerator, this.tarpColor);
-    
-    // Add walking marks
-    addWalkingMarksAtHomeBase(this.p, this.worldGenerator);
-    
-    // Modify the world generator to make copper rarer
-    this.worldGenerator.COPPER_CHANCE = 0.05; // Make copper 5 times rarer (was ~0.25)
-    
-    // Fix obstacle hitboxes for common objects
-    adjustObstacleHitboxes(this.worldGenerator);
+    // Initialize environment
+    initializeEnvironment(this.p, this.worldGenerator, this.tarpColor);
     
     // Place military crate
     this.militaryCrateLocation = placeMilitaryCrate(this.p, this.worldGenerator);
-  }
-
-  generateTarpColor() {
-    // Generate random color in brown/red/green dark tones
-    const colorType = Math.floor(Math.random() * 3); // 0: brown, 1: dark red, 2: dark green
-    
-    let r, g, b;
-    
-    switch (colorType) {
-      case 0: // Brown tones
-        r = Math.floor(Math.random() * 80) + 80; // 80-160
-        g = Math.floor(Math.random() * 60) + 40; // 40-100
-        b = Math.floor(Math.random() * 30) + 20; // 20-50
-        break;
-      case 1: // Dark red tones
-        r = Math.floor(Math.random() * 70) + 120; // 120-190
-        g = Math.floor(Math.random() * 30) + 30; // 30-60
-        b = Math.floor(Math.random() * 30) + 30; // 30-60
-        break;
-      case 2: // Dark green tones
-        r = Math.floor(Math.random() * 40) + 30; // 30-70
-        g = Math.floor(Math.random() * 50) + 70; // 70-120
-        b = Math.floor(Math.random() * 30) + 20; // 20-50
-        break;
-      default:
-        r = 100;
-        g = 70;
-        b = 40;
-    }
-    
-    return { r, g, b };
   }
 
   update() {
@@ -233,18 +204,17 @@ export default class Game {
       this.militaryCrateLocation
     );
     
-    // Check if player is entering the hut at night
+    // Check for hut interactions
     if (!this.riding && this.worldX === 0 && this.worldY === 0) {
-      if (this.player.checkForHutSleeping() && isNightTime(this.timeOfDay)) {
+      const hutInteraction = handleHutInteraction(this.player, this.timeOfDay, isNightTime);
+      
+      if (hutInteraction.shouldStartSleeping) {
         const sleepState = startSleeping(this.p, this.timeOfDay);
         this.sleepingInHut = sleepState.sleepingInHut;
         this.sleepStartTime = sleepState.sleepStartTime;
         this.sleepAnimationTimer = sleepState.sleepAnimationTimer;
         this.sleepParticles = sleepState.sleepParticles;
       }
-      
-      // Check for hut interaction for roof repair quest
-      checkHutInteraction(this.questSystem, this.player, this.p);
     }
     
     // Check if player crosses a border
@@ -304,31 +274,19 @@ export default class Game {
       return;
     }
     
-    if (key === 'f' || key === 'F') {
-      if (this.riding) {
-        this.riding = false;
-        this.player.setRiding(false);
-      } else if (this.p.dist(this.player.x, this.player.y, this.hoverbike.x, this.hoverbike.y) < 30 && 
-                this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
-        this.riding = true;
-        this.player.setRiding(true);
-      }
-    }
+    const interactionResult = handleKeyPress(
+      key,
+      this.player,
+      this.hoverbike,
+      this.riding,
+      this.worldX,
+      this.worldY,
+      this.p,
+      this.worldGenerator,
+      () => this.isPlayerUnderTarp()
+    );
     
-    if (key === 'r' && !this.riding && 
-        this.p.dist(this.player.x, this.player.y, this.hoverbike.x, this.hoverbike.y) < 30 && 
-        this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY &&
-        this.player.inventory.metal > 0) { // Only if player has metal
-      
-      // Check if under tarp
-      if (this.isPlayerUnderTarp()) {
-        // Start the repair process
-        this.player.startHoverbikeRepair();
-      } else {
-        // Show message that repair needs to be under tarp
-        showTarpMessage(this.p, this.hoverbike, this.worldX, this.worldY, this.worldGenerator);
-      }
-    }
+    this.riding = interactionResult.riding;
   }
 
   isPlayerUnderTarp(): boolean {
@@ -345,19 +303,14 @@ export default class Game {
   }
   
   handleClick(mouseX: number, mouseY: number) {
-    // Handle clicks in main menu
-    if (!this.gameStarted) {
-      // Check if start button is clicked
-      const btnWidth = 200;
-      const btnHeight = 50;
-      const btnX = this.p.width/2 - btnWidth/2;
-      const btnY = this.p.height/2 + 30;
-      
-      if (mouseX > btnX && mouseX < btnX + btnWidth && 
-          mouseY > btnY && mouseY < btnY + btnHeight) {
-        this.gameStarted = true;
-      }
-    }
+    const clickResult = handleMouseClick(
+      mouseX,
+      mouseY,
+      this.gameStarted,
+      this.p
+    );
+    
+    this.gameStarted = clickResult.gameStarted;
   }
 
   getWorldData() {
@@ -370,12 +323,6 @@ export default class Game {
   
   resetToStartScreen() {
     // Clean up any active events or intervals
-    if (this.player) {
-      this.player.isCollectingCanister = false;
-      this.player.isRefuelingHoverbike = false;
-      this.player.isRepairingHoverbike = false;
-    }
-    this.sleepingInHut = false;
-    this.gameStarted = false;
+    resetGameState(this);
   }
 }

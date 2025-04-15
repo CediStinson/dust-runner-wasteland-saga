@@ -1,14 +1,14 @@
-
 import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
 import DiaryModal from './ui/game/DiaryModal';
+import { resetGameState } from '../game/state/SaveLoadManager';
 
 const GameSketch = () => {
   const sketchRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Game | null>(null);
   const [showDiary, setShowDiary] = useState(false);
-  const [diaryEntries, setDiaryEntries] = useState<string[]>(["", "", "", "", ""]);
+  const [diaryEntries, setDiaryEntries] = useState<string[]>(["", "", "", "", "]);
   
   useEffect(() => {
     if (!sketchRef.current) return;
@@ -27,12 +27,9 @@ const GameSketch = () => {
         game.update();
         game.render();
         
-        // Emit game state updates including day/night cycle info
-        if (p.frameCount % 60 === 0) {  // Update UI every second
-          // Get the current area key
+        if (p.frameCount % 60 === 0) {
           const currentAreaKey = `${game.player?.worldX || 0},${game.player?.worldY || 0}`;
           
-          // Count available fuel canisters in the current area (both in obstacles and resources)
           const currentObstacles = game.worldGenerator?.getObstacles()[currentAreaKey] || [];
           const fuelCanistersInObstacles = currentObstacles.filter(
             (obs: any) => obs.type === 'fuelCanister' && !obs.collected
@@ -43,7 +40,6 @@ const GameSketch = () => {
             (res: any) => res.type === 'fuelCanister' && !res.collected
           ).length;
           
-          // Total available fuel canisters
           const totalFuelCanisters = fuelCanistersInObstacles + fuelCanistersInResources;
           
           const event = new CustomEvent('gameStateUpdate', {
@@ -83,7 +79,6 @@ const GameSketch = () => {
           });
           window.dispatchEvent(event);
           
-          // Update diary entries in React state
           if (game.questSystem?.diaryEntries) {
             setDiaryEntries(game.questSystem.diaryEntries);
           }
@@ -91,7 +86,6 @@ const GameSketch = () => {
       };
 
       p.keyPressed = () => {
-        // Show diary when D is pressed
         if (p.key === 'd' || p.key === 'D') {
           setShowDiary(prev => !prev);
         } else {
@@ -260,8 +254,7 @@ const GameSketch = () => {
         console.log("Completely resetting game state");
         
         cleanupActiveActions();
-        
-        gameRef.current.resetToStartScreen();
+        resetGameState(gameRef.current);
         
         const newGame = new Game(gameRef.current.p);
         gameRef.current = newGame;
