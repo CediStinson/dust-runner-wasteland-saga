@@ -180,7 +180,6 @@ export default class Player implements PlayerType {
         
         this.checkForCollectableResources();
         this.checkForHutSleeping();
-        this.checkForMilitaryCrate(); // Add check for military crate
       }
     } else {
       this.x = this.hoverbike.x;
@@ -193,30 +192,6 @@ export default class Player implements PlayerType {
       this.isCollectingCanister = false;
       this.canisterCollectionProgress = 0;
       this.canisterCollectionTarget = null;
-    }
-  }
-
-  // New method to check for military crate in the current area
-  checkForMilitaryCrate() {
-    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-    
-    for (let obs of currentObstacles) {
-      if (obs.type === 'militaryCrate' && !obs.opened) {
-        const distance = this.p.dist(this.x, this.y, obs.x, obs.y);
-        
-        if (distance < 40) {
-          this.p.push();
-          this.p.fill(255, 255, 100, 150);
-          this.p.ellipse(obs.x, obs.y - 25, 5, 5);
-          this.p.fill(255);
-          this.p.textAlign(this.p.CENTER);
-          this.p.textSize(8);
-          this.p.text("E", obs.x, obs.y - 23);
-          this.p.textSize(6);
-          this.p.text("Examine", obs.x, obs.y - 15);
-          this.p.pop();
-        }
-      }
     }
   }
 
