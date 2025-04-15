@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -7,10 +6,13 @@ import GameRenderer from '../rendering/GameRenderer';
 import { emitGameStateUpdate } from '../utils/gameUtils';
 
 // Import all the newly created utilities
-import { initializeQuestSystem, updateQuestSystem, checkHutInteraction, completeRoofRepairQuest } from './quests/QuestSystem';
+import { initializeQuestSystem, updateQuestSystem as updateQuestSystemModule, checkHutInteraction } from './quests/QuestSystem';
+import { placeMilitaryCrate } from './quests/MilitaryCrateQuest';
+import { updateQuestSystem } from './quests/QuestUpdater';
 import { renderQuestUI } from './rendering/QuestRenderer';
-import { addTarpAtHomeBase, addFuelStationAtHomeBase, addWalkingMarksAtHomeBase, isPlayerUnderTarp } from './world/HomeBase';
-import { adjustObstacleHitboxes, placeMilitaryCrate, checkHoverbikeCanisterCollisions } from './world/WorldInteraction';
+import { addTarpAtHomeBase, addFuelStationAtHomeBase, addWalkingMarksAtHomeBase } from './world/HomeBase';
+import { isPlayerUnderTarpWrapper, showTarpMessage } from './world/HomeBaseHelper';
+import { adjustObstacleHitboxes, checkHoverbikeCanisterCollisions } from './world/WorldInteraction';
 import { isNightTime, updateTimeOfDay } from './world/TimeSystem';
 import { startSleeping, updateSleeping, endSleeping, renderSleepAnimation } from './player/SleepSystem';
 import { renderMainMenu } from './ui/MainMenu';
@@ -221,7 +223,15 @@ export default class Game {
     this.player.update();
     
     // Update quest system
-    updateQuestSystem(this.questSystem, this.player, this.hoverbike, this.p);
+    updateQuestSystem(
+      this.questSystem, 
+      this.player, 
+      this.hoverbike, 
+      this.p, 
+      this.worldX, 
+      this.worldY,
+      this.militaryCrateLocation
+    );
     
     // Check if player is entering the hut at night
     if (!this.riding && this.worldX === 0 && this.worldY === 0) {
@@ -234,9 +244,7 @@ export default class Game {
       }
       
       // Check for hut interaction for roof repair quest
-      if (checkHutInteraction(this.questSystem, this.player, this.p)) {
-        completeRoofRepairQuest(this.questSystem, this.player, this.hoverbike);
-      }
+      checkHutInteraction(this.questSystem, this.player, this.p);
     }
     
     // Check if player crosses a border
@@ -313,45 +321,18 @@ export default class Game {
         this.player.inventory.metal > 0) { // Only if player has metal
       
       // Check if under tarp
-      if (isPlayerUnderTarp(this.p, this.player, this.worldX, this.worldY, this.worldGenerator)) {
+      if (this.isPlayerUnderTarp()) {
         // Start the repair process
         this.player.startHoverbikeRepair();
       } else {
         // Show message that repair needs to be under tarp
-        this.showTarpMessage();
+        showTarpMessage(this.p, this.hoverbike, this.worldX, this.worldY, this.worldGenerator);
       }
     }
   }
 
-  showTarpMessage() {
-    // Add a temporary message to the world
-    const message = {
-      type: 'floatingText',
-      text: 'Needs to be under the tarp at home base',
-      x: this.hoverbike.x,
-      y: this.hoverbike.y - 30,
-      color: { r: 255, g: 200, b: 100 },
-      lifetime: 120, // 2 seconds at 60fps
-      age: 0
-    };
-    
-    const currentAreaKey = `${this.worldX},${this.worldY}`;
-    const obstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
-    obstacles.push(message);
-    
-    // Remove the message after its lifetime
-    setTimeout(() => {
-      const currentObstacles = this.worldGenerator.getObstacles()[currentAreaKey] || [];
-      const msgIndex = currentObstacles.findIndex(o => 
-        o.type === 'floatingText' && 
-        o.x === message.x && 
-        o.y === message.y
-      );
-      
-      if (msgIndex !== -1) {
-        currentObstacles.splice(msgIndex, 1);
-      }
-    }, 2000);
+  isPlayerUnderTarp(): boolean {
+    return isPlayerUnderTarpWrapper(this.p, this.player, this.worldX, this.worldY, this.worldGenerator);
   }
 
   showMessage(message: string, duration: number = 3000) {
