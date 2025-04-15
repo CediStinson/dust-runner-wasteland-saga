@@ -1,10 +1,14 @@
-import { useEffect, useRef } from 'react';
+
+import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
+import DiaryModal from './ui/game/DiaryModal';
 
 const GameSketch = () => {
   const sketchRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Game | null>(null);
+  const [showDiary, setShowDiary] = useState(false);
+  const [diaryEntries, setDiaryEntries] = useState<string[]>(["", "", "", "", ""]);
   
   useEffect(() => {
     if (!sketchRef.current) return;
@@ -70,18 +74,29 @@ const GameSketch = () => {
               worldData: game.getWorldData(),
               gameStarted: game.gameStarted,
               sleepingInHut: game.sleepingInHut, 
-              isUnderTarp: game.isPlayerUnderTarp(),
+              isUnderTarp: game.isPlayerUnderTarp ? game.isPlayerUnderTarp() : false,
               questSystem: game.questSystem,
               fuelCanistersNearby: totalFuelCanisters,
-              canDig: game.player?.canDig || false
+              canDig: game.player?.canDig || false,
+              diaryEntries: game.questSystem?.diaryEntries || ["", "", "", "", ""]
             }
           });
           window.dispatchEvent(event);
+          
+          // Update diary entries in React state
+          if (game.questSystem?.diaryEntries) {
+            setDiaryEntries(game.questSystem.diaryEntries);
+          }
         }
       };
 
       p.keyPressed = () => {
-        game.handleKey(p.key);
+        // Show diary when D is pressed
+        if (p.key === 'd' || p.key === 'D') {
+          setShowDiary(prev => !prev);
+        } else {
+          game.handleKey(p.key);
+        }
       };
       
       p.mousePressed = () => {
@@ -229,6 +244,13 @@ const GameSketch = () => {
           gameRef.current.loadWorldData(savedState.worldData);
         }
         
+        if (savedState.diaryEntries && Array.isArray(savedState.diaryEntries)) {
+          setDiaryEntries(savedState.diaryEntries);
+          if (gameRef.current.questSystem) {
+            gameRef.current.questSystem.diaryEntries = savedState.diaryEntries;
+          }
+        }
+        
         gameRef.current.worldGenerator.generateNewArea(gameRef.current.worldX, gameRef.current.worldY);
       }
     };
@@ -273,10 +295,13 @@ const GameSketch = () => {
             dayTimeAngle: 0,
             worldData: null,
             gameStarted: false,
-            sleepingInHut: false
+            sleepingInHut: false,
+            diaryEntries: ["", "", "", "", ""]
           }
         });
         window.dispatchEvent(resetEvent);
+        
+        setDiaryEntries(["", "", "", "", ""]);
         
         setTimeout(() => {
           window.location.reload();
@@ -296,6 +321,8 @@ const GameSketch = () => {
           }
         });
         window.dispatchEvent(logoutEvent);
+        
+        setDiaryEntries(["", "", "", "", ""]);
         
         setTimeout(() => {
           window.location.reload();
@@ -320,7 +347,16 @@ const GameSketch = () => {
     };
   }, [sketchRef]);
 
-  return <div ref={sketchRef} className="w-full h-full" />;
+  return (
+    <>
+      <div ref={sketchRef} className="w-full h-full" />
+      <DiaryModal 
+        showDiary={showDiary} 
+        setShowDiary={setShowDiary} 
+        diaryEntries={diaryEntries}
+      />
+    </>
+  );
 };
 
 export default GameSketch;

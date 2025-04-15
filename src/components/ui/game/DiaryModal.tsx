@@ -6,17 +6,11 @@ import { Button } from '@/components/ui/button';
 interface DiaryModalProps {
   showDiary: boolean;
   setShowDiary: (show: boolean) => void;
+  diaryEntries?: string[];
 }
 
-const DiaryModal: React.FC<DiaryModalProps> = ({ showDiary, setShowDiary }) => {
+const DiaryModal: React.FC<DiaryModalProps> = ({ showDiary, setShowDiary, diaryEntries = ["", "", "", "", ""] }) => {
   const [currentPage, setCurrentPage] = useState(0);
-  const [diaryEntries] = useState<string[]>([
-    "", // Empty page 1
-    "", // Empty page 2
-    "", // Empty page 3
-    "", // Empty page 4
-    "", // Empty page 5
-  ]);
 
   const totalPages = diaryEntries.length;
   
@@ -65,7 +59,7 @@ const DiaryModal: React.FC<DiaryModalProps> = ({ showDiary, setShowDiary }) => {
           <div className="w-full max-w-md min-h-[400px] bg-stone-100 p-6 shadow-inner rounded border border-stone-300 flex flex-col">
             {/* Page content */}
             {diaryEntries[currentPage] ? (
-              <p className="text-stone-800 font-serif leading-relaxed flex-1">{diaryEntries[currentPage]}</p>
+              <p className="text-stone-800 font-serif leading-relaxed flex-1 whitespace-pre-wrap">{diaryEntries[currentPage]}</p>
             ) : (
               <div className="flex items-center justify-center h-full text-stone-500 italic flex-1">
                 <p>This page is blank. Explore the wasteland to discover entries.</p>
