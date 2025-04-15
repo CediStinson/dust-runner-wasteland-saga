@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
@@ -8,7 +9,7 @@ const GameSketch = () => {
   const sketchRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Game | null>(null);
   const [showDiary, setShowDiary] = useState(false);
-  const [diaryEntries, setDiaryEntries] = useState<string[]>(["", "", "", "", "]);
+  const [diaryEntries, setDiaryEntries] = useState<string[]>(["", "", "", "", ""]);
   
   useEffect(() => {
     if (!sketchRef.current) return;
