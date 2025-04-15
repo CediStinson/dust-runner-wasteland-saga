@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import GameSketch from '../components/GameSketch';
@@ -7,10 +6,11 @@ import GameSaveManager from '../components/GameSaveManager';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { LogIn } from 'lucide-react';
+import { LogIn, Book } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/game.css';
-import { saveGameState, loadGameState, resetGameState } from '@/lib/supabase';
+import { saveGameState, loadGameState } from '@/lib/supabase';
+import DiaryModal from '@/components/ui/game/DiaryModal';
 
 const Index = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
@@ -38,6 +38,8 @@ const Index = () => {
   const [worldData, setWorldData] = useState<any>(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [questSystem, setQuestSystem] = useState<any>(null);
+  const [diaryEntries, setDiaryEntries] = useState<string[]>(["", "", "", "", ""]);
+  const [showDiary, setShowDiary] = useState(false);
   
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -68,7 +70,8 @@ const Index = () => {
       dayTimeAngle,
       worldData,
       gameStarted,
-      questSystem
+      questSystem,
+      diaryEntries
     };
   };
   
@@ -136,11 +139,9 @@ const Index = () => {
   const handleLogout = async () => {
     if (user) {
       try {
-        // Dispatch a logout event to reset the game
         const event = new CustomEvent('logoutUser');
         window.dispatchEvent(event);
         
-        // Sign out the user
         await signOut();
         
         toast({
@@ -182,10 +183,9 @@ const Index = () => {
         carryingFuelCanister,
         hoverbikeX, hoverbikeY, hoverbikeAngle, hoverbikeWorldX, hoverbikeWorldY,
         baseWorldX, baseWorldY, dayTimeIcon, dayTimeAngle, worldData, gameStarted,
-        questSystem
+        questSystem, diaryEntries
       } = event.detail;
       
-      // Set all values from the event data
       setResources(resources !== undefined ? resources : 0);
       setCopper(copper !== undefined ? copper : 0);
       setHealth(health !== undefined ? health : 100);
@@ -206,32 +206,30 @@ const Index = () => {
       setHoverbikeWorldX(hoverbikeWorldX !== undefined ? hoverbikeWorldX : 0);
       setHoverbikeWorldY(hoverbikeWorldY !== undefined ? hoverbikeWorldY : 0);
       
-      // Handle dayTimeIcon and dayTimeAngle with special care to avoid jumps
       if (dayTimeIcon !== undefined) {
         setDayTimeIcon(dayTimeIcon);
       }
       
       if (dayTimeAngle !== undefined) {
-        // Normalize the angle to avoid jumps
         let newAngle = dayTimeAngle;
         setDayTimeAngle(newAngle);
       }
       
-      // Handle game started state changes
       if (gameStarted !== undefined) {
         setGameStarted(gameStarted);
       }
       
-      // Handle quest system updates
       if (questSystem !== undefined) {
         setQuestSystem(questSystem);
       }
       
-      // Handle world data changes
+      if (diaryEntries !== undefined) {
+        setDiaryEntries(diaryEntries);
+      }
+      
       if (worldData !== null && worldData !== undefined) {
         setWorldData(worldData);
       } else if (worldData === null) {
-        // Explicitly clear world data if null is passed (for reset)
         setWorldData(null);
       }
     };
@@ -263,6 +261,26 @@ const Index = () => {
         dayTimeAngle={dayTimeAngle}
         onSaveGame={handleSaveGame}
         onLogout={handleLogout}
+      />
+      
+      {gameStarted && (
+        <div className="absolute top-4 right-32 z-50">
+          <Button 
+            variant="outline" 
+            size="icon"
+            className="bg-stone-800/80 border-stone-600 hover:bg-stone-700"
+            onClick={() => setShowDiary(true)}
+            title="Open Diary"
+          >
+            <Book className="h-4 w-4 text-stone-300" />
+          </Button>
+        </div>
+      )}
+      
+      <DiaryModal 
+        showDiary={showDiary}
+        setShowDiary={setShowDiary}
+        diaryEntries={diaryEntries}
       />
       
       {!user && !gameStarted && (
