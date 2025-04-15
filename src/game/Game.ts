@@ -532,9 +532,10 @@ export default class Game {
       this.player.setWorldCoordinates(newWorldX, newWorldY);
       this.renderer.setWorldCoordinates(newWorldX, newWorldY);
       
-      // Reset player velocity during transition
-      this.player.velocityX = 0;
-      this.player.velocityY = 0;
+      // Reset player movement during transition
+      if (this.player.stopMovement) {
+        this.player.stopMovement();
+      }
     }
   }
 
@@ -949,7 +950,7 @@ export default class Game {
   resize() {
     // Handle window resize
     if (this.renderer) {
-      this.renderer.handleResize();
+      this.renderer.setWorldCoordinates(this.worldX, this.worldY);
     }
   }
 
@@ -969,11 +970,19 @@ export default class Game {
     }
     
     if (data && data.obstacles) {
-      this.worldGenerator.getObstacles() = data.obstacles;
+      // Correctly update obstacles map
+      const obstaclesMap = this.worldGenerator.getObstacles();
+      Object.keys(data.obstacles).forEach(key => {
+        obstaclesMap[key] = data.obstacles[key];
+      });
     }
     
     if (data && data.resources) {
-      this.worldGenerator.getResources() = data.resources;
+      // Correctly update resources map
+      const resourcesMap = this.worldGenerator.getResources();
+      Object.keys(data.resources).forEach(key => {
+        resourcesMap[key] = data.resources[key];
+      });
     }
   }
 
