@@ -801,4 +801,18 @@ export default class Game {
 
     this.p.noStroke();
     this.p.fill(255, 255, 200);
-    this.p
+    this.p.textAlign(this.p.CENTER, this.p.CENTER);
+    this.p.textSize(16);
+    this.p.text(title, boxX + boxWidth / 2, boxY + 20);
+    this.p.textSize(14);
+    this.p.text(progress, boxX + boxWidth / 2, boxY + 40);
+
+    if (hint) {
+        this.p.textSize(12);
+        this.p.fill(200, 200, 100);
+        this.p.text(hint, boxX + boxWidth / 2, boxY + 55);
+    }
+
+    this.p.pop();
+  }
+}
