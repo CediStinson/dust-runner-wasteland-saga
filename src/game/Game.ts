@@ -533,9 +533,8 @@ export default class Game {
       this.renderer.setWorldCoordinates(newWorldX, newWorldY);
       
       // Reset player movement during transition
-      if (this.player.stopMovement) {
-        this.player.stopMovement();
-      }
+      this.player.velX = 0;
+      this.player.velY = 0;
     }
   }
 
