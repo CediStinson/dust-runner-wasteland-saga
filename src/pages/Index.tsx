@@ -1,76 +1,48 @@
 
 import { useEffect, useRef, useState } from 'react';
-import p5 from 'p5';
 import GameSketch from '../components/GameSketch';
 import GameUI from '../components/GameUI';
-import GameSaveManager from '../components/GameSaveManager';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { LogIn } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/game.css';
-import { saveGameState, loadGameState, resetGameState } from '@/lib/supabase';
+import { saveGameState, loadGameState } from '@/lib/supabase';
+import { GameState, GameStateUpdateEvent } from '../types/GameTypes';
+import { createGameStateEventListener } from '../utils/eventUtils';
 
 const Index = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
-  const [resources, setResources] = useState(0);
-  const [copper, setCopper] = useState(0);
-  const [health, setHealth] = useState(100);
-  const [maxHealth, setMaxHealth] = useState(100);
-  const [fuel, setFuel] = useState(100);
-  const [maxFuel, setMaxFuel] = useState(100);
-  const [playerHealth, setPlayerHealth] = useState(100);
-  const [maxPlayerHealth, setMaxPlayerHealth] = useState(100);
-  const [worldX, setWorldX] = useState(0);
-  const [worldY, setWorldY] = useState(0);
-  const [playerX, setPlayerX] = useState(0);
-  const [playerY, setPlayerY] = useState(0);
-  const [playerAngle, setPlayerAngle] = useState(0);
-  const [carryingFuelCanister, setCarryingFuelCanister] = useState(false);
-  const [hoverbikeX, setHoverbikeX] = useState(0);
-  const [hoverbikeY, setHoverbikeY] = useState(0);
-  const [hoverbikeAngle, setHoverbikeAngle] = useState(0);
-  const [hoverbikeWorldX, setHoverbikeWorldX] = useState(0);
-  const [hoverbikeWorldY, setHoverbikeWorldY] = useState(0);
-  const [dayTimeIcon, setDayTimeIcon] = useState("sun");
-  const [dayTimeAngle, setDayTimeAngle] = useState(0);
-  const [worldData, setWorldData] = useState<any>(null);
-  const [gameStarted, setGameStarted] = useState(false);
-  const [questSystem, setQuestSystem] = useState<any>(null);
+  const [gameState, setGameState] = useState<GameState>({
+    resources: 0,
+    copper: 0,
+    health: 100,
+    maxHealth: 100,
+    fuel: 100,
+    maxFuel: 100,
+    playerHealth: 100,
+    maxPlayerHealth: 100,
+    worldX: 0,
+    worldY: 0,
+    playerX: 0,
+    playerY: 0,
+    playerAngle: 0,
+    carryingFuelCanister: false,
+    hoverbikeX: 0,
+    hoverbikeY: 0,
+    hoverbikeAngle: 0,
+    hoverbikeWorldX: 0,
+    hoverbikeWorldY: 0,
+    dayTimeIcon: "sun",
+    dayTimeAngle: 0,
+    worldData: null,
+    gameStarted: false
+  });
   
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
-  const getCurrentGameState = () => {
-    return {
-      resources,
-      copper,
-      health,
-      maxHealth,
-      fuel,
-      maxFuel,
-      playerHealth,
-      maxPlayerHealth,
-      worldX,
-      worldY,
-      playerX,
-      playerY,
-      playerAngle,
-      carryingFuelCanister,
-      hoverbikeX,
-      hoverbikeY,
-      hoverbikeAngle,
-      hoverbikeWorldX,
-      hoverbikeWorldY,
-      dayTimeIcon,
-      dayTimeAngle,
-      worldData,
-      gameStarted,
-      questSystem
-    };
-  };
   
   const handleSaveGame = async () => {
     if (!user) {
@@ -83,7 +55,7 @@ const Index = () => {
       return;
     }
 
-    const result = await saveGameState(user.id, getCurrentGameState());
+    const result = await saveGameState(user.id, gameState);
     
     if (result.success) {
       toast({
@@ -99,33 +71,9 @@ const Index = () => {
     }
   };
   
-  const handleLoadGameState = (savedState: any) => {
+  const handleLoadGameState = (savedState: GameState) => {
     if (!savedState) return;
-    
-    setResources(savedState.resources || 0);
-    setCopper(savedState.copper || 0);
-    setHealth(savedState.health || 100);
-    setMaxHealth(savedState.maxHealth || 100);
-    setFuel(savedState.fuel || 100);
-    setMaxFuel(savedState.maxFuel || 100);
-    setPlayerHealth(savedState.playerHealth || 100);
-    setMaxPlayerHealth(savedState.maxPlayerHealth || 100);
-    setWorldX(savedState.worldX || 0);
-    setWorldY(savedState.worldY || 0);
-    setPlayerX(savedState.playerX || 0);
-    setPlayerY(savedState.playerY || 0);
-    setPlayerAngle(savedState.playerAngle || 0);
-    setCarryingFuelCanister(savedState.carryingFuelCanister || false);
-    setHoverbikeX(savedState.hoverbikeX || 0);
-    setHoverbikeY(savedState.hoverbikeY || 0);
-    setHoverbikeAngle(savedState.hoverbikeAngle || 0);
-    setHoverbikeWorldX(savedState.hoverbikeWorldX || 0);
-    setHoverbikeWorldY(savedState.hoverbikeWorldY || 0);
-    setGameStarted(savedState.gameStarted || false);
-    
-    if (savedState.worldData) {
-      setWorldData(savedState.worldData);
-    }
+    setGameState(savedState);
     
     const loadEvent = new CustomEvent('loadGameState', {
       detail: savedState
@@ -175,71 +123,14 @@ const Index = () => {
   }, [user]);
   
   useEffect(() => {
-    const handleGameStateUpdate = (event: CustomEvent) => {
-      const { 
-        resources, copper, health, maxHealth, fuel, maxFuel,
-        playerHealth, maxPlayerHealth, worldX, worldY, playerX, playerY, playerAngle,
-        carryingFuelCanister,
-        hoverbikeX, hoverbikeY, hoverbikeAngle, hoverbikeWorldX, hoverbikeWorldY,
-        baseWorldX, baseWorldY, dayTimeIcon, dayTimeAngle, worldData, gameStarted,
-        questSystem
-      } = event.detail;
-      
-      // Set all values from the event data
-      setResources(resources !== undefined ? resources : 0);
-      setCopper(copper !== undefined ? copper : 0);
-      setHealth(health !== undefined ? health : 100);
-      setMaxHealth(maxHealth !== undefined ? maxHealth : 100);
-      setFuel(fuel !== undefined ? fuel : 100);
-      setMaxFuel(maxFuel !== undefined ? maxFuel : 100);
-      setPlayerHealth(playerHealth !== undefined ? playerHealth : 100);
-      setMaxPlayerHealth(maxPlayerHealth !== undefined ? maxPlayerHealth : 100);
-      setWorldX(worldX !== undefined ? worldX : 0);
-      setWorldY(worldY !== undefined ? worldY : 0);
-      setPlayerX(playerX !== undefined ? playerX : 0);
-      setPlayerY(playerY !== undefined ? playerY : 0);
-      setPlayerAngle(playerAngle !== undefined ? playerAngle : 0);
-      setCarryingFuelCanister(carryingFuelCanister !== undefined ? carryingFuelCanister : false);
-      setHoverbikeX(hoverbikeX !== undefined ? hoverbikeX : 0);
-      setHoverbikeY(hoverbikeY !== undefined ? hoverbikeY : 0);
-      setHoverbikeAngle(hoverbikeAngle !== undefined ? hoverbikeAngle : 0);
-      setHoverbikeWorldX(hoverbikeWorldX !== undefined ? hoverbikeWorldX : 0);
-      setHoverbikeWorldY(hoverbikeWorldY !== undefined ? hoverbikeWorldY : 0);
-      
-      // Handle dayTimeIcon and dayTimeAngle with special care to avoid jumps
-      if (dayTimeIcon !== undefined) {
-        setDayTimeIcon(dayTimeIcon);
-      }
-      
-      if (dayTimeAngle !== undefined) {
-        // Normalize the angle to avoid jumps
-        let newAngle = dayTimeAngle;
-        setDayTimeAngle(newAngle);
-      }
-      
-      // Handle game started state changes
-      if (gameStarted !== undefined) {
-        setGameStarted(gameStarted);
-      }
-      
-      // Handle quest system updates
-      if (questSystem !== undefined) {
-        setQuestSystem(questSystem);
-      }
-      
-      // Handle world data changes
-      if (worldData !== null && worldData !== undefined) {
-        setWorldData(worldData);
-      } else if (worldData === null) {
-        // Explicitly clear world data if null is passed (for reset)
-        setWorldData(null);
-      }
-    };
+    const handleGameStateUpdate = createGameStateEventListener((state: GameState) => {
+      setGameState(prev => ({...prev, ...state}));
+    });
     
-    window.addEventListener('gameStateUpdate' as any, handleGameStateUpdate);
+    window.addEventListener('gameStateUpdate', handleGameStateUpdate as EventListener);
     
     return () => {
-      window.removeEventListener('gameStateUpdate' as any, handleGameStateUpdate);
+      window.removeEventListener('gameStateUpdate', handleGameStateUpdate as EventListener);
     };
   }, []);
   
@@ -247,25 +138,25 @@ const Index = () => {
     <div className="game-container relative" ref={gameContainerRef}>
       <GameSketch />
       <GameUI 
-        resources={resources}
-        copper={copper}
-        health={health}
-        maxHealth={maxHealth}
-        fuel={fuel}
-        maxFuel={maxFuel}
-        playerHealth={playerHealth}
-        maxPlayerHealth={maxPlayerHealth}
-        worldX={worldX}
-        worldY={worldY}
+        resources={gameState.resources}
+        copper={gameState.copper}
+        health={gameState.health}
+        maxHealth={gameState.maxHealth}
+        fuel={gameState.fuel}
+        maxFuel={gameState.maxFuel}
+        playerHealth={gameState.playerHealth}
+        maxPlayerHealth={gameState.maxPlayerHealth}
+        worldX={gameState.worldX}
+        worldY={gameState.worldY}
         baseWorldX={0}
         baseWorldY={0}
-        dayTimeIcon={dayTimeIcon}
-        dayTimeAngle={dayTimeAngle}
+        dayTimeIcon={gameState.dayTimeIcon}
+        dayTimeAngle={gameState.dayTimeAngle}
         onSaveGame={handleSaveGame}
         onLogout={handleLogout}
       />
       
-      {!user && !gameStarted && (
+      {!user && !gameState.gameStarted && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50 text-center">
           <Link to="/login">
             <Button variant="default" size="lg">

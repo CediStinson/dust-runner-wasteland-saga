@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -7,7 +6,7 @@ import GameRenderer from '../rendering/GameRenderer';
 import { emitGameStateUpdate } from '../utils/gameUtils';
 
 // Import core modules
-import { initializeQuestSystem } from './quests/QuestSystem';
+import { initializeQuestSystem, QuestSystem } from './quests/QuestSystem';
 import { updateQuestSystem } from './quests/QuestUpdater';
 import { placeMilitaryCrate } from './quests/MilitaryCrateQuest';
 import { renderQuestUI } from './rendering/QuestRenderer';
@@ -33,6 +32,7 @@ import {
   loadWorldData,
   resetGameState 
 } from './state/SaveLoadManager';
+import { WorldData } from '../types/GameTypes';
 
 export default class Game {
   p: any;
@@ -56,7 +56,7 @@ export default class Game {
   sleepAnimationTimer: number;
   sleepParticles: Array<{x: number, y: number, z: number, opacity: number, yOffset: number, size: number}>;
   tarpColor: { r: number; g: number; b: number; };
-  questSystem: any;
+  questSystem: QuestSystem;
   militaryCrateLocation: { worldX: number, worldY: number };
 
   constructor(p: any) {
@@ -313,15 +313,15 @@ export default class Game {
     this.gameStarted = clickResult.gameStarted;
   }
 
-  getWorldData() {
+  getWorldData(): WorldData {
     return getWorldData(this.exploredAreas, this.worldGenerator);
   }
   
-  loadWorldData(worldData: any) {
+  loadWorldData(worldData: WorldData | null): void {
     loadWorldData(worldData, this.worldGenerator, this.exploredAreas, this.worldX, this.worldY);
   }
   
-  resetToStartScreen() {
+  resetToStartScreen(): void {
     // Clean up any active events or intervals
     resetGameState(this);
   }

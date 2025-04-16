@@ -15,6 +15,16 @@ export function updateQuestSystem(
   militaryCrateLocation: { worldX: number, worldY: number }
 ): void {
   // Update roof repair quest
+  updateRoofRepairQuest(questSystem, player);
+  
+  // Update resource collection quest
+  updateResourceQuest(questSystem, player, hoverbike);
+  
+  // Update military crate quest
+  updateMilitaryCrateQuest(questSystem, player, hoverbike, worldX, worldY, militaryCrateLocation);
+}
+
+function updateRoofRepairQuest(questSystem: QuestSystem, player: Player): void {
   const quest = questSystem.roofRepairQuest;
   
   if (quest.active && !quest.completed) {
@@ -34,8 +44,9 @@ export function updateQuestSystem(
       }
     }
   }
-  
-  // Update resource collection quest
+}
+
+function updateResourceQuest(questSystem: QuestSystem, player: Player, hoverbike: Hoverbike): void {
   const resourceQuest = questSystem.resourceCollectionQuest;
   if (resourceQuest.active && !resourceQuest.completed) {
     resourceQuest.copperCollected = player.inventory.copper;
@@ -53,9 +64,6 @@ export function updateQuestSystem(
       resourceQuest.completionMessageTimer = 0;
     }
   }
-  
-  // Update military crate quest
-  updateMilitaryCrateQuest(questSystem, player, hoverbike, worldX, worldY, militaryCrateLocation);
 }
 
 export function checkHutInteraction(questSystem: QuestSystem, player: Player, p: any): boolean {
