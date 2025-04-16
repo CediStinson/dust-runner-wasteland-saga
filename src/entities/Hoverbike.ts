@@ -1,8 +1,15 @@
+
 import p5 from 'p5';
 import { HoverbikeType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
+import { HoverbikeState, RepairAnimationState } from '../types/HoverbikeTypes';
+import { MovementController } from './hoverbike/MovementController';
+import { CollisionController } from './hoverbike/CollisionController';
+import { HoverbikeRenderer } from './hoverbike/HoverbikeRenderer';
+import { RepairController } from './hoverbike/RepairController';
 
 export default class Hoverbike implements HoverbikeType {
+  // State properties
   x: number;
   y: number;
   worldX: number;
@@ -17,22 +24,28 @@ export default class Hoverbike implements HoverbikeType {
   speed: number;
   durabilityLevel: number;
   collisionCooldown: number;
-  p: any;
-  obstacles: Record<string, any[]>;
-  player: any;
   previousAcceleration: number;
   isRiding: boolean;
   lastRiding: boolean;
   dismountTime: number;
   thrustIntensity: number;
   flameLength: number;
-  repairAnimation: {
-    active: boolean;
-    sparks: Array<{x: number, y: number, opacity: number, vx: number, vy: number}>;
-    timer: number;
-  };
+  outOfFuelTime: number;
   speedLevel: number;
-  outOfFuelTime: number; // Track when bike ran out of fuel
+
+  // Dependencies
+  p: any;
+  obstacles: Record<string, any[]>;
+  player: any;
+  
+  // Controllers
+  private movementController: MovementController;
+  private collisionController: CollisionController;
+  private renderer: HoverbikeRenderer;
+  private repairController: RepairController;
+  
+  // Animation state
+  repairAnimation: RepairAnimationState;
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, player: any) {
     this.p = p;
@@ -42,6 +55,8 @@ export default class Hoverbike implements HoverbikeType {
     this.worldY = worldY;
     this.obstacles = obstacles;
     this.player = player;
+    
+    // Initialize state
     this.angle = 0;
     this.velocityX = 0;
     this.velocityY = 0;
@@ -58,13 +73,21 @@ export default class Hoverbike implements HoverbikeType {
     this.dismountTime = 0;
     this.thrustIntensity = 0;
     this.flameLength = 0;
+    this.speedLevel = 0;
+    this.outOfFuelTime = 0;
+    
+    // Initialize controllers
+    this.movementController = new MovementController(p);
+    this.collisionController = new CollisionController(p);
+    this.renderer = new HoverbikeRenderer(p);
+    this.repairController = new RepairController(p);
+    
+    // Initialize animation state
     this.repairAnimation = {
       active: false,
       sparks: [],
       timer: 0
     };
-    this.speedLevel = 0;
-    this.outOfFuelTime = 0;
   }
 
   update() {
@@ -76,10 +99,14 @@ export default class Hoverbike implements HoverbikeType {
 
     if (this.player.riding) {
       this.isRiding = true;
-      this.handleControls();
+      
+      // Get updated state from controllers
+      const controlledState = this.movementController.handleControls(this.getState(), this.player);
+      this.updateStateFrom(controlledState);
       
       if (this.fuel > 0) {
-        this.applyMovement();
+        const movedState = this.movementController.applyMovement(this.getState(), this.obstacles);
+        this.updateStateFrom(movedState);
         // Reset out of fuel time when there is fuel
         this.outOfFuelTime = 0;
       } else {
@@ -99,10 +126,16 @@ export default class Hoverbike implements HoverbikeType {
         this.velocityY *= deceleration;
         
         // Still apply movement while drifting
-        this.applyMovement();
+        const movedState = this.movementController.applyMovement(this.getState(), this.obstacles);
+        this.updateStateFrom(movedState);
       }
       
-      this.checkCollisions();
+      const collidedState = this.collisionController.checkCollisions(
+        this.getState(), 
+        this.obstacles, 
+        this.player
+      );
+      this.updateStateFrom(collidedState);
       
       const currentSpeed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
       
@@ -131,7 +164,8 @@ export default class Hoverbike implements HoverbikeType {
       if (isDismountRecent) {
         this.velocityX *= 0.995;
         this.velocityY *= 0.995;
-        this.applyMovement();
+        const movedState = this.movementController.applyMovement(this.getState(), this.obstacles);
+        this.updateStateFrom(movedState);
       } else {
         this.velocityX *= 0.97;
         this.velocityY *= 0.97;
@@ -140,387 +174,58 @@ export default class Hoverbike implements HoverbikeType {
       this.thrustIntensity = this.p.lerp(this.thrustIntensity, 0, 0.05);
       this.flameLength = this.p.lerp(this.flameLength, 0, 0.05);
       
-      this.checkFuelRefill();
+      const refuelledState = this.collisionController.checkFuelRefill(
+        this.getState(), 
+        this.obstacles,
+        this.player
+      );
+      this.updateStateFrom(refuelledState);
     }
     
     if (this.repairAnimation.active) {
-      this.updateRepairAnimation();
+      this.repairAnimation = this.repairController.updateRepairAnimation(this.repairAnimation);
     }
   }
 
-  handleControls() {
-    let acceleration = 0;
-    
-    if (this.p.keyIsDown(this.p.UP_ARROW) && this.fuel > 0) {
-      acceleration = 0.025;
-      
-      if (this.p.frameCount % 30 === 0) {
-        const oldFuel = this.fuel;
-        this.fuel = Math.max(0, this.fuel - 1);
-        if (oldFuel !== this.fuel) {
-          emitGameStateUpdate(this.player, this);
-        }
-      }
-    } else if (this.p.keyIsDown(this.p.DOWN_ARROW) && this.fuel > 0) {
-      acceleration = -0.0125;
-      
-      if (this.p.frameCount % 30 === 0) {
-        const oldFuel = this.fuel;
-        this.fuel = Math.max(0, this.fuel - 0.75);
-        if (oldFuel !== this.fuel) {
-          emitGameStateUpdate(this.player, this);
-        }
-      }
-    }
-    
-    this.previousAcceleration = acceleration;
-
-    let turningVelocity = 0;
-    if (this.p.keyIsDown(this.p.LEFT_ARROW)) {
-      turningVelocity = this.fuel > 0 ? -0.02 : -0.005;
-    }
-    else if (this.p.keyIsDown(this.p.RIGHT_ARROW)) {
-      turningVelocity = this.fuel > 0 ? 0.02 : 0.005;
-    }
-
-    this.angle += turningVelocity;
-    
-    if (this.fuel > 0) {
-      this.velocityX += this.p.cos(this.angle) * acceleration;
-      this.velocityY += this.p.sin(this.angle) * acceleration;
-    }
-    
-    this.velocityX *= 0.99;
-    this.velocityY *= 0.99;
+  // Helper method to get the current state
+  private getState(): HoverbikeState {
+    return {
+      x: this.x,
+      y: this.y,
+      worldX: this.worldX,
+      worldY: this.worldY,
+      angle: this.angle,
+      velocityX: this.velocityX,
+      velocityY: this.velocityY,
+      health: this.health,
+      maxHealth: this.maxHealth,
+      fuel: this.fuel,
+      maxFuel: this.maxFuel,
+      speed: this.speed,
+      durabilityLevel: this.durabilityLevel,
+      speedLevel: this.speedLevel,
+      collisionCooldown: this.collisionCooldown,
+      previousAcceleration: this.previousAcceleration,
+      isRiding: this.isRiding,
+      lastRiding: this.lastRiding,
+      dismountTime: this.dismountTime,
+      thrustIntensity: this.thrustIntensity,
+      flameLength: this.flameLength,
+      outOfFuelTime: this.outOfFuelTime
+    };
   }
 
-  applyMovement() {
-    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-    let willCollide = false;
-    let newX = this.x + this.velocityX;
-    let newY = this.y + this.velocityY;
-    
-    for (let obs of currentObstacles) {
-      if (obs.type === 'hut' || obs.type === 'rock' || obs.type === 'fuelPump') {
-        let dx = newX - obs.x;
-        let dy = newY - obs.y;
-        
-        let collisionRadius = 0;
-        if (obs.type === 'rock') {
-          let hitboxWidth = 28 * obs.size * (obs.aspectRatio > 1 ? obs.aspectRatio : 1);
-          let hitboxHeight = 28 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
-          collisionRadius = (hitboxWidth + hitboxHeight) / 2 / 1.2;
-        } else if (obs.type === 'hut') {
-          collisionRadius = 30;
-        } else if (obs.type === 'fuelPump') {
-          collisionRadius = 35;
-        }
-        
-        let distance = this.p.sqrt(dx * dx + dy * dy);
-        if (distance < collisionRadius) {
-          willCollide = true;
-          this.velocityX = -this.velocityX * 0.5;
-          this.velocityY = -this.velocityY * 0.5;
-          break;
-        }
-      }
-    }
-    
-    if (!willCollide) {
-      this.x += this.velocityX;
-      this.y += this.velocityY;
-    }
+  // Helper method to update state properties
+  private updateStateFrom(state: HoverbikeState): void {
+    Object.assign(this, state);
   }
 
-  checkCollisions() {
-    if (this.collisionCooldown > 0) return;
-
-    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-    for (let obs of currentObstacles) {
-      if (obs.type === 'rock') {
-        let dx = this.x - obs.x;
-        let dy = this.y - obs.y;
-        let hitboxWidth = 30 * obs.size * (obs.aspectRatio > 1 ? obs.aspectRatio : 1);
-        let hitboxHeight = 30 * obs.size * (obs.aspectRatio < 1 ? 1 / this.p.abs(obs.aspectRatio) : 1);
-        let normalizedX = dx / hitboxWidth;
-        let normalizedY = dy / hitboxHeight;
-        let distance = this.p.sqrt(normalizedX * normalizedX + normalizedY * normalizedY);
-
-        if (distance < 1) {
-          const oldHealth = this.health;
-          this.health = this.p.max(0, this.health - 10);
-          if (oldHealth !== this.health) {
-            emitGameStateUpdate(this.player, this);
-          }
-          this.velocityX = -this.velocityX * 0.5;
-          this.velocityY = -this.velocityY * 0.5;
-          this.collisionCooldown = 30;
-          let pushDistance = (1 - distance) * 30;
-          let pushX = normalizedX * pushDistance;
-          let pushY = normalizedY * pushDistance;
-          this.x += pushX * hitboxWidth / 30;
-          this.y += pushY * hitboxHeight / 30;
-          break;
-        }
-      } else if (obs.type === 'cactus') {
-        let dx = this.x - obs.x;
-        let dy = this.y - obs.y;
-        let hitboxWidth = 20 * obs.size;
-        let hitboxHeight = 20 * obs.size;
-        let distance = this.p.sqrt(dx * dx + dy * dy);
-
-        if (distance < hitboxWidth) {
-          const oldHealth = this.health;
-          this.health = this.p.max(0, this.health - 3);
-          if (oldHealth !== this.health) {
-            emitGameStateUpdate(this.player, this);
-          }
-          this.velocityX *= 0.8;
-          this.velocityY *= 0.8;
-          this.collisionCooldown = 20;
-          let pushDistance = (hitboxWidth - distance);
-          let pushX = (dx / distance) * pushDistance;
-          let pushY = (dy / distance) * pushDistance;
-          this.x += pushX;
-          this.y += pushY;
-          break;
-        }
-      } else if (obs.type === 'fuelCanister' && !obs.collected) {
-        let dx = this.x - obs.x;
-        let dy = this.y - obs.y;
-        let distance = this.p.sqrt(dx * dx + dy * dy);
-
-        if (distance < 20) {
-          obs.collected = true;
-          
-          if (this.player && this.player.game) {
-            this.player.game.createExplosion(obs.x, obs.y);
-            
-            const oldHealth = this.health;
-            this.health = this.p.max(0, this.health - 15);
-            if (oldHealth !== this.health) {
-              emitGameStateUpdate(this.player, this);
-            }
-            
-            const knockbackForce = 3;
-            let angle = this.p.atan2(dy, dx);
-            this.velocityX += this.p.cos(angle) * knockbackForce;
-            this.velocityY += this.p.sin(angle) * knockbackForce;
-            
-            this.collisionCooldown = 30;
-          }
-          
-          const index = currentObstacles.indexOf(obs);
-          if (index !== -1) {
-            currentObstacles.splice(index, 1);
-          }
-          break;
-        }
-      }
-    }
-  }
-  
-  checkFuelRefill() {
-    if (this.fuel >= this.maxFuel) return;
-    
-    if (this.player.riding) return;
-    
-    let currentObstacles = this.obstacles[`${this.worldX},${this.worldY}`] || [];
-    for (let obs of currentObstacles) {
-      if (obs.type === 'fuelPump') {
-        let dx = this.x - obs.x;
-        let dy = this.y - obs.y;
-        let distance = this.p.sqrt(dx * dx + dy * dy);
-        
-        if (distance < 70 && this.fuel < this.maxFuel) {
-          const oldFuel = this.fuel;
-          this.fuel = Math.min(this.maxFuel, this.fuel + 0.1);
-          
-          if (oldFuel !== this.fuel && this.p.frameCount % 5 === 0) {
-            emitGameStateUpdate(this.player, this);
-          }
-        }
-      }
-    }
+  display() {
+    this.renderer.display(this.getState(), this.player, this.repairAnimation);
   }
 
   startRepairAnimation() {
-    this.repairAnimation.active = true;
-    this.repairAnimation.timer = 0;
-    this.repairAnimation.sparks = [];
-  }
-  
-  updateRepairAnimation() {
-    this.repairAnimation.timer++;
-    
-    if (this.repairAnimation.timer % 3 === 0) {
-      for (let i = 0; i < 4; i++) {
-        const angle = this.p.random(0, Math.PI * 2);
-        const distance = this.p.random(5, 15);
-        this.repairAnimation.sparks.push({
-          x: this.p.random(-12, 12),
-          y: this.p.random(-12, 12),
-          opacity: 255,
-          vx: Math.cos(angle) * this.p.random(0.5, 3),
-          vy: Math.sin(angle) * this.p.random(0.5, 3) - this.p.random(0.5, 2)
-        });
-      }
-    }
-    
-    for (let i = this.repairAnimation.sparks.length - 1; i >= 0; i--) {
-      const spark = this.repairAnimation.sparks[i];
-      spark.x += spark.vx;
-      spark.y += spark.vy;
-      spark.opacity -= this.p.random(8, 20);
-      
-      if (spark.opacity <= 0) {
-        this.repairAnimation.sparks.splice(i, 1);
-      }
-    }
-    
-    if (this.repairAnimation.timer >= 120) {
-      this.repairAnimation.active = false;
-    }
-  }
-  
-  displayRepairEffects() {
-    if (!this.repairAnimation.active) return;
-    
-    this.p.push();
-    
-    this.p.fill(200, 200, 100);
-    this.p.textAlign(this.p.CENTER);
-    this.p.textSize(10);
-    this.p.text("Repairing...", this.x, this.y - 25);
-    
-    this.p.pop();
-  }
-  
-  display() {
-    if (this.worldX === this.player.worldX && this.worldY === this.player.worldY) {
-      this.p.push();
-      this.p.translate(this.x, this.y);
-      this.p.rotate(this.angle);
-      
-      this.p.stroke(0);
-      this.p.strokeWeight(1);
-      this.p.fill(130, 130, 140);
-      this.p.beginShape();
-      this.p.vertex(20, 0);
-      this.p.vertex(16, 6);
-      this.p.vertex(0, 8);
-      this.p.vertex(-16, 6);
-      this.p.vertex(-16, -6);
-      this.p.vertex(0, -8);
-      this.p.vertex(16, -6);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.fill(80, 80, 90);
-      this.p.stroke(0);
-      this.p.strokeWeight(1);
-      this.p.beginShape();
-      this.p.vertex(14, 0);
-      this.p.vertex(10, 5);
-      this.p.vertex(-6, 6);
-      this.p.vertex(-10, 4);
-      this.p.vertex(-10, -4);
-      this.p.vertex(-6, -6);
-      this.p.vertex(10, -5);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.fill(60, 60, 65);
-      this.p.stroke(0);
-      this.p.strokeWeight(1);
-      this.p.ellipse(0, 0, 14, 10);
-      
-      this.p.stroke(70, 70, 75);
-      this.p.strokeWeight(2);
-      this.p.line(8, -4, 6, -8);
-      this.p.line(8, 4, 6, 8);
-      this.p.strokeWeight(1);
-      
-      this.p.fill(40, 40, 45);
-      this.p.stroke(0);
-      this.p.strokeWeight(1);
-      this.p.ellipse(6, -8, 4, 3);
-      this.p.ellipse(6, 8, 4, 3);
-      
-      this.p.fill(200, 200, 100);
-      this.p.stroke(0);
-      this.p.strokeWeight(1);
-      this.p.ellipse(18, 0, 6, 3);
-      
-      this.p.fill(90, 90, 95);
-      this.p.stroke(0);
-      this.p.strokeWeight(1);
-      this.p.beginShape();
-      this.p.vertex(-14, -6);
-      this.p.vertex(-14, 6);
-      this.p.vertex(-20, 5);
-      this.p.vertex(-20, -5);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.fill(50, 50, 55);
-      this.p.stroke(0);
-      this.p.strokeWeight(0.5);
-      this.p.rect(-15, -4, 4, 8, 1);
-      
-      if (this.thrustIntensity > 0) {
-        const flameWidth = this.thrustIntensity;
-        const flameHeight = 6;
-        const flameX = -21 - (flameWidth / 2);
-        
-        this.p.noStroke();
-        
-        this.p.fill(255, 150, 50, 150 + this.p.sin(this.p.frameCount * 0.2) * 50);
-        this.p.ellipse(flameX, 0, flameWidth, flameHeight);
-        
-        this.p.fill(255, 200, 100, 100 + this.p.sin(this.p.frameCount * 0.2) * 50);
-        this.p.ellipse(flameX - 1, 0, flameWidth * 0.7, flameHeight * 0.8);
-        
-        this.p.fill(255, 50, 50, 200 + this.p.sin(this.p.frameCount * 0.3) * 55);
-        this.p.ellipse(flameX - 2, 0, flameWidth * 0.5, flameHeight * 0.6);
-      }
-      
-      this.p.stroke(0);
-      this.p.fill(100, 100, 110);
-      this.p.beginShape();
-      this.p.vertex(-5, -8);
-      this.p.vertex(0, -10);
-      this.p.vertex(5, -8);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.beginShape();
-      this.p.vertex(-5, 8);
-      this.p.vertex(0, 10);
-      this.p.vertex(5, 8);
-      this.p.endShape(this.p.CLOSE);
-      
-      this.p.fill(60, 60, 65);
-      this.p.stroke(0);
-      this.p.strokeWeight(0.5);
-      this.p.ellipse(-8, -8, 2, 2);
-      this.p.ellipse(0, -8, 2, 2);
-      this.p.ellipse(8, -8, 2, 2);
-      this.p.ellipse(-8, 8, 2, 2);
-      this.p.ellipse(0, 8, 2, 2);
-      this.p.ellipse(8, 8, 2, 2);
-      
-      this.p.stroke(40, 40, 45);
-      this.p.strokeWeight(1);
-      this.p.line(-8, -6, -14, -4);
-      this.p.line(-8, -2, -14, -2);
-      this.p.line(-8, 2, -14, 2);
-      this.p.line(-8, 6, -14, 4);
-      
-      this.p.noStroke();
-      this.p.fill(50, 50, 60, 100);
-      this.p.ellipse(0, 0, 25, 20);
-      
-      this.p.pop();
-      
-      this.displayRepairEffects();
-    }
+    this.repairAnimation = this.repairController.startRepairAnimation(this.repairAnimation);
   }
 
   upgradeDurability() {

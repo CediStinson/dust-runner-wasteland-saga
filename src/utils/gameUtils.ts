@@ -39,9 +39,6 @@ export interface HoverbikeType {
   durabilityLevel: number;
   collisionCooldown: number;
   update: () => void;
-  handleControls: () => void;
-  applyMovement: () => void;
-  checkCollisions: () => void;
   display: () => void;
   upgradeSpeed: () => void;
   upgradeDurability: () => void;
