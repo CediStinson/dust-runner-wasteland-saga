@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import GameSketch from '../components/GameSketch';
 import GameUI from '../components/GameUI';
@@ -84,11 +83,9 @@ const Index = () => {
   const handleLogout = async () => {
     if (user) {
       try {
-        // Dispatch a logout event to reset the game
         const event = new CustomEvent('logoutUser');
         window.dispatchEvent(event);
         
-        // Sign out the user
         await signOut();
         
         toast({
@@ -110,9 +107,7 @@ const Index = () => {
       if (user) {
         const result = await loadGameState(user.id);
         if (result.success && result.data) {
-          // Fix: Cast the data to GameState to ensure type compatibility
-          const gameStateData = result.data as GameState;
-          handleLoadGameState(gameStateData);
+          handleLoadGameState(result.data);
           toast({
             title: "Game loaded",
             description: "Your saved game has been loaded successfully.",
