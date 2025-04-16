@@ -1,14 +1,16 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { GameState } from '../types/GameTypes';
+import { Json } from '@/integrations/supabase/types';
 
 export async function saveGameState(userId: string, gameState: GameState) {
   try {
+    // Convert GameState to a plain object that conforms to Json type
     const { error } = await supabase
       .from('game_saves')
       .upsert({
         user_id: userId,
-        state: gameState,
+        state: gameState as unknown as Json,
         updated_at: new Date().toISOString(),
       });
 
@@ -39,8 +41,8 @@ export async function loadGameState(userId: string) {
       return { success: false, message: 'Error loading game state', data: null };
     }
 
-    // Explicitly cast the returned data to GameState type
-    const gameStateData = data?.state as GameState;
+    // First cast to unknown, then to GameState for proper type conversion
+    const gameStateData = data?.state as unknown as GameState;
     
     return { success: true, message: 'Game loaded successfully!', data: gameStateData };
   } catch (error) {
