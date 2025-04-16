@@ -19,10 +19,8 @@ export function cleanupActiveActions(game: Game | null): void {
     game.player.isRepairingHoverbike = false;
   }
   
-  // Clean up game state - using timeManager instead of direct assignment
-  if (game.timeManager) {
-    game.timeManager.stopSleeping();
-  }
+  // Clean up game state
+  game.sleepingInHut = false;
 }
 
 /**
@@ -59,9 +57,9 @@ export function applyGameState(game: Game, state: GameState): void {
     game.hoverbike.fuel = state.fuel || 0;
   }
   
-  // Apply world data - fix the argument count issue
+  // Apply world data
   if (state.worldData) {
-    game.loadWorldData(state.worldData);
+    game.loadWorldData(state.worldData, state.worldX, state.worldY);
   }
   
   // Apply quest system data
@@ -69,19 +67,11 @@ export function applyGameState(game: Game, state: GameState): void {
     game.questSystem = state.questSystem;
   }
   
-  // Apply game state - using timeManager instead of direct assignment
+  // Apply game state
   game.gameStarted = state.gameStarted || false;
-  
-  // Update time manager values instead of direct assignment
-  if (game.timeManager) {
-    if (state.sleepingInHut) {
-      game.timeManager.startSleeping();
-    } else {
-      game.timeManager.stopSleeping();
-    }
-    game.timeManager.setDayTimeIcon(state.dayTimeIcon || "sun");
-    game.timeManager.setDayTimeAngle(state.dayTimeAngle || 0);
-  }
+  game.sleepingInHut = state.sleepingInHut || false;
+  game.dayTimeIcon = state.dayTimeIcon || "sun";
+  game.dayTimeAngle = state.dayTimeAngle || 0;
 }
 
 export class GameStateManager {
