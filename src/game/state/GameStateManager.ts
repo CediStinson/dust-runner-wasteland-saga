@@ -20,7 +20,9 @@ export function cleanupActiveActions(game: Game | null): void {
   }
   
   // Clean up game state
-  game.sleepingInHut = false;
+  if (game.timeManager) {
+    game.timeManager.setSleepingInHut(false);
+  }
 }
 
 /**
@@ -59,7 +61,7 @@ export function applyGameState(game: Game, state: GameState): void {
   
   // Apply world data
   if (state.worldData) {
-    game.loadWorldData(state.worldData, state.worldX, state.worldY);
+    game.loadWorldData(state.worldData);
   }
   
   // Apply quest system data
@@ -69,9 +71,11 @@ export function applyGameState(game: Game, state: GameState): void {
   
   // Apply game state
   game.gameStarted = state.gameStarted || false;
-  game.sleepingInHut = state.sleepingInHut || false;
-  game.dayTimeIcon = state.dayTimeIcon || "sun";
-  game.dayTimeAngle = state.dayTimeAngle || 0;
+  if (game.timeManager) {
+    game.timeManager.setSleepingInHut(state.sleepingInHut || false);
+    game.timeManager.setDayTimeIcon(state.dayTimeIcon || "sun");
+    game.timeManager.setDayTimeAngle(state.dayTimeAngle || 0);
+  }
 }
 
 export class GameStateManager {

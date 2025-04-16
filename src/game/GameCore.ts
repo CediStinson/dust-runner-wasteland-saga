@@ -35,18 +35,6 @@ export default class Game {
   stateManager: GameStateManager;
   worldInteractionManager: WorldInteractionManager;
   playerInteractionManager: PlayerInteractionManager;
-  
-  // Extracted properties that will be managed by TimeManager
-  get timeOfDay(): number { return this.timeManager.timeOfDay; }
-  get dayTimeIcon(): string { return this.timeManager.dayTimeIcon; }
-  get dayTimeAngle(): number { return this.timeManager.dayTimeAngle; }
-  get dayTint(): { r: number; g: number; b: number; a: number; } { 
-    return this.timeManager.dayTint; 
-  }
-  get sleepingInHut(): boolean { return this.timeManager.sleepingInHut; }
-  get sleepParticles(): Array<{x: number, y: number, z: number, opacity: number, yOffset: number, size: number}> {
-    return this.timeManager.sleepParticles;
-  }
 
   constructor(p: any) {
     this.p = p;

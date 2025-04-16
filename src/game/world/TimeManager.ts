@@ -76,6 +76,18 @@ export class TimeManager {
     this.sleepParticles = sleepState.sleepParticles;
   }
   
+  setSleepingInHut(value: boolean): void {
+    this.sleepingInHut = value;
+  }
+  
+  setDayTimeIcon(icon: string): void {
+    this.dayTimeIcon = icon;
+  }
+  
+  setDayTimeAngle(angle: number): void {
+    this.dayTimeAngle = angle;
+  }
+  
   isNightTime(): boolean {
     return isNightTime(this.timeOfDay);
   }
