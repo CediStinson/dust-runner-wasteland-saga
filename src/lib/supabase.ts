@@ -1,91 +1,50 @@
 
-import { createClient, PostgrestSingleResponse, PostgrestError } from '@supabase/supabase-js';
-import type { Database } from '@/integrations/supabase/types';
+import { supabase } from '@/integrations/supabase/client';
+import { GameState } from '../types/GameTypes';
 
-// Import the configured client from the integrations folder
-import { supabase as configuredSupabase } from '@/integrations/supabase/client';
-
-// Export the properly configured client
-export const supabase = configuredSupabase;
-
-// Type definitions for the game save data
-type GameSave = Database['public']['Tables']['game_saves']['Row'];
-
-// Function to save game state to Supabase
-export const saveGameState = async (userId: string, gameState: any) => {
+export async function saveGameState(userId: string, gameState: GameState) {
   try {
-    // Check if game state already exists for this user
-    const { data: existingData, error: fetchError } = await supabase
+    const { error } = await supabase
       .from('game_saves')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-    
-    if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
-    
-    if (existingData) {
-      // Update existing save
-      const { error: updateError } = await supabase
-        .from('game_saves')
-        .update({ state: gameState, updated_at: new Date().toISOString() })
-        .eq('user_id', userId);
-        
-      if (updateError) throw updateError;
-      return { success: true, message: 'Game saved successfully!' };
-    } else {
-      // Create new save
-      const { error: insertError } = await supabase
-        .from('game_saves')
-        .insert([{ user_id: userId, state: gameState }]);
-        
-      if (insertError) throw insertError;
-      return { success: true, message: 'Game saved successfully!' };
-    }
-  } catch (error: any) {
-    console.error('Error saving game:', error);
-    return { success: false, message: error.message };
-  }
-};
+      .upsert({
+        user_id: userId,
+        game_data: gameState,
+        updated_at: new Date().toISOString(),
+      });
 
-// Function to load game state from Supabase
-export const loadGameState = async (userId: string) => {
+    if (error) {
+      console.error('Error saving game state:', error);
+      return { success: false, message: 'Error saving game state: ' + error.message };
+    }
+
+    return { success: true, message: 'Game saved successfully!' };
+  } catch (error) {
+    console.error('Error in saveGameState:', error);
+    return { success: false, message: 'An unexpected error occurred' };
+  }
+}
+
+export async function loadGameState(userId: string) {
   try {
     const { data, error } = await supabase
       .from('game_saves')
-      .select('*')
+      .select('game_data')
       .eq('user_id', userId)
-      .maybeSingle();
-      
-    if (error && error.code !== 'PGRST116') throw error;
-    return { success: true, data: data ? data.state : null };
-  } catch (error: any) {
-    console.error('Error loading game:', error);
-    return { success: false, message: error.message };
-  }
-};
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
 
-// Function to reset/delete game state from Supabase
-export const resetGameState = async (userId: string) => {
-  try {
-    console.log("Resetting game state for user:", userId);
+    if (error) {
+      console.error('Error loading game state:', error);
+      return { success: false, message: 'Error loading game state', data: null };
+    }
+
+    // Explicitly cast the returned data to GameState type
+    const gameStateData = data?.game_data as GameState;
     
-    // Delete the game save from database
-    const { error } = await supabase
-      .from('game_saves')
-      .delete()
-      .eq('user_id', userId);
-      
-    if (error) throw error;
-    
-    return { 
-      success: true, 
-      message: 'Game reset successfully!' 
-    };
-  } catch (error: any) {
-    console.error('Error resetting game:', error);
-    return { 
-      success: false, 
-      message: error.message 
-    };
+    return { success: true, message: 'Game loaded successfully!', data: gameStateData };
+  } catch (error) {
+    console.error('Error in loadGameState:', error);
+    return { success: false, message: 'An unexpected error occurred', data: null };
   }
-};
+}

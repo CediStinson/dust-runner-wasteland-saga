@@ -110,7 +110,9 @@ const Index = () => {
       if (user) {
         const result = await loadGameState(user.id);
         if (result.success && result.data) {
-          handleLoadGameState(result.data);
+          // Fix: Cast the data to GameState to ensure type compatibility
+          const gameStateData = result.data as GameState;
+          handleLoadGameState(gameStateData);
           toast({
             title: "Game loaded",
             description: "Your saved game has been loaded successfully.",
