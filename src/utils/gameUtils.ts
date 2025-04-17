@@ -18,6 +18,7 @@ export interface PlayerType {
   collectResource: () => void;
   startDigging: (target: any) => void;
   updateDigging: () => void;
+  displayDigProgress: (p: any, digTimer: number, digTarget: any) => void;
 }
 
 export interface HoverbikeType {
