@@ -176,7 +176,14 @@ export function checkHoverbikeCanisterCollisions(p: any, hoverbike: any, worldX:
 export function createExplosion(p: any, x: number, y: number, worldX: number, worldY: number, worldGenerator: any, renderer: any): void {
   // Add explosion effect to the current area's obstacles temporarily
   const currentAreaKey = `${worldX},${worldY}`;
-  let obstacles = worldGenerator.getObstacles()[currentAreaKey] || [];
+  let obstacles = [];
+  
+  // Handle both cases where worldGenerator might be the actual generator or the obstacles object
+  if (typeof worldGenerator.getObstacles === 'function') {
+    obstacles = worldGenerator.getObstacles()[currentAreaKey] || [];
+  } else {
+    obstacles = worldGenerator[currentAreaKey] || [];
+  }
   
   // Create multiple explosion particles for a more dramatic effect
   for (let i = 0; i < 20; i++) {  // Increased from 10 to 20 particles
@@ -250,17 +257,29 @@ export function createExplosion(p: any, x: number, y: number, worldX: number, wo
   });
   
   // Update obstacles
-  worldGenerator.getObstacles()[currentAreaKey] = obstacles;
+  if (typeof worldGenerator.getObstacles === 'function') {
+    worldGenerator.getObstacles()[currentAreaKey] = obstacles;
+  } else {
+    worldGenerator[currentAreaKey] = obstacles;
+  }
   
   // Make screen shake effect more intense
   renderer.startScreenShake(1.2, 25);
   
   // Remove explosion particles after they fade
   setTimeout(() => {
-    const currentObstacles = worldGenerator.getObstacles()[currentAreaKey] || [];
+    const currentObstacles = typeof worldGenerator.getObstacles === 'function' 
+      ? worldGenerator.getObstacles()[currentAreaKey] || []
+      : worldGenerator[currentAreaKey] || [];
+      
     const updatedObstacles = currentObstacles.filter(o => 
       o.type !== 'explosion' && o.type !== 'smoke' && o.type !== 'flash' && o.type !== 'debris'
     );
-    worldGenerator.getObstacles()[currentAreaKey] = updatedObstacles;
+    
+    if (typeof worldGenerator.getObstacles === 'function') {
+      worldGenerator.getObstacles()[currentAreaKey] = updatedObstacles;
+    } else {
+      worldGenerator[currentAreaKey] = updatedObstacles;
+    }
   }, 3000);  // Increased from 2000 to 3000 ms for longer effect
 }

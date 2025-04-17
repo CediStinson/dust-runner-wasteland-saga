@@ -74,10 +74,17 @@ export class CollisionController {
         if (distance < 20) {
           obs.collected = true;
           
-          // Create explosion with the imported function instead of trying to use player.game.createExplosion
-          if (player && player.game) {
-            const renderer = player.game.renderer;
-            createExplosion(this.p, obs.x, obs.y, newState.worldX, newState.worldY, obstacles, renderer);
+          // Create explosion using createExplosion directly with proper parameters
+          if (player && player.game && player.game.renderer) {
+            createExplosion(
+              this.p, 
+              obs.x, 
+              obs.y, 
+              newState.worldX, 
+              newState.worldY, 
+              obstacles, 
+              player.game.renderer
+            );
             
             const oldHealth = newState.health;
             newState.health = this.p.max(0, newState.health - 15);

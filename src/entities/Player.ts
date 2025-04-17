@@ -628,11 +628,15 @@ export default class Player implements PlayerType {
         let dropX = this.x + Math.cos(this.angle) * dropDistance;
         let dropY = this.y + Math.sin(this.angle) * dropDistance;
         
+        // Create a properly structured canister when dropping
         currentObstacles.push({
           type: 'fuelCanister',
           x: dropX,
           y: dropY,
-          collected: false
+          collected: false,
+          size: 1.0,
+          hitboxWidth: 15,
+          hitboxHeight: 20
         });
         
         this.carryingFuelCanister = false;
