@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
@@ -341,6 +340,10 @@ export default class Player implements PlayerType {
     this.digTimer = result.digTimer;
     this.digTarget = result.digTarget;
     this.inventory = result.inventory;
+  }
+
+  displayDigProgress(p: any, digTimer: number, digTarget: any) {
+    this.resourceController.displayDigProgress(p, digTimer, digTarget);
   }
 
   applyCactusDamage() {
