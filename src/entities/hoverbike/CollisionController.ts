@@ -2,6 +2,7 @@
 import p5 from 'p5';
 import { HoverbikeState } from '../../types/HoverbikeTypes';
 import { emitGameStateUpdate } from '../../utils/gameUtils';
+import { createExplosion } from '../../game/world/WorldInteraction';
 
 export class CollisionController {
   private p: any;
@@ -73,8 +74,10 @@ export class CollisionController {
         if (distance < 20) {
           obs.collected = true;
           
+          // Create explosion with the imported function instead of trying to use player.game.createExplosion
           if (player && player.game) {
-            player.game.createExplosion(obs.x, obs.y);
+            const renderer = player.game.renderer;
+            createExplosion(this.p, obs.x, obs.y, newState.worldX, newState.worldY, obstacles, renderer);
             
             const oldHealth = newState.health;
             newState.health = this.p.max(0, newState.health - 15);
