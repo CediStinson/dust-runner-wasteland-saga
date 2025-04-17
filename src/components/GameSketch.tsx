@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import p5 from 'p5';
 import Game from '../game/Game';
@@ -69,11 +68,11 @@ const GameSketch = () => {
             hoverbikeWorldY: game.hoverbike?.worldY || 0,
             baseWorldX: 0,
             baseWorldY: 0,
-            dayTimeIcon: game.dayTimeIcon,
-            dayTimeAngle: game.dayTimeAngle,
+            dayTimeIcon: game.timeManager?.dayTimeIcon || "sun",
+            dayTimeAngle: game.timeManager?.dayTimeAngle || 0,
             worldData: game.getWorldData(),
             gameStarted: game.gameStarted,
-            sleepingInHut: game.sleepingInHut, 
+            sleepingInHut: game.timeManager?.sleepingInHut || false, 
             isUnderTarp: game.isPlayerUnderTarp ? game.isPlayerUnderTarp() : false,
             questSystem: game.questSystem,
             fuelCanistersNearby: totalFuelCanisters,
