@@ -86,7 +86,13 @@ export class PlayerResourceController {
     digTarget: any | null,
     inventory: PlayerInventory
   } {
-    if (!digging) return { digging, isDigging: false, digTimer, digTarget, inventory };
+    if (!digging) return { 
+      digging, 
+      isDigging: false, 
+      digTimer, 
+      digTarget, 
+      inventory 
+    };
     
     let newDigTimer = digTimer + 1;
     let newDigging = digging;
