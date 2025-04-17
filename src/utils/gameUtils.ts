@@ -1,11 +1,10 @@
-
 export interface PlayerType {
   x: number;
   y: number;
   velX: number;
   velY: number;
   speed: number;
-  inventory: { [key: string]: number };
+  inventory: { metal: number; copper: number };
   angle: number;
   digging: boolean;
   digTimer: number;
@@ -19,7 +18,6 @@ export interface PlayerType {
   collectResource: () => void;
   startDigging: (target: any) => void;
   updateDigging: () => void;
-  displayDigProgress: () => void;
 }
 
 export interface HoverbikeType {

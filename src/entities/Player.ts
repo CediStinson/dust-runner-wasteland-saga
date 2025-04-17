@@ -6,6 +6,7 @@ import { PlayerMovementController } from './player/PlayerMovementController';
 import { PlayerResourceController } from './player/PlayerResourceController';
 import { PlayerFuelController } from './player/PlayerFuelController';
 import { PlayerRenderer } from './player/PlayerRenderer';
+import { PlayerInventory } from '../types/PlayerTypes';
 
 export default class Player implements PlayerType {
   // Required PlayerType properties
@@ -14,7 +15,7 @@ export default class Player implements PlayerType {
   velX: number;
   velY: number;
   speed: number;
-  inventory: { [key: string]: number };
+  inventory: PlayerInventory;
   angle: number;
   digging: boolean;
   isDigging: boolean;

@@ -1,5 +1,5 @@
 
-import { HoverbikeType } from './HoverbikeTypes';
+import { HoverbikeState } from './HoverbikeTypes';
 
 export interface PlayerProps {
   p: any;
@@ -9,7 +9,7 @@ export interface PlayerProps {
   worldY: number;
   obstacles: Record<string, any[]>;
   resources: Record<string, any[]>;
-  hoverbike: HoverbikeType;
+  hoverbike: HoverbikeState;
   riding: boolean;
   game?: any;
 }
@@ -48,4 +48,3 @@ export interface PlayerInventory {
   metal: number;
   copper: number;
 }
-

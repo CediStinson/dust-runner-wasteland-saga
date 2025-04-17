@@ -1,5 +1,6 @@
 
 import p5 from 'p5';
+import { PlayerInventory } from '../../types/PlayerTypes';
 import { emitGameStateUpdate } from '../../utils/gameUtils';
 
 export class PlayerResourceController {
@@ -15,14 +16,14 @@ export class PlayerResourceController {
     worldX: number, 
     worldY: number,
     resources: Record<string, any[]>,
-    inventory: { metal: number; copper: number },
+    inventory: PlayerInventory,
     digging: boolean,
     canDig: boolean,
     player: any,
     hoverbike: any,
     startDigging: (target: any) => void,
     game: any
-  ): { inventory: { metal: number; copper: number }, collectionMade: boolean } {
+  ): { inventory: PlayerInventory, collectionMade: boolean } {
     let currentResources = resources[`${worldX},${worldY}`] || [];
     let collectionMade = false;
     let newInventory = { ...inventory };
@@ -74,7 +75,7 @@ export class PlayerResourceController {
     worldX: number,
     worldY: number,
     resources: Record<string, any[]>,
-    inventory: { metal: number; copper: number },
+    inventory: PlayerInventory,
     player: any,
     hoverbike: any,
     p: any
@@ -83,7 +84,7 @@ export class PlayerResourceController {
     isDigging: boolean,
     digTimer: number,
     digTarget: any | null,
-    inventory: { metal: number; copper: number }
+    inventory: PlayerInventory
   } {
     if (!digging) return { digging, isDigging: false, digTimer, digTarget, inventory };
     
