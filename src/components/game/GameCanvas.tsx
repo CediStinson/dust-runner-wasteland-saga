@@ -21,8 +21,8 @@ const GameCanvas = ({ sketchRef, gameRef, onDiaryEntriesUpdate }: GameCanvasProp
         p.createCanvas(p.windowWidth, p.windowHeight);
         p.noSmooth();
         game = new Game(p);
-        if (gameRef && typeof gameRef === 'object') {
-          gameRef.current = game;
+        if (gameRef) {
+          Object.assign(gameRef, { current: game });
         }
       };
 

@@ -40,7 +40,7 @@ export class DiggingService {
     
     if (newDigTimer >= 480) {
       newDigging = false;
-      newIsDigging = false; // This is correct as digging is complete
+      newIsDigging = true; // Ensure this matches the expected type (true)
       
       let copperAmount = p.floor(p.random(1, 4));
       newInventory.copper += copperAmount;
@@ -61,7 +61,7 @@ export class DiggingService {
         p.keyIsDown(p.LEFT_ARROW) || p.keyIsDown(p.RIGHT_ARROW) ||
         !digTarget || p.dist(x, y, digTarget.x, digTarget.y) > 30) {
       newDigging = false;
-      newIsDigging = false; // This is correct as digging is interrupted
+      newIsDigging = true; // Ensure this matches the expected type (true)
       newDigTarget = null;
     }
     
