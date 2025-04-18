@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Heart, Shield, Fuel } from 'lucide-react';
 
 interface StatusBarsProps {
   playerHealth: number;
@@ -19,38 +20,47 @@ const StatusBars: React.FC<StatusBarsProps> = ({
   maxFuel
 }) => {
   return (
-    <div className="flex flex-col gap-2 items-end">
+    <div className="flex flex-col gap-3 items-end w-48">
       {/* Player health bar */}
-      <div className="bg-black/50 p-3 rounded-lg backdrop-blur-sm text-red-200 border border-red-500/30 w-40">
-        <div className="w-full h-3 bg-red-900/70 rounded-full overflow-hidden">
+      <div className="w-full bg-black/40 backdrop-blur-sm border border-white/10 rounded-lg p-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Heart className="w-4 h-4 text-red-400" />
+          <span className="text-xs font-mono text-white/80">PILOT</span>
+        </div>
+        <div className="w-full h-2 bg-black/50 rounded-full overflow-hidden">
           <div 
-            className="h-full bg-red-500 rounded-full" 
+            className="h-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-300" 
             style={{ width: `${(playerHealth / maxPlayerHealth) * 100}%` }}
           ></div>
         </div>
-        <div className="text-xs font-mono text-center mt-1">PLAYER</div>
       </div>
       
-      {/* Hoverbike health bar - changed to gray */}
-      <div className="bg-black/50 p-3 rounded-lg backdrop-blur-sm text-gray-200 border border-gray-500/30 w-40">
-        <div className="w-full h-3 bg-gray-900/70 rounded-full overflow-hidden">
+      {/* Hoverbike health bar */}
+      <div className="w-full bg-black/40 backdrop-blur-sm border border-white/10 rounded-lg p-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Shield className="w-4 h-4 text-blue-400" />
+          <span className="text-xs font-mono text-white/80">HOVERBIKE</span>
+        </div>
+        <div className="w-full h-2 bg-black/50 rounded-full overflow-hidden">
           <div 
-            className="h-full bg-gray-400 rounded-full" 
+            className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-300" 
             style={{ width: `${(health / maxHealth) * 100}%` }}
           ></div>
         </div>
-        <div className="text-xs font-mono text-center mt-1">HOVERBIKE</div>
       </div>
       
       {/* Fuel bar */}
-      <div className="bg-black/50 p-3 rounded-lg backdrop-blur-sm text-yellow-200 border border-yellow-500/30 w-40">
-        <div className="w-full h-3 bg-yellow-900/70 rounded-full overflow-hidden">
+      <div className="w-full bg-black/40 backdrop-blur-sm border border-white/10 rounded-lg p-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Fuel className="w-4 h-4 text-yellow-400" />
+          <span className="text-xs font-mono text-white/80">FUEL</span>
+        </div>
+        <div className="w-full h-2 bg-black/50 rounded-full overflow-hidden">
           <div 
-            className="h-full bg-yellow-500 rounded-full" 
+            className="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 transition-all duration-300" 
             style={{ width: `${(fuel / maxFuel) * 100}%` }}
           ></div>
         </div>
-        <div className="text-xs font-mono text-center mt-1">FUEL</div>
       </div>
     </div>
   );

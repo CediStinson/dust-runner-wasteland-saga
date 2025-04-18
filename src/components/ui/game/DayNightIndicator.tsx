@@ -15,40 +15,33 @@ const DayNightIndicator: React.FC<DayNightIndicatorProps> = ({
   
   useEffect(() => {
     if (iconWrapperRef.current) {
-      // Apply the angle directly without trying to animate between values
-      // This ensures the icon is always at the exact position specified by the game
       iconWrapperRef.current.style.setProperty('--display-angle', `${dayTimeAngle}rad`);
     }
   }, [dayTimeAngle]);
   
   return (
-    <div className="bg-black/50 p-3 rounded-full backdrop-blur-sm text-white border border-white/30 w-16 h-16 flex items-center justify-center relative mb-2">
+    <div className="bg-black/40 p-4 rounded-full backdrop-blur-sm border border-white/10 w-16 h-16 flex items-center justify-center relative">
+      {/* Center dot and lines */}  
       <div className="absolute w-full h-full flex items-center justify-center">
-        <div className="w-1 h-1 bg-white rounded-full"></div>
-        <div className="absolute w-14 h-0.5 bg-white/30 rounded-full"></div>
+        <div className="w-1 h-1 bg-white/50 rounded-full"></div>
+        <div className="absolute w-14 h-[1px] bg-white/20"></div>
       </div>
       
-      {/* Sun or Moon icon that rotates around the circle */}
+      {/* Rotating icon */}
       <div 
         ref={iconWrapperRef}
-        className="absolute w-full h-full flex items-center justify-center"
-        style={{
-          transform: 'rotate(var(--display-angle))', 
-          transition: 'transform 1000ms cubic-bezier(0.4, 0.0, 0.2, 1)'
-        }}
+        className="absolute w-full h-full flex items-center justify-center transition-transform duration-1000 ease-in-out"
+        style={{ transform: 'rotate(var(--display-angle))' }}
       >
-        <div className="w-0.5 h-14 flex flex-col items-center">
+        <div className="w-[1px] h-14 flex flex-col items-center">
           <div className="flex-1"></div>
           {dayTimeIcon === "sun" ? (
-            <Sun className="text-yellow-400" size={16} />
+            <Sun className="text-yellow-400 w-4 h-4" />
           ) : (
-            <Moon className="text-blue-200" size={16} />
+            <Moon className="text-blue-200 w-4 h-4" />
           )}
         </div>
       </div>
-      
-      {/* Horizontal line */}
-      <div className="w-14 h-0.5 bg-white/30"></div>
     </div>
   );
 };
