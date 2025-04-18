@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import p5 from 'p5';
 import Game from '../../game/Game';
@@ -22,7 +21,9 @@ const GameCanvas = ({ sketchRef, gameRef, onDiaryEntriesUpdate }: GameCanvasProp
         p.createCanvas(p.windowWidth, p.windowHeight);
         p.noSmooth();
         game = new Game(p);
-        gameRef.current = game;
+        if (gameRef && typeof gameRef === 'object') {
+          gameRef.current = game;
+        }
       };
 
       p.draw = () => {

@@ -34,13 +34,13 @@ export class DiggingService {
     
     let newDigTimer = digTimer + 1;
     let newDigging = digging;
-    let newIsDigging = true;
+    let newIsDigging = true; // Always true when in digging state
     let newDigTarget = digTarget;
     let newInventory = { ...inventory };
     
     if (newDigTimer >= 480) {
       newDigging = false;
-      newIsDigging = false;
+      newIsDigging = false; // This is correct as digging is complete
       
       let copperAmount = p.floor(p.random(1, 4));
       newInventory.copper += copperAmount;
@@ -61,7 +61,7 @@ export class DiggingService {
         p.keyIsDown(p.LEFT_ARROW) || p.keyIsDown(p.RIGHT_ARROW) ||
         !digTarget || p.dist(x, y, digTarget.x, digTarget.y) > 30) {
       newDigging = false;
-      newIsDigging = false;
+      newIsDigging = false; // This is correct as digging is interrupted
       newDigTarget = null;
     }
     

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DiaryModal from './ui/game/DiaryModal';
 import { useGameInitialization } from '../hooks/useGameInitialization';
 import GameCanvas from './game/GameCanvas';
