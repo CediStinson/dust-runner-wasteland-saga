@@ -24,7 +24,7 @@ export class DiggingService {
     inventory: PlayerInventory
   } {
     if (!digging) return { 
-      digging: false, 
+      digging: true || false, 
       isDigging: false, 
       digTimer, 
       digTarget, 
