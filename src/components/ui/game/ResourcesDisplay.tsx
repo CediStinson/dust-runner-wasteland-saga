@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { CircleDot, CircleDollarSign } from 'lucide-react';
 
 interface ResourcesDisplayProps {
   resources: number;
@@ -12,17 +11,25 @@ const ResourcesDisplay: React.FC<ResourcesDisplayProps> = ({
   copper
 }) => {
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-2 scale-85 origin-bottom-left">
       {/* Metal resources */}
-      <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-lg px-4 py-2 flex items-center gap-2 transition-colors hover:bg-black/50">
-        <CircleDot className="w-4 h-4 text-gray-300" />
-        <span className="font-mono text-sm text-gray-200">{resources}</span>
+      <div className="bg-black/50 p-1.5 rounded-lg backdrop-blur-sm text-yellow-200 border border-yellow-500/30">
+        <div className="flex gap-1.5 items-center">
+          <div className="w-4 h-4 bg-gray-400 rounded-sm border border-gray-300 flex items-center justify-center">
+            <div className="w-2.5 h-0.5 bg-gray-300"></div>
+          </div>
+          <span className="font-mono text-xs">{resources}</span>
+        </div>
       </div>
       
       {/* Copper resources */}
-      <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-lg px-4 py-2 flex items-center gap-2 transition-colors hover:bg-black/50">
-        <CircleDollarSign className="w-4 h-4 text-orange-400" />
-        <span className="font-mono text-sm text-orange-200">{copper}</span>
+      <div className="bg-black/50 p-1.5 rounded-lg backdrop-blur-sm text-orange-200 border border-orange-500/30">
+        <div className="flex gap-1.5 items-center">
+          <div className="w-4 h-4 bg-orange-600 rounded-full border border-orange-400 flex items-center justify-center">
+            <div className="w-2 h-2 bg-orange-300 rounded-full"></div>
+          </div>
+          <span className="font-mono text-xs">{copper}</span>
+        </div>
       </div>
     </div>
   );
