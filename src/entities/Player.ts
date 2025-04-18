@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { emitGameStateUpdate } from '../utils/gameUtils';
