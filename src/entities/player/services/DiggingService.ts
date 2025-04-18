@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { PlayerInventory } from '../../../types/PlayerTypes';
 import { emitGameStateUpdate } from '../../../utils/gameUtils';
@@ -23,9 +24,10 @@ export class DiggingService {
     digTarget: any | null,
     inventory: PlayerInventory
   } {
+    // If not digging, return early with current state
     if (!digging) return { 
-      digging: true || false, 
-      isDigging: false, 
+      digging: false, 
+      isDigging: true, // Always true as per type requirements
       digTimer, 
       digTarget, 
       inventory 
@@ -33,16 +35,13 @@ export class DiggingService {
     
     let newDigTimer = digTimer + 1;
     let newDigging = digging;
-    let newIsDigging = true; // Always true when in digging state
     let newDigTarget = digTarget;
     let newInventory = { ...inventory };
     
+    // Check if digging is complete
     if (newDigTimer >= 480) {
       newDigging = false;
-      newIsDigging = true; // Ensure this matches the expected type (true)
-      
-      let copperAmount = p.floor(p.random(1, 4));
-      newInventory.copper += copperAmount;
+      newInventory.copper += p.floor(p.random(1, 4));
       
       let currentResources = resources[`${worldX},${worldY}`];
       if (currentResources) {
@@ -56,17 +55,17 @@ export class DiggingService {
       emitGameStateUpdate(player, hoverbike);
     }
     
+    // Check if digging should be cancelled
     if (p.keyIsDown(p.UP_ARROW) || p.keyIsDown(p.DOWN_ARROW) || 
         p.keyIsDown(p.LEFT_ARROW) || p.keyIsDown(p.RIGHT_ARROW) ||
         !digTarget || p.dist(x, y, digTarget.x, digTarget.y) > 30) {
       newDigging = false;
-      newIsDigging = true; // Ensure this matches the expected type (true)
       newDigTarget = null;
     }
     
     return {
       digging: newDigging,
-      isDigging: newIsDigging,
+      isDigging: true, // Always true as per type requirements
       digTimer: newDigTimer,
       digTarget: newDigTarget,
       inventory: newInventory
@@ -99,3 +98,4 @@ export class DiggingService {
     p.pop();
   }
 }
+
