@@ -1,31 +1,22 @@
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
-import { emitGameStateUpdate } from '../utils/gameUtils';
 import { PlayerMovementController } from './player/PlayerMovementController';
 import { PlayerResourceController } from './player/PlayerResourceController';
 import { PlayerFuelController } from './player/PlayerFuelController';
 import { PlayerRenderer } from './player/PlayerRenderer';
-import { PlayerInventory } from '../types/PlayerTypes';
-import { PlayerBase } from './player/PlayerBase';
 import { PlayerDamageHandler } from './player/services/PlayerDamageHandler';
 import { PlayerInteractionHandler } from './player/services/PlayerInteractionHandler';
+import { PlayerStateService } from './player/services/PlayerStateService';
+import { PlayerCollectionService } from './player/services/PlayerCollectionService';
+import { PlayerBase } from './player/PlayerBase';
+import { PlayerState, PlayerInventory, CollectionState } from '../types/PlayerTypes';
+import { emitGameStateUpdate } from '../utils/gameUtils';
 
 export default class Player extends PlayerBase implements PlayerType {
-  // Additional properties not in PlayerBase
-  carryingFuelCanister: boolean;
-  canisterCollectCooldown: number;
-  isCollectingCanister: boolean;
-  canisterCollectionProgress: number;
-  canisterCollectionTarget: any;
-  isRefuelingHoverbike: boolean;
-  refuelingProgress: number;
-  isRepairingHoverbike: boolean;
-  repairProgress: number;
-  cactusDamageCooldown: number = 0;
-  droppingCanister: boolean;
-  game: any;
-
-  // Controller instances
+  private state: PlayerState;
+  private collectionState: CollectionState;
+  private stateService: PlayerStateService;
+  private collectionService: PlayerCollectionService;
   private movementController: PlayerMovementController;
   private resourceController: PlayerResourceController;
   private fuelController: PlayerFuelController;
@@ -33,29 +24,49 @@ export default class Player extends PlayerBase implements PlayerType {
   private damageHandler: PlayerDamageHandler;
   private interactionHandler: PlayerInteractionHandler;
 
-  constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean, game?: any) {
+  constructor(
+    p: any, 
+    x: number, 
+    y: number, 
+    worldX: number, 
+    worldY: number, 
+    obstacles: Record<string, any[]>, 
+    resources: Record<string, any[]>, 
+    hoverbike: any, 
+    riding: boolean, 
+    game?: any
+  ) {
     super(p, x, y, worldX, worldY, obstacles, resources, hoverbike, riding);
     
-    this.game = game;
-    this.carryingFuelCanister = false;
-    this.canisterCollectCooldown = 0;
-    this.isCollectingCanister = false;
-    this.canisterCollectionProgress = 0;
-    this.canisterCollectionTarget = null;
-    this.isRefuelingHoverbike = false;
-    this.refuelingProgress = 0;
-    this.isRepairingHoverbike = false;
-    this.repairProgress = 0;
-    this.droppingCanister = false;
-
-    // Initialize controllers
+    // Initialize services
+    this.stateService = new PlayerStateService(p);
+    this.collectionService = new PlayerCollectionService(p);
     this.movementController = new PlayerMovementController(p);
     this.resourceController = new PlayerResourceController(p);
     this.fuelController = new PlayerFuelController(p);
     this.renderer = new PlayerRenderer(p);
     this.damageHandler = new PlayerDamageHandler(p);
     this.interactionHandler = new PlayerInteractionHandler(p);
+    
+    // Initialize state
+    this.state = this.stateService.initializePlayerState(x, y);
+    this.collectionState = this.collectionService.initializeCollectionState();
+    this.inventory = this.stateService.initializePlayerInventory();
+    
+    this.game = game;
   }
+
+  get x() { return this.state.x; }
+  set x(value: number) { this.state.x = value; }
+  
+  get y() { return this.state.y; }
+  set y(value: number) { this.state.y = value; }
+  
+  get worldX() { return this.state.worldX; }
+  set worldX(value: number) { this.state.worldX = value; }
+  
+  get worldY() { return this.state.worldY; }
+  set worldY(value: number) { this.state.worldY = value; }
 
   update() {
     if (this.canisterCollectCooldown > 0) {
@@ -76,7 +87,6 @@ export default class Player extends PlayerBase implements PlayerType {
           this.armAnimationOffset = 0;
         }
         
-        // Update position with collision detection
         const positionUpdate = this.movementController.checkCollisions(
           this.x, 
           this.y, 
@@ -90,8 +100,7 @@ export default class Player extends PlayerBase implements PlayerType {
           this.applyCactusDamage.bind(this)
         );
         
-        this.x = positionUpdate.x;
-        this.y = positionUpdate.y;
+        this.stateService.updatePosition(this.state, positionUpdate.x, positionUpdate.y);
         this.velX = positionUpdate.velX;
         this.velY = positionUpdate.velY;
         
@@ -114,18 +123,18 @@ export default class Player extends PlayerBase implements PlayerType {
         this.checkForHutSleeping();
       }
     } else {
-      this.x = this.hoverbike.x;
-      this.y = this.hoverbike.y;
-      this.angle = this.hoverbike.angle;
+      this.stateService.updatePosition(this.state, this.hoverbike.x, this.hoverbike.y);
+      this.state.angle = this.hoverbike.angle;
     }
     
-    // Handle movement cancellation for collection
-    this.handleCollectionMovementCancellation();
+    this.collectionService.handleCollectionMovementCancellation(
+      this.collectionState,
+      this.velX,
+      this.velY
+    );
     
-    // Handle fuel collection animation
-    this.handleFuelCollectionAnimation();
+    this.collectionService.handleFuelCollectionAnimation(this.collectionState);
     
-    // Handle refueling and repair animations
     this.handleVehicleInteractionAnimations();
   }
 
@@ -358,21 +367,21 @@ export default class Player extends PlayerBase implements PlayerType {
   }
 
   private handleCollectionMovementCancellation() {
-    if (this.isCollectingCanister && 
+    if (this.collectionState.isCollectingCanister && 
         (Math.abs(this.velX) > 0.3 || Math.abs(this.velY) > 0.3)) {
-      this.isCollectingCanister = false;
-      this.canisterCollectionProgress = 0;
-      this.canisterCollectionTarget = null;
+      this.collectionState.isCollectingCanister = false;
+      this.collectionState.canisterCollectionProgress = 0;
+      this.collectionState.canisterCollectionTarget = null;
     }
   }
 
   private handleFuelCollectionAnimation() {
-    if (this.isCollectingCanister && this.canisterCollectionTarget) {
-      this.canisterCollectionProgress = Math.min(1, this.canisterCollectionProgress + 0.0025);
-      if (this.canisterCollectionProgress >= 1) {
+    if (this.collectionState.isCollectingCanister && this.collectionState.canisterCollectionTarget) {
+      this.collectionState.canisterCollectionProgress = Math.min(1, this.collectionState.canisterCollectionProgress + 0.0025);
+      if (this.collectionState.canisterCollectionProgress >= 1) {
         this.carryingFuelCanister = true;
-        this.isCollectingCanister = false;
-        this.canisterCollectionTarget = null;
+        this.collectionState.isCollectingCanister = false;
+        this.collectionState.canisterCollectionTarget = null;
         this.canisterCollectCooldown = 30;
       }
     }
@@ -403,4 +412,38 @@ export default class Player extends PlayerBase implements PlayerType {
       }
     }
   }
+
+  // Required PlayerType properties
+  velX: number;
+  velY: number;
+  speed: number;
+  angle: number;
+  digging: boolean;
+  isDigging: boolean;
+  digTimer: number;
+  digTarget: any;
+  health: number;
+  maxHealth: number;
+  p: any;
+  obstacles: Record<string, any[]>;
+  resources: Record<string, any[]>;
+  hoverbike: any;
+  riding: boolean;
+  lastAngle: number;
+  turnSpeed: number;
+  hairColor: { r: number; g: number; b: number; };
+  armAnimationOffset: number;
+  canDig: boolean;
+  carryingFuelCanister: boolean;
+  canisterCollectCooldown: number;
+  isCollectingCanister: boolean;
+  canisterCollectionProgress: number;
+  canisterCollectionTarget: any;
+  isRefuelingHoverbike: boolean;
+  refuelingProgress: number;
+  isRepairingHoverbike: boolean;
+  repairProgress: number;
+  cactusDamageCooldown: number;
+  droppingCanister: boolean;
+  game: any;
 }
