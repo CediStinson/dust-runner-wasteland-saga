@@ -1,4 +1,3 @@
-
 export interface PlayerType {
   x: number;
   y: number;
@@ -12,12 +11,11 @@ export interface PlayerType {
   digTarget: any;
   health: number;
   maxHealth: number;
-  carryingFuelCanister: boolean;
   update: () => void;
   handleInput: () => void;
   applyFriction: () => void;
   display: () => void;
-  collectResource: () => boolean;
+  collectResource: () => void;
   startDigging: (target: any) => void;
   updateDigging: () => void;
   displayDigProgress: (p: any, digTimer: number, digTarget: any) => void;

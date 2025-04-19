@@ -1,3 +1,4 @@
+
 import Game from '../GameCore';
 import { renderMainMenu } from '../ui/MainMenu';
 import { renderQuestUI } from '../rendering/QuestRenderer';
@@ -38,12 +39,8 @@ export function applyGameState(game: Game, state: GameState): void {
     game.player.y = state.playerY || 0;
     game.player.angle = state.playerAngle || 0;
     game.player.carryingFuelCanister = state.carryingFuelCanister || false;
-    
-    // Instead of directly setting health, use a method that allows updates
-    game.player.updateHealth(state.playerHealth || 0);
-    
-    // Set max health through a method if needed
-    game.player.setMaxHealth(state.maxPlayerHealth || 100);
+    game.player.health = state.playerHealth || 0;
+    game.player.maxHealth = state.maxPlayerHealth || 100;
     
     if (game.player.inventory) {
       game.player.inventory.metal = state.resources || 0;
@@ -58,10 +55,7 @@ export function applyGameState(game: Game, state: GameState): void {
     game.hoverbike.angle = state.hoverbikeAngle || 0;
     game.hoverbike.worldX = state.hoverbikeWorldX || 0;
     game.hoverbike.worldY = state.hoverbikeWorldY || 0;
-    
-    // Use methods to update health and max health
-    game.hoverbike.updateHealth(state.health || 0);
-    game.hoverbike.setMaxHealth(state.maxHealth || 100);
+    game.hoverbike.health = state.health || 0;
     game.hoverbike.fuel = state.fuel || 0;
   }
   
