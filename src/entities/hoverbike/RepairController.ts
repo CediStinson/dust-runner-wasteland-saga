@@ -52,4 +52,25 @@ export class RepairController {
     
     return newState;
   }
+
+  renderRepairAnimation(repairAnimation: RepairAnimationState): void {
+    if (!repairAnimation.active) return;
+    
+    // Draw sparks
+    this.p.noStroke();
+    
+    for (const spark of repairAnimation.sparks) {
+      const alpha = Math.max(0, Math.min(255, spark.opacity));
+      this.p.fill(255, 200, 50, alpha);
+      this.p.ellipse(spark.x, spark.y, 2, 2);
+    }
+    
+    // Draw repair tool effect
+    if (repairAnimation.timer % 10 < 5) {
+      this.p.stroke(100, 150, 255, 150);
+      this.p.strokeWeight(1);
+      this.p.line(-10, -10, 10, 10);
+      this.p.line(-10, 10, 10, -10);
+    }
+  }
 }
