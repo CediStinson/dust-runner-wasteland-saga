@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { PlayerMovementController } from './player/PlayerMovementController';
@@ -96,6 +97,10 @@ export default class Player extends PlayerBase {
   set digTarget(value: any) { this.state.digTarget = value; }
   
   get speed(): number { return 0.5; }
+
+  // Implement carryingFuelCanister getter and setter
+  get carryingFuelCanister(): boolean { return this.state.carryingFuelCanister; }
+  set carryingFuelCanister(value: boolean) { this.state.carryingFuelCanister = value; }
 
   // Collection state getters and setters
   get isCollectingCanister(): boolean { return this.collectionState.isCollectingCanister; }

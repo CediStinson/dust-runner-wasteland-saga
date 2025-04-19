@@ -19,7 +19,7 @@ export class PlayerStateService {
       carryingFuelCanister: false,
       canisterCollectCooldown: 0,
       digging: false,
-      isDigging: true,
+      isDigging: false,
       digTimer: 0,
       digTarget: null,
       cactusDamageCooldown: 0

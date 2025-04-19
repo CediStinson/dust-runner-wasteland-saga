@@ -14,7 +14,7 @@ export abstract class PlayerBase implements PlayerType {
   protected _hairColor: { r: number, g: number, b: number };
   protected _armAnimationOffset: number;
   protected _canDig: boolean;
-  protected inventory: PlayerInventory;
+  public inventory: PlayerInventory; // Changed from protected to public
 
   constructor(p: any, x: number, y: number, worldX: number, worldY: number, obstacles: Record<string, any[]>, resources: Record<string, any[]>, hoverbike: any, riding: boolean) {
     this.p = p;
@@ -72,6 +72,10 @@ export abstract class PlayerBase implements PlayerType {
   abstract set digTarget(value: any);
   
   abstract get speed(): number;
+  
+  // Add a getter for carryingFuelCanister
+  abstract get carryingFuelCanister(): boolean;
+  abstract set carryingFuelCanister(value: boolean);
 
   // Base getters and setters
   get obstacles(): Record<string, any[]> {
