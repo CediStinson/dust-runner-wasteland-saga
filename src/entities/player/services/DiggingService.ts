@@ -27,20 +27,17 @@ export class DiggingService {
     // If not digging, return early with current state
     if (!digging) return { 
       digging: false, 
-      isDigging: true, // Always true as per type requirements
+      isDigging: true, // Always true since it's required by the type
       digTimer, 
       digTarget, 
       inventory 
     };
     
     let newDigTimer = digTimer + 1;
-    let newDigging = digging;
-    let newDigTarget = digTarget;
     let newInventory = { ...inventory };
     
     // Check if digging is complete
     if (newDigTimer >= 480) {
-      newDigging = false;
       newInventory.copper += p.floor(p.random(1, 4));
       
       let currentResources = resources[`${worldX},${worldY}`];
@@ -51,24 +48,38 @@ export class DiggingService {
         }
       }
       
-      newDigTarget = null;
       emitGameStateUpdate(player, hoverbike);
+      
+      return {
+        digging: false,
+        isDigging: true, // Always true since it's required by the type
+        digTimer: 0,
+        digTarget: null,
+        inventory: newInventory
+      };
     }
     
     // Check if digging should be cancelled
     if (p.keyIsDown(p.UP_ARROW) || p.keyIsDown(p.DOWN_ARROW) || 
         p.keyIsDown(p.LEFT_ARROW) || p.keyIsDown(p.RIGHT_ARROW) ||
         !digTarget || p.dist(x, y, digTarget.x, digTarget.y) > 30) {
-      newDigging = false;
-      newDigTarget = null;
+      
+      return {
+        digging: false,
+        isDigging: true, // Always true since it's required by the type
+        digTimer: 0,
+        digTarget: null,
+        inventory
+      };
     }
     
+    // Continue digging
     return {
-      digging: newDigging,
-      isDigging: true, // Always true as per type requirements
+      digging: true,
+      isDigging: true,
       digTimer: newDigTimer,
-      digTarget: newDigTarget,
-      inventory: newInventory
+      digTarget,
+      inventory
     };
   }
   
@@ -81,15 +92,12 @@ export class DiggingService {
     p.push();
     p.translate(digTarget.x, digTarget.y - 15);
     
-    // Draw progress bar background
     p.fill(0, 0, 0, 150);
     p.rect(-barWidth/2, 0, barWidth, 4, 2);
     
-    // Draw progress
     p.fill(220, 170, 50);
     p.rect(-barWidth/2, 0, barWidth * progress, 4, 2);
     
-    // Draw digging text
     p.fill(255);
     p.textAlign(p.CENTER);
     p.textSize(8);
