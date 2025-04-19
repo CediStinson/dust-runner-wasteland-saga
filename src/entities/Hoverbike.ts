@@ -123,6 +123,52 @@ export default class Hoverbike {
     this.outOfFuelTime = state.outOfFuelTime;
   }
 
+  display() {
+    this.p.push();
+    this.p.translate(this.x, this.y);
+    this.p.rotate(this.angle);
+    
+    // Draw the hoverbike body
+    this.p.fill(100, 100, 100);
+    this.p.strokeWeight(1);
+    this.p.stroke(50);
+    this.p.ellipse(0, 0, 40, 25);
+    
+    // Draw the hoverbike front
+    this.p.fill(80, 80, 80);
+    this.p.triangle(-5, -12, 20, 0, -5, 12);
+    
+    // Draw the thrusters
+    this.drawThrusters();
+    
+    // Draw repair animation if active
+    if (this.repairAnimation.active) {
+      this.repairController.renderRepairAnimation(this.repairAnimation);
+    }
+    
+    this.p.pop();
+  }
+  
+  drawThrusters() {
+    // Only show thrusters when the hoverbike has fuel and is accelerating
+    if (this.fuel > 0 && this.previousAcceleration !== 0) {
+      const thrustLength = this.previousAcceleration > 0 
+        ? -15 - this.flameLength 
+        : 15 + this.flameLength;
+      
+      this.p.push();
+      // Draw back thruster flames when accelerating
+      this.p.noStroke();
+      this.p.fill(255, 100 + this.p.random(100), 0, 200);
+      this.p.triangle(
+        -20, -8,
+        -20, 8,
+        -20 + thrustLength, 0
+      );
+      this.p.pop();
+    }
+  }
+
   updateHealth(newHealth: number): void {
     this.health = newHealth;
   }
