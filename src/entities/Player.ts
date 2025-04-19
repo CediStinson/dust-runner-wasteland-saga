@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { PlayerMovementController } from './player/PlayerMovementController';
@@ -444,5 +443,14 @@ export default class Player extends PlayerBase {
         emitGameStateUpdate(this, this.hoverbike);
       }
     }
+  }
+
+  updateHealth(newHealth: number): void {
+    this.state.health = newHealth;
+  }
+
+  setMaxHealth(newMaxHealth: number): void {
+    // Implement logic to update max health if applicable
+    // This might involve updating a state or service
   }
 }
