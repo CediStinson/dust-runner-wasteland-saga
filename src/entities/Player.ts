@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import { PlayerType } from '../utils/gameUtils';
 import { PlayerMovementController } from './player/PlayerMovementController';
@@ -13,8 +14,11 @@ import { PlayerState, PlayerInventory, CollectionState } from '../types/PlayerTy
 import { emitGameStateUpdate } from '../utils/gameUtils';
 
 export default class Player extends PlayerBase implements PlayerType {
+  // Properties managed by state services
   private state: PlayerState;
   private collectionState: CollectionState;
+  
+  // Services
   private stateService: PlayerStateService;
   private collectionService: PlayerCollectionService;
   private movementController: PlayerMovementController;
@@ -23,6 +27,9 @@ export default class Player extends PlayerBase implements PlayerType {
   private renderer: PlayerRenderer;
   private damageHandler: PlayerDamageHandler;
   private interactionHandler: PlayerInteractionHandler;
+  
+  // Game reference
+  private game: any;
 
   constructor(
     p: any, 
@@ -56,17 +63,79 @@ export default class Player extends PlayerBase implements PlayerType {
     this.game = game;
   }
 
-  get x() { return this.state.x; }
+  // Override properties with methods that use state object
+  get velX(): number { return this.state.velX; }
+  set velX(value: number) { this.state.velX = value; }
+  
+  get velY(): number { return this.state.velY; }
+  set velY(value: number) { this.state.velY = value; }
+  
+  get angle(): number { return this.state.angle; }
+  set angle(value: number) { this.state.angle = value; }
+  
+  get health(): number { return this.state.health; }
+  set health(value: number) { this.state.health = value; }
+  
+  get digging(): boolean { return this.state.digging; }
+  set digging(value: boolean) { this.state.digging = value; }
+  
+  get isDigging(): boolean { return this.state.isDigging; }
+  set isDigging(value: boolean) { this.state.isDigging = value; }
+  
+  get digTimer(): number { return this.state.digTimer; }
+  set digTimer(value: number) { this.state.digTimer = value; }
+  
+  get digTarget(): any { return this.state.digTarget; }
+  set digTarget(value: any) { this.state.digTarget = value; }
+  
+  get carryingFuelCanister(): boolean { return this.state.carryingFuelCanister; }
+  set carryingFuelCanister(value: boolean) { this.state.carryingFuelCanister = value; }
+  
+  get canisterCollectCooldown(): number { return this.state.canisterCollectCooldown; }
+  set canisterCollectCooldown(value: number) { this.state.canisterCollectCooldown = value; }
+  
+  get cactusDamageCooldown(): number { return this.state.cactusDamageCooldown; }
+  set cactusDamageCooldown(value: number) { this.state.cactusDamageCooldown = value; }
+  
+  get x(): number { return this.state.x; }
   set x(value: number) { this.state.x = value; }
   
-  get y() { return this.state.y; }
+  get y(): number { return this.state.y; }
   set y(value: number) { this.state.y = value; }
   
-  get worldX() { return this.state.worldX; }
+  get worldX(): number { return this.state.worldX; }
   set worldX(value: number) { this.state.worldX = value; }
   
-  get worldY() { return this.state.worldY; }
+  get worldY(): number { return this.state.worldY; }
   set worldY(value: number) { this.state.worldY = value; }
+  
+  get lastAngle(): number { return this.state.lastAngle; }
+  set lastAngle(value: number) { this.state.lastAngle = value; }
+  
+  // Collection state getters and setters
+  get isCollectingCanister(): boolean { return this.collectionState.isCollectingCanister; }
+  set isCollectingCanister(value: boolean) { this.collectionState.isCollectingCanister = value; }
+  
+  get canisterCollectionProgress(): number { return this.collectionState.canisterCollectionProgress; }
+  set canisterCollectionProgress(value: number) { this.collectionState.canisterCollectionProgress = value; }
+  
+  get canisterCollectionTarget(): any { return this.collectionState.canisterCollectionTarget; }
+  set canisterCollectionTarget(value: any) { this.collectionState.canisterCollectionTarget = value; }
+  
+  get isRefuelingHoverbike(): boolean { return this.collectionState.isRefuelingHoverbike; }
+  set isRefuelingHoverbike(value: boolean) { this.collectionState.isRefuelingHoverbike = value; }
+  
+  get refuelingProgress(): number { return this.collectionState.refuelingProgress; }
+  set refuelingProgress(value: number) { this.collectionState.refuelingProgress = value; }
+  
+  get isRepairingHoverbike(): boolean { return this.collectionState.isRepairingHoverbike; }
+  set isRepairingHoverbike(value: boolean) { this.collectionState.isRepairingHoverbike = value; }
+  
+  get repairProgress(): number { return this.collectionState.repairProgress; }
+  set repairProgress(value: number) { this.collectionState.repairProgress = value; }
+  
+  get droppingCanister(): boolean { return this.collectionState.droppingCanister; }
+  set droppingCanister(value: boolean) { this.collectionState.droppingCanister = value; }
 
   update() {
     if (this.canisterCollectCooldown > 0) {
@@ -332,8 +401,7 @@ export default class Player extends PlayerBase implements PlayerType {
   }
 
   setWorldCoordinates(x: number, y: number) {
-    this.worldX = x;
-    this.worldY = y;
+    this.stateService.setWorldCoordinates(this.state, x, y);
   }
 
   checkIfNearFuelPump() {
@@ -366,27 +434,6 @@ export default class Player extends PlayerBase implements PlayerType {
     );
   }
 
-  private handleCollectionMovementCancellation() {
-    if (this.collectionState.isCollectingCanister && 
-        (Math.abs(this.velX) > 0.3 || Math.abs(this.velY) > 0.3)) {
-      this.collectionState.isCollectingCanister = false;
-      this.collectionState.canisterCollectionProgress = 0;
-      this.collectionState.canisterCollectionTarget = null;
-    }
-  }
-
-  private handleFuelCollectionAnimation() {
-    if (this.collectionState.isCollectingCanister && this.collectionState.canisterCollectionTarget) {
-      this.collectionState.canisterCollectionProgress = Math.min(1, this.collectionState.canisterCollectionProgress + 0.0025);
-      if (this.collectionState.canisterCollectionProgress >= 1) {
-        this.carryingFuelCanister = true;
-        this.collectionState.isCollectingCanister = false;
-        this.collectionState.canisterCollectionTarget = null;
-        this.canisterCollectCooldown = 30;
-      }
-    }
-  }
-  
   private handleVehicleInteractionAnimations() {
     // Handle refueling animation
     if (this.isRefuelingHoverbike) {
@@ -412,38 +459,4 @@ export default class Player extends PlayerBase implements PlayerType {
       }
     }
   }
-
-  // Required PlayerType properties
-  velX: number;
-  velY: number;
-  speed: number;
-  angle: number;
-  digging: boolean;
-  isDigging: boolean;
-  digTimer: number;
-  digTarget: any;
-  health: number;
-  maxHealth: number;
-  p: any;
-  obstacles: Record<string, any[]>;
-  resources: Record<string, any[]>;
-  hoverbike: any;
-  riding: boolean;
-  lastAngle: number;
-  turnSpeed: number;
-  hairColor: { r: number; g: number; b: number; };
-  armAnimationOffset: number;
-  canDig: boolean;
-  carryingFuelCanister: boolean;
-  canisterCollectCooldown: number;
-  isCollectingCanister: boolean;
-  canisterCollectionProgress: number;
-  canisterCollectionTarget: any;
-  isRefuelingHoverbike: boolean;
-  refuelingProgress: number;
-  isRepairingHoverbike: boolean;
-  repairProgress: number;
-  cactusDamageCooldown: number;
-  droppingCanister: boolean;
-  game: any;
 }
