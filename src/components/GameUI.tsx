@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Save, Settings, LogOut, BookText } from 'lucide-react';
 import DayNightIndicator from './ui/game/DayNightIndicator';
@@ -61,8 +60,6 @@ const GameUI: React.FC<GameUIProps> = ({
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Always render UI elements even when gameStarted is false
-  // This ensures the HUD is visible during game initialization
   return (
     <>
       <AmbienceLighting dayTimeIcon={dayTimeIcon} dayTimeAngle={dayTimeAngle} />
@@ -143,7 +140,7 @@ const TopBar: React.FC<TopBarProps> = ({
         <div className="pointer-events-auto flex gap-2">
           <button 
             onClick={() => setShowControls(!showControls)}
-            className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
+            className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors w-10 h-10 flex items-center justify-center"
             aria-label="Settings"
           >
             <Settings size={18} />
@@ -151,7 +148,7 @@ const TopBar: React.FC<TopBarProps> = ({
           
           <button 
             onClick={() => setShowDiary(!showDiary)}
-            className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
+            className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors w-10 h-10 flex items-center justify-center"
             aria-label="Diary"
           >
             <BookText size={18} />
@@ -159,7 +156,7 @@ const TopBar: React.FC<TopBarProps> = ({
           
           <button 
             onClick={handleSaveGame}
-            className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
+            className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors w-10 h-10 flex items-center justify-center"
             aria-label="Save"
           >
             <Save size={18} />
@@ -168,7 +165,7 @@ const TopBar: React.FC<TopBarProps> = ({
           {user && (
             <button 
               onClick={handleLogout}
-              className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors"
+              className="bg-black/50 p-1.5 rounded-full backdrop-blur-sm text-white border border-white/30 hover:bg-black/70 transition-colors w-10 h-10 flex items-center justify-center"
               aria-label="Logout"
             >
               <LogOut size={18} />
@@ -245,6 +242,49 @@ const BottomBar: React.FC<BottomBarProps> = ({
           fuel={fuel}
           maxFuel={maxFuel}
         />
+      </div>
+    </div>
+  );
+};
+
+const StatusBars: React.FC<StatusBarsProps> = ({
+  playerHealth,
+  maxPlayerHealth,
+  health,
+  maxHealth,
+  fuel,
+  maxFuel
+}) => {
+  return (
+    <div className="flex flex-col gap-1 items-end scale-90 origin-bottom-right">
+      <div className="bg-black/50 p-2 rounded-lg backdrop-blur-sm text-red-200 border border-red-500/30 w-32">
+        <div className="w-full h-2 bg-red-900/70 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-red-500 rounded-full" 
+            style={{ width: `${(playerHealth / maxPlayerHealth) * 100}%` }}
+          ></div>
+        </div>
+        <div className="text-xs font-mono text-center mt-1">PLAYER</div>
+      </div>
+      
+      <div className="bg-black/50 p-2 rounded-lg backdrop-blur-sm text-gray-200 border border-gray-500/30 w-32">
+        <div className="w-full h-2 bg-gray-900/70 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-gray-400 rounded-full" 
+            style={{ width: `${(health / maxHealth) * 100}%` }}
+          ></div>
+        </div>
+        <div className="text-xs font-mono text-center mt-1">HOVERBIKE</div>
+      </div>
+      
+      <div className="bg-black/50 p-2 rounded-lg backdrop-blur-sm text-yellow-200 border border-yellow-500/30 w-32">
+        <div className="w-full h-2 bg-yellow-900/70 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-yellow-500 rounded-full" 
+            style={{ width: `${(fuel / maxFuel) * 100}%` }}
+          ></div>
+        </div>
+        <div className="text-xs font-mono text-center mt-1">FUEL</div>
       </div>
     </div>
   );
