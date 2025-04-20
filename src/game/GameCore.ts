@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -14,6 +13,7 @@ import { GameStateManager } from './state/GameStateManager';
 import { TimeManager } from './world/TimeManager';
 import { WorldInteractionManager } from './world/WorldInteractionManager';
 import { PlayerInteractionManager } from './player/PlayerInteractionManager';
+import { addGrandpaAtHomeBase } from './world/HomeBase';
 
 export default class Game {
   p: any;
@@ -115,6 +115,9 @@ export default class Game {
     
     // Place military crate
     this.militaryCrateLocation = placeMilitaryCrate(this.p, this.worldGenerator);
+    
+    // Initialize the home base elements
+    addGrandpaAtHomeBase(p, this.worldGenerator);
   }
 
   update() {

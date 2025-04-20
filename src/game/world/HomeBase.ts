@@ -166,6 +166,26 @@ export function addWalkingMarksAtHomeBase(p: any, worldGenerator: any): void {
   }
 }
 
+export function addGrandpaAtHomeBase(p: any, worldGenerator: any): void {
+  const homeAreaKey = "0,0";
+  let homeObstacles = worldGenerator.getObstacles()[homeAreaKey] || [];
+  
+  // Add grandpa NPC if not already present
+  const hasGrandpa = homeObstacles.some(obs => obs.type === 'grandpa');
+  
+  if (!hasGrandpa) {
+    // Position grandpa near the hut but not in the way
+    homeObstacles.push({
+      type: 'grandpa',
+      x: p.width / 2 + 40, // To the right of the hut
+      y: p.height / 2 - 30, // Slightly above the hut's entrance
+      size: 1.0
+    });
+    
+    worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+  }
+}
+
 export function isPlayerUnderTarp(p: any, player: any, worldX: number, worldY: number, worldGenerator: any): boolean {
   if (worldX !== 0 || worldY !== 0) {
     return false; // Only at home base
