@@ -1,4 +1,3 @@
-
 export function addTarpAtHomeBase(p: any, worldGenerator: any, tarpColor: any): void {
   const homeAreaKey = "0,0";
   let homeObstacles = worldGenerator.getObstacles()[homeAreaKey] || [];
@@ -163,26 +162,6 @@ export function addWalkingMarksAtHomeBase(p: any, worldGenerator: any): void {
     }
     
     // Update the world generator's obstacles
-    worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
-  }
-}
-
-export function addGrandpaAtHomeBase(p: any, worldGenerator: any): void {
-  const homeAreaKey = "0,0";
-  let homeObstacles = worldGenerator.getObstacles()[homeAreaKey] || [];
-  
-  // Add grandpa NPC if not already present
-  const hasGrandpa = homeObstacles.some(obs => obs.type === 'grandpa');
-  
-  if (!hasGrandpa) {
-    // Position grandpa directly in front of the hut (adjust coordinates)
-    homeObstacles.push({
-      type: 'grandpa',
-      x: p.width / 2 - 15, // Slightly offset to the left of the hut entrance
-      y: p.height / 2 + 15, // Slightly in front of the hut
-      size: 1.0
-    });
-    
     worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
   }
 }

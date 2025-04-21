@@ -1,13 +1,13 @@
+
 import React, { useState } from 'react';
 import { Save, Settings, LogOut, BookText } from 'lucide-react';
 import DayNightIndicator from './ui/game/DayNightIndicator';
 import CompassIndicator from './ui/game/CompassIndicator';
 import ResourcesDisplay from './ui/game/ResourcesDisplay';
-import StatusBarsComponent from './ui/game/StatusBars';
+import StatusBars from './ui/game/StatusBars';
 import ControlsModal from './ui/game/ControlsModal';
 import AmbienceLighting from './ui/game/AmbienceLighting';
 import DiaryModal from './ui/game/DiaryModal';
-import GrandpaNPC from './ui/game/GrandpaNPC';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +61,8 @@ const GameUI: React.FC<GameUIProps> = ({
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Always render UI elements even when gameStarted is false
+  // This ensures the HUD is visible during game initialization
   return (
     <>
       <AmbienceLighting dayTimeIcon={dayTimeIcon} dayTimeAngle={dayTimeAngle} />
@@ -87,7 +89,6 @@ const GameUI: React.FC<GameUIProps> = ({
       
       <ControlsModal showControls={showControls} setShowControls={setShowControls} />
       <DiaryModal showDiary={showDiary} setShowDiary={setShowDiary} />
-      <GrandpaNPC worldX={worldX} worldY={worldY} />
       
       {refueling && <RefuelingIndicator progress={refuelProgress} />}
       
@@ -236,7 +237,7 @@ const BottomBar: React.FC<BottomBarProps> = ({
       <div className="container mx-auto flex justify-between items-end">
         <ResourcesDisplay resources={resources} copper={copper} />
         
-        <StatusBarsComponent 
+        <StatusBars 
           playerHealth={playerHealth}
           maxPlayerHealth={maxPlayerHealth}
           health={health}

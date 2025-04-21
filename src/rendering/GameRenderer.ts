@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -275,8 +276,6 @@ export default class GameRenderer {
         this.drawFuelStain(obs);
       } else if (obs.type === 'walkingMarks') {
         this.drawWalkingMarks(obs);
-      } else if (obs.type === 'grandpa') {
-        this.drawGrandpa(obs);
       }
     }
   }
@@ -1013,69 +1012,6 @@ export default class GameRenderer {
     this.p.strokeWeight(0.8);
     this.p.ellipse(0, 0, 14 * pulseSize, 16 * pulseSize);
     this.p.noStroke();
-    
-    this.p.pop();
-  }
-
-  drawGrandpa(obs: any) {
-    this.p.push();
-    this.p.translate(obs.x, obs.y);
-    
-    // Shadow
-    this.p.fill(0, 0, 0, 40);
-    this.p.noStroke();
-    this.p.ellipse(5, 5, 30, 15);
-    
-    // Body (rocking chair)
-    this.p.fill(120, 80, 60);
-    this.p.rect(-12, -5, 24, 20, 2);
-    
-    // Chair back
-    this.p.fill(100, 70, 50);
-    this.p.rect(-10, -20, 20, 15, 1);
-    
-    // Grandpa body
-    this.p.fill(180, 160, 140);
-    this.p.ellipse(0, -10, 16, 20);
-    
-    // Head
-    this.p.fill(220, 190, 170);
-    this.p.ellipse(0, -22, 14, 14);
-    
-    // Hat
-    this.p.fill(80, 60, 50);
-    this.p.arc(0, -25, 16, 8, -this.p.PI, 0);
-    this.p.rect(-8, -25, 16, 4);
-    
-    // Face details
-    this.p.stroke(60);
-    this.p.strokeWeight(1);
-    
-    // Eyes
-    this.p.point(-3, -23);
-    this.p.point(3, -23);
-    
-    // Glasses
-    this.p.noFill();
-    this.p.ellipse(-3, -23, 5, 4);
-    this.p.ellipse(3, -23, 5, 4);
-    this.p.line(0, -23, 2, -23);
-    
-    // Beard
-    this.p.stroke(200, 200, 200);
-    for (let i = -5; i <= 5; i += 2) {
-      this.p.line(i, -18, i * 1.2, -15);
-    }
-    
-    // Arms
-    this.p.stroke(180, 160, 140);
-    this.p.strokeWeight(3);
-    this.p.line(-8, -12, -12, -5);
-    this.p.line(8, -12, 12, -5);
-    
-    // Add small idle animation
-    const breathingOffset = Math.sin(this.p.frameCount * 0.05) * 0.5;
-    this.p.translate(0, breathingOffset);
     
     this.p.pop();
   }
