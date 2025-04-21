@@ -38,7 +38,7 @@ export default class GameRenderer {
     this.dayTimeIcon = dayTimeIcon;
   }
   
-  setDayTimeAngle(dayTimeAngle: number) {
+  setDayTimeAngle(dayTimeAngle: string | number) {
     this.dayTimeAngle = dayTimeAngle;
   }
 
@@ -663,4 +663,4 @@ export default class GameRenderer {
     
     // Fuel hose
     this.p.stroke(40, 40, 45);
-    this.p.strokeWeight(2);
+    this.p.
