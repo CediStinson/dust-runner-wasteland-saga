@@ -92,14 +92,14 @@ export class PlayerRenderer {
     const { r, g, b } = hairColor;
     
     this.p.strokeWeight(1);
-    this.p.stroke('#000000e6');
+    this.p.stroke(0, 0, 0, 230); // Changed from '#000000e6' to RGB with alpha
     this.p.push();
     this.p.translate(0, -2.5);
     this.p.fill(r, g, b);
     this.p.ellipse(0, 0, 6, 6);
     this.p.noStroke();
     this.p.fill(r-30, g-30, b-30);
-    this.p.stroke('#000000e6');
+    this.p.stroke(0, 0, 0, 230); // Changed from '#000000e6' to RGB with alpha
     this.p.strokeWeight(0.5);
     this.p.fill(r, g, b);
     this.p.beginShape();

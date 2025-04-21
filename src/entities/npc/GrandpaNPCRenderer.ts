@@ -9,15 +9,16 @@ export class GrandpaNPCRenderer {
     const p = this.p;
     // Grandpa body (same size as player)
     p.push();
+    p.noStroke();
+
+    // Shadow
+    p.fill(0, 0, 0, 40);
+    p.ellipse(0, 12, 12, 5);
 
     // Shoes
     p.fill(80, 50, 30);
     p.ellipse(-5, 11, 4, 2.5);
     p.ellipse(5, 11, 4, 2.5);
-
-    // Shadow
-    p.fill(0, 0, 0, 40);
-    p.ellipse(0, 5, 12, 5);
 
     // Pants
     p.fill(110, 110, 130);
@@ -25,7 +26,7 @@ export class GrandpaNPCRenderer {
 
     // Shirt (grandpa style, muted color, visible collar)
     p.fill(170, 170, 190);
-    p.rect(-5, 0, 10, 12, 4);
+    p.rect(-5, -2, 10, 12, 4);
 
     // Collar
     p.fill(200);
@@ -33,7 +34,7 @@ export class GrandpaNPCRenderer {
 
     // Belt
     p.fill(70, 60, 45);
-    p.rect(-5, 7, 10, 2, 1);
+    p.rect(-5, 6, 10, 2, 1);
 
     // Head (bald on top, fringe of white/grey hair)
     p.fill(220, 200, 170); // Skin color
