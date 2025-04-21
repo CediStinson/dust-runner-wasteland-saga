@@ -1,3 +1,4 @@
+
 export function addTarpAtHomeBase(p: any, worldGenerator: any, tarpColor: any): void {
   const homeAreaKey = "0,0";
   let homeObstacles = worldGenerator.getObstacles()[homeAreaKey] || [];
@@ -174,11 +175,11 @@ export function addGrandpaAtHomeBase(p: any, worldGenerator: any): void {
   const hasGrandpa = homeObstacles.some(obs => obs.type === 'grandpa');
   
   if (!hasGrandpa) {
-    // Position grandpa near the hut but not in the way
+    // Position grandpa directly in front of the hut (adjust coordinates)
     homeObstacles.push({
       type: 'grandpa',
-      x: p.width / 2 + 40, // To the right of the hut
-      y: p.height / 2 - 30, // Slightly above the hut's entrance
+      x: p.width / 2 - 15, // Slightly offset to the left of the hut entrance
+      y: p.height / 2 + 15, // Slightly in front of the hut
       size: 1.0
     });
     

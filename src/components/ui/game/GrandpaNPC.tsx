@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Speech } from 'lucide-react';
+import { Speech, UserRound } from 'lucide-react';
+import { Avatar, AvatarFallback } from '../avatar';
 
 interface GrandpaNPCProps {
   worldX: number;
@@ -58,6 +59,23 @@ const GrandpaNPC: React.FC<GrandpaNPCProps> = ({ worldX, worldY }) => {
           <div className="w-4 h-4 bg-black/70 rotate-45 absolute left-1/2 -bottom-2 transform -translate-x-1/2" />
         </div>
       )}
+
+      {/* Grandpa Avatar */}
+      <div className="flex flex-col items-center">
+        <Avatar className="h-16 w-16 border-2 border-amber-600 bg-amber-100">
+          <AvatarFallback className="bg-amber-100 text-amber-700">
+            <div className="relative w-full h-full flex items-center justify-center">
+              <UserRound className="w-10 h-10" />
+              {/* Grandpa's features - glasses and white beard */}
+              <div className="absolute w-10 h-1 bg-gray-700 rounded-full top-5"></div>
+              <div className="absolute w-10 h-4 bg-gray-100 rounded-md bottom-1"></div>
+            </div>
+          </AvatarFallback>
+        </Avatar>
+        <div className="mt-1 px-2 py-0.5 bg-black/50 rounded-md backdrop-blur-sm">
+          <span className="text-white text-xs font-medium">Old Timer</span>
+        </div>
+      </div>
     </div>
   );
 };
