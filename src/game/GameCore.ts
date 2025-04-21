@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -29,12 +28,21 @@ export default class Game {
   tarpColor: { r: number; g: number; b: number; };
   questSystem: QuestSystem;
   militaryCrateLocation: { worldX: number, worldY: number };
-  
-  // Managers
-  timeManager: TimeManager;
-  stateManager: GameStateManager;
-  worldInteractionManager: WorldInteractionManager;
-  playerInteractionManager: PlayerInteractionManager;
+  grandpaQuotes: string[] = [
+    "When I was your age, bikes were powered by beans!",
+    "Remember: always recharge before you’re empty!",
+    "Sand in your socks builds character!",
+    "They don’t make hoverbikes like they used to...",
+    "Nothing beats hut-sweet-hut.",
+    "A little copper goes a long way!",
+    "Rain? Haven’t seen it since the '24 dry season.",
+    "Click your boots together—doesn’t help, but it’s fun.",
+    "Pocket sand! No, really, it’s everywhere.",
+    "Take it easy, but take it!"
+  ];
+  grandpaQuote: string = "";
+  grandpaSpeechTimer: number = 0; // frames until next speech
+  grandpaSpeechBubbleTimer: number = 0; // how long he's talking
 
   constructor(p: any) {
     this.p = p;
@@ -115,6 +123,62 @@ export default class Game {
     
     // Place military crate
     this.militaryCrateLocation = placeMilitaryCrate(this.p, this.worldGenerator);
+    
+    // Grandpa NPC config, shown only at home [0,0]
+    this.initGrandpaNPC();
+  }
+
+  initGrandpaNPC() {
+    // Start with not speaking
+    this.grandpaQuote = "";
+    this.grandpaSpeechTimer = Math.floor(Math.random() * 200 + 200);
+    this.grandpaSpeechBubbleTimer = 0;
+    if (typeof window !== "undefined") {
+      window.__showGrandpaNPC = true;
+      window.__grandpaNPCParams = {
+        quote: "",
+        showSpeechBubble: false
+      };
+    }
+  }
+
+  updateGrandpaNPC() {
+    // Only at home [0,0]
+    if (this.worldX !== 0 || this.worldY !== 0) {
+      if (typeof window !== "undefined") {
+        window.__showGrandpaNPC = false;
+      }
+      return;
+    }
+    if (typeof window !== "undefined") {
+      window.__showGrandpaNPC = true;
+    }
+
+    if (this.grandpaSpeechTimer > 0) {
+      this.grandpaSpeechTimer--;
+      if (typeof window !== "undefined") {
+        window.__grandpaNPCParams = {
+          quote: this.grandpaQuote,
+          showSpeechBubble: this.grandpaSpeechBubbleTimer > 0
+        };
+      }
+    } else {
+      // Speak!
+      this.grandpaQuote = this.grandpaQuotes[
+        Math.floor(Math.random() * this.grandpaQuotes.length)
+      ];
+      this.grandpaSpeechBubbleTimer = 100 + Math.floor(Math.random() * 40);
+      this.grandpaSpeechTimer = 280 + Math.floor(Math.random() * 200);
+      if (typeof window !== "undefined") {
+        window.__grandpaNPCParams = {
+          quote: this.grandpaQuote,
+          showSpeechBubble: true
+        };
+      }
+    }
+    if (this.grandpaSpeechBubbleTimer > 0) {
+      this.grandpaSpeechBubbleTimer--;
+    }
   }
 
   update() {
@@ -178,6 +242,9 @@ export default class Game {
     this.worldY = borderUpdate.worldY;
     
     this.worldGenerator.updateWindmillAngle();
+    
+    // Update grandpa NPC speech state
+    this.updateGrandpaNPC();
     
     // Update renderer with time of day
     this.renderer.setTimeOfDay(this.timeManager.timeOfDay);

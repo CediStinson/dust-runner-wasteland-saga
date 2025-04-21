@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export default class GameRenderer {
@@ -260,12 +259,30 @@ export default class GameRenderer {
   
   drawObstacles() {
     let currentObstacles = this.worldGenerator.getObstacles()[`${this.worldX},${this.worldY}`] || [];
-    
     for (let obs of currentObstacles) {
       if (obs.type === 'rock') {
         this.drawRock(obs);
       } else if (obs.type === 'hut') {
         this.drawHut(obs);
+        // DRAW GRANDPA if at home and grandpa is "active"
+        if (this.worldX === 0 && this.worldY === 0 && typeof window !== "undefined" && window.__showGrandpaNPC) {
+          // Draw in front of hut -- coordinates based on hut position
+          this.p.push();
+          // The hut is at obs.x, obs.y. Place grandpa just "in front"
+          this.p.translate(obs.x, obs.y + 40);
+          this.p.scale(1.2, 1.2);
+          // Grandpa NPC params from window vars set from GameCore
+          const npcParams = window.__grandpaNPCParams || {};
+          // Use our PlayerRenderer if available
+          if (this.player && this.player.playerRenderer && this.player.playerRenderer.displayGrandpaNPC) {
+            this.player.playerRenderer.displayGrandpaNPC(
+              Math.sin(this.p.frameCount * 0.03) * 1.5, // idle arm anim
+              npcParams.quote || "",
+              npcParams.showSpeechBubble
+            );
+          }
+          this.p.pop();
+        }
       } else if (obs.type === 'bush') {
         this.drawBush(obs);
       } else if (obs.type === 'cactus') {

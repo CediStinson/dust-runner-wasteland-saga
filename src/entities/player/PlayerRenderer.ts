@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 
 export class PlayerRenderer {
@@ -131,6 +130,125 @@ export class PlayerRenderer {
     this.p.textSize(8);
     this.p.text("Mining Copper", 0, -5);
     
+    this.p.pop();
+  }
+
+  displayGrandpaNPC(
+    armAnimationOffset: number,
+    quote: string | null = null,
+    showSpeechBubble: boolean = false
+  ): void {
+    // Grandpa colors
+    const hairColor = { r: 200, g: 200, b: 220 };
+    const beardColor = { r: 240, g: 240, b: 255 };
+    const skinColor = { r: 230, g: 210, b: 175 };
+    const shirtColor = { r: 130, g: 120, b: 180 };
+    const pantsColor = { r: 90, g: 100, b: 120 };
+
+    this.p.push();
+
+    // Shadow
+    this.p.fill(0, 0, 0, 30);
+    this.p.noStroke();
+    this.p.ellipse(0, 2, 12, 9);
+
+    // Body (grandpa wears purple-ish shirt and gray pants)
+    this.p.stroke(0, 0, 0, 200);
+    this.p.strokeWeight(0.5);
+    this.p.fill(shirtColor.r, shirtColor.g, shirtColor.b, 255);
+    this.p.ellipse(0, 0, 12, 9);
+
+    // Face
+    this.p.noStroke();
+    this.p.fill(skinColor.r, skinColor.g, skinColor.b);
+    this.p.ellipse(0, 0, 6, 6);
+
+    // Hair and beard
+    // Top (balding with hair sides)
+    this.p.push();
+    this.p.translate(0, -2.5);
+    this.p.fill(hairColor.r, hairColor.g, hairColor.b);
+    this.p.ellipse(-2.5, 0, 2.5, 4);
+    this.p.ellipse(2.5, 0, 2.5, 4);
+    this.p.pop();
+
+    // Beard
+    this.p.push();
+    this.p.translate(0, 2.7);
+    this.p.fill(beardColor.r, beardColor.g, beardColor.b, 225);
+    this.p.ellipse(0, 1, 5, 3);
+    this.p.ellipse(-1, 2, 2, 1);
+    this.p.ellipse(1, 2, 2, 1);
+    this.p.pop();
+
+    // Small glasses
+    this.p.push();
+    this.p.stroke(30);
+    this.p.noFill();
+    this.p.ellipse(-1.2, 0, 1.4, 1);
+    this.p.ellipse(1.2, 0, 1.4, 1);
+    this.p.line(-0.6, 0, 0.6, 0);
+    this.p.strokeWeight(0.5);
+    this.p.line(-2, 0, -1.9, -1);
+    this.p.line(2, 0, 1.9, -1);
+    this.p.pop();
+
+    // Nose (small)
+    this.p.fill(skinColor.r - 10, skinColor.g - 10, skinColor.b - 30, 200);
+    this.p.ellipse(0, 1, 0.7, 1.5);
+
+    // Arms (hands behind back)
+    this.p.fill(skinColor.r - 30, skinColor.g - 30, skinColor.b - 30);
+    this.p.ellipse(-5, 3 + armAnimationOffset, 3, 3);
+    this.p.ellipse(5, 3 - armAnimationOffset, 3, 3);
+
+    // Pants
+    this.p.fill(pantsColor.r, pantsColor.g, pantsColor.b);
+    this.p.ellipse(0, 6, 4, 3);
+
+    // Cane
+    this.p.stroke(70, 50, 30);
+    this.p.strokeWeight(0.8);
+    this.p.noFill();
+    this.p.line(3, 5, 4, 9);
+    this.p.arc(4, 9, 1, 2, this.p.PI * 0.1, this.p.PI * 1.2);
+
+    this.p.pop();
+
+    // If showing a speech bubble
+    if (showSpeechBubble && !!quote) {
+      this.drawSpeechBubble(quote);
+    }
+  }
+
+  drawSpeechBubble(quote: string) {
+    this.p.push();
+    this.p.translate(0, -18);
+
+    // Bubble
+    this.p.stroke(220);
+    this.p.strokeWeight(0.8);
+    this.p.fill(255, 255, 255, 240);
+    this.p.rect(-30, -16, 60, 20, 8);
+
+    // Pointer
+    this.p.noStroke();
+    this.p.fill(255, 255, 255, 240);
+    this.p.triangle(-2, 4, 2, 4, 0, 12);
+
+    // Text
+    this.p.fill(50, 40, 50);
+    this.p.textSize(8);
+    this.p.textAlign(this.p.CENTER, this.p.CENTER);
+
+    // Wrap text if long
+    let wrapped = quote.length > 24
+      ? [quote.slice(0, 24) + (quote.length > 48 ? '…' : ''), quote.slice(24, 48)]
+      : [quote];
+
+    this.p.text(wrapped[0], 0, -8);
+    if (wrapped[1]) this.p.text(wrapped[1], 0, 2);
+
     this.p.pop();
   }
 }
