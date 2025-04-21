@@ -186,3 +186,23 @@ export function isPlayerUnderTarp(p: any, player: any, worldX: number, worldY: n
     player.y <= tarp.y + tarp.height / 2
   );
 }
+
+export function addGrandpaAtHomeBase(p: any, worldGenerator: any): void {
+  const homeAreaKey = "0,0";
+  let homeObstacles = worldGenerator.getObstacles()[homeAreaKey] || [];
+
+  // Add Grandpa if not present
+  const hasGrandpa = homeObstacles.some(obs => obs.type === 'grandpaNPC');
+  if (!hasGrandpa) {
+    // Place grandpa NPC a bit in front of the hut
+    homeObstacles.push({
+      type: 'grandpaNPC',
+      x: p.width / 2 - 7,        // Center in front of hut, a little offset
+      y: p.height / 2 + 38,      // Just in front of hut (should be in front)
+      width: 18,
+      height: 26,
+      id: "grandpa-npc"
+    });
+    worldGenerator.getObstacles()[homeAreaKey] = homeObstacles;
+  }
+}
