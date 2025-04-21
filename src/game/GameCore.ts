@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
@@ -13,20 +14,6 @@ import { GameStateManager } from './state/GameStateManager';
 import { TimeManager } from './world/TimeManager';
 import { WorldInteractionManager } from './world/WorldInteractionManager';
 import { PlayerInteractionManager } from './player/PlayerInteractionManager';
-import { addGrandpaAtHomeBase } from "./world/HomeBase";
-
-const GRANDPA_QUOTES = [
-  "Once, I raced a kangaroo. Lost my hat, but not my pride!",
-  "Press 'E' to interact, unless 'E' is for eggs. Then fry it.",
-  "Back in my day, bikes didn't hover and rocks were real hard.",
-  "If you see a tumbleweed, follow it. Might be a sign… or just wind.",
-  "Got any copper? Reminds me of my hair... back in 1938.",
-  "Youngsters these days and their endless sand…",
-  "Don't dig straight down. Unless you're looking for trouble.",
-  "Refuel the hoverbike! Or walk. I recommend refueling.",
-  "Always carry an extra sandwich. Even in the desert.",
-  "If a crate falls in the wasteland and no one's around, does it make loot?",
-];
 
 export default class Game {
   p: any;
@@ -42,7 +29,6 @@ export default class Game {
   tarpColor: { r: number; g: number; b: number; };
   questSystem: QuestSystem;
   militaryCrateLocation: { worldX: number, worldY: number };
-  grandpaQuoteTimer: number = 0;
   
   // Managers
   timeManager: TimeManager;
@@ -129,9 +115,6 @@ export default class Game {
     
     // Place military crate
     this.militaryCrateLocation = placeMilitaryCrate(this.p, this.worldGenerator);
-    
-    // At the end of constructor, spawn Grandpa at home
-    addGrandpaAtHomeBase(p, this.worldGenerator);
   }
 
   update() {
@@ -198,23 +181,6 @@ export default class Game {
     
     // Update renderer with time of day
     this.renderer.setTimeOfDay(this.timeManager.timeOfDay);
-    
-    // Handle Grandpa quote cycling
-    if (!this.grandpaQuoteTimer || this.grandpaQuoteTimer <= 0) {
-      // Change quote every 10-15 seconds (600-900 frames @60fps)
-      this.grandpaQuoteTimer = 600 + Math.floor(Math.random() * 300);
-      this.setRandomGrandpaQuote();
-    } else {
-      this.grandpaQuoteTimer--;
-    }
-  }
-
-  setRandomGrandpaQuote() {
-    if (this.renderer && typeof this.renderer.setGrandpaQuote === "function") {
-      const idx = Math.floor(Math.random() * GRANDPA_QUOTES.length);
-      const quote = GRANDPA_QUOTES[idx];
-      this.renderer.setGrandpaQuote(quote, 240); // Show quote for 4s
-    }
   }
 
   render() {
