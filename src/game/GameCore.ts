@@ -30,19 +30,23 @@ export default class Game {
   militaryCrateLocation: { worldX: number, worldY: number };
   grandpaQuotes: string[] = [
     "When I was your age, bikes were powered by beans!",
-    "Remember: always recharge before you’re empty!",
+    "Remember: always recharge before you're empty!",
     "Sand in your socks builds character!",
-    "They don’t make hoverbikes like they used to...",
+    "They don't make hoverbikes like they used to...",
     "Nothing beats hut-sweet-hut.",
     "A little copper goes a long way!",
-    "Rain? Haven’t seen it since the '24 dry season.",
-    "Click your boots together—doesn’t help, but it’s fun.",
-    "Pocket sand! No, really, it’s everywhere.",
+    "Rain? Haven't seen it since the '24 dry season.",
+    "Click your boots together—doesn't help, but it's fun.",
+    "Pocket sand! No, really, it's everywhere.",
     "Take it easy, but take it!"
   ];
   grandpaQuote: string = "";
   grandpaSpeechTimer: number = 0; // frames until next speech
   grandpaSpeechBubbleTimer: number = 0; // how long he's talking
+  timeManager: TimeManager;
+  stateManager: GameStateManager;
+  worldInteractionManager: WorldInteractionManager;
+  playerInteractionManager: PlayerInteractionManager;
 
   constructor(p: any) {
     this.p = p;
