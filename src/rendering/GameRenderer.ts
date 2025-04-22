@@ -38,7 +38,7 @@ export default class GameRenderer {
     this.dayTimeIcon = dayTimeIcon;
   }
   
-  setDayTimeAngle(dayTimeAngle: string | number) {
+  setDayTimeAngle(dayTimeAngle: number) {
     this.dayTimeAngle = dayTimeAngle;
   }
 
@@ -514,6 +514,7 @@ export default class GameRenderer {
     this.p.stroke(70, 70, 75);
     this.p.strokeWeight(2);
     this.p.line(8, -8, 2, 5);
+    this.p.noStroke();
     
     this.p.fill(60, 60, 65);
     this.p.ellipse(0, 8, 10, 10);
@@ -571,6 +572,88 @@ export default class GameRenderer {
     this.p.bezier(3, 0, -2, -8, -8, -10, -10, -2);
     
     this.p.pop();
+    
+    this.p.pop();
+  }
+
+  drawBush(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    this.p.fill(50, 40, 30, 60);
+    this.p.ellipse(3, 3, 20 * obs.size, 10 * obs.size);
+    
+    const baseColor = obs.color || { r: 100, g: 140, b: 60 };
+    
+    for (let i = 0; i < 5; i++) {
+      const offsetX = (i - 2) * 3 * obs.size;
+      const offsetY = this.p.sin(i * 1.3) * 2 * obs.size;
+      const size = (6 + this.p.sin(i * 2.5) * 3) * obs.size;
+      
+      const shade = this.p.map(i, 0, 5, 0.8, 1.2);
+      this.p.fill(
+        baseColor.r * shade,
+        baseColor.g * shade,
+        baseColor.b * shade
+      );
+      
+      this.p.ellipse(offsetX, offsetY - 5, size + 4, size + 2);
+    }
+    
+    for (let i = 0; i < 3; i++) {
+      const offsetX = (i - 1) * 4 * obs.size;
+      const offsetY = -3 * obs.size;
+      
+      this.p.fill(baseColor.r * 0.7, baseColor.g * 0.7, baseColor.b * 0.7);
+      this.p.ellipse(offsetX, offsetY, 4 * obs.size, 3 * obs.size);
+    }
+    
+    this.p.pop();
+  }
+  
+  drawCactus(obs: any) {
+    this.p.push();
+    this.p.translate(obs.x, obs.y);
+    
+    this.p.fill(50, 40, 30, 70);
+    this.p.ellipse(4 * obs.size, 4 * obs.size, 15 * obs.size, 8 * obs.size);
+    
+    const baseColor = obs.color || { r: 40, g: 120, b: 60 };
+    
+    this.p.fill(baseColor.r, baseColor.g, baseColor.b);
+    this.p.rect(-5 * obs.size, -12 * obs.size, 10 * obs.size, 20 * obs.size, 3 * obs.size);
+    
+    this.p.rect(5 * obs.size, -8 * obs.size, 8 * obs.size, 6 * obs.size, 2 * obs.size);
+    
+    this.p.rect(-13 * obs.size, -5 * obs.size, 8 * obs.size, 6 * obs.size, 2 * obs.size);
+    
+    this.p.fill(baseColor.r * 1.2, baseColor.g * 1.2, baseColor.b * 1.1);
+    this.p.rect(-4 * obs.size, -11 * obs.size, 3 * obs.size, 18 * obs.size, 2 * obs.size);
+    
+    for (let i = 0; i < 5; i++) {
+      const y = -10 + i * 5;
+      this.p.line(5 * obs.size, y * obs.size, 7 * obs.size, y * obs.size);
+      this.p.line(-5 * obs.size, y * obs.size, -7 * obs.size, y * obs.size);
+    }
+    
+    this.p.line(9 * obs.size, -8 * obs.size, 11 * obs.size, -9 * obs.size);
+    this.p.line(9 * obs.size, -5 * obs.size, 11 * obs.size, -4 * obs.size);
+    
+    this.p.line(-13 * obs.size, -5 * obs.size, -15 * obs.size, -6 * obs.size);
+    this.p.line(-13 * obs.size, -2 * obs.size, -15 * obs.size, -1 * obs.size);
+    
+    this.p.noStroke();
+    
+    if (obs.flowering) {
+      this.p.fill(255, 150, 180);
+      this.p.ellipse(0, -14 * obs.size, 4 * obs.size, 4 * obs.size);
+      this.p.ellipse(2 * obs.size, -13 * obs.size, 3 * obs.size, 3 * obs.size);
+      this.p.ellipse(-2 * obs.size, -13 * obs.size, 3 * obs.size, 3 * obs.size);
+      this.p.ellipse(0, -12 * obs.size, 3 * obs.size, 3 * obs.size);
+      
+      this.p.fill(255, 220, 100);
+      this.p.ellipse(0, -13 * obs.size, 2 * obs.size, 2 * obs.size);
+    }
     
     this.p.pop();
   }
