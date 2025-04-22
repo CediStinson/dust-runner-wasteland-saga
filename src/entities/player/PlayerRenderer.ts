@@ -3,11 +3,13 @@ import p5 from 'p5';
 export class PlayerRenderer {
   private p: any;
   private playerSprite: any;
+  private playerRidingSprite: any;
   
   constructor(p: any) {
     this.p = p;
-    // Load the sprite image in the constructor
+    // Load both player sprites in constructor
     this.playerSprite = this.p.loadImage('src/pixelartAssets/player_character.png');
+    this.playerRidingSprite = this.p.loadImage('src/pixelartAssets/player_character_riding.png');
   }
   
   displayPlayer(
@@ -19,11 +21,11 @@ export class PlayerRenderer {
     this.p.push();
     
     if (riding) {
-      // Draw sprite for riding state
-      this.p.image(this.playerSprite, -16, -16, 32, 32);
+      // Draw riding sprite state at 16x16
+      this.p.image(this.playerRidingSprite, -8, -8, 16, 16);
     } else {
-      // Draw sprite for standing state with slight bob from arm animation
-      this.p.image(this.playerSprite, -16, -16 + armAnimationOffset, 32, 32);
+      // Draw standing sprite with slight bob from arm animation at 16x16
+      this.p.image(this.playerSprite, -8, -8 + armAnimationOffset, 16, 16);
       
       if (carryingFuelCanister) {
         this.displayFuelCanister();
