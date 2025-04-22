@@ -15,12 +15,10 @@ export class HoverbikeRenderer {
     if (state.worldX === player.worldX && state.worldY === player.worldY) {
       this.p.push();
       this.p.translate(state.x, state.y);
+      this.p.rotate(state.angle);
       
-      // Rotate 90 degrees anti-clockwise (270 degrees)
-      this.p.rotate(state.angle - this.p.HALF_PI);
-      
-      // Draw hoverbike sprite at 16x32 dimensions
-      this.p.image(this.bikeSprite, -8, -16, 16, 32);
+      // Draw hoverbike sprite
+      this.p.image(this.bikeSprite, -16, -16, 32, 32);
       
       if (state.thrustIntensity > 0) {
         this.drawThrustFlame(state.thrustIntensity);
