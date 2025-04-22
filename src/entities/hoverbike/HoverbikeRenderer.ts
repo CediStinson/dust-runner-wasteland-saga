@@ -18,7 +18,7 @@ export class HoverbikeRenderer {
       this.p.rotate(state.angle);
       
       // Draw hoverbike sprite
-      this.p.image(this.bikeSprite, -16, -16, 32, 32);
+      this.p.image(this.bikeSprite, -16, -16, 48, 48);
       
       if (state.thrustIntensity > 0) {
         this.drawThrustFlame(state.thrustIntensity);
