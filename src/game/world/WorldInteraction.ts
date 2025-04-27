@@ -1,4 +1,3 @@
-
 export function adjustObstacleHitboxes(worldGenerator: any) {
   // Get all areas in the world generator
   const areas = worldGenerator.getObstacles();
@@ -75,6 +74,16 @@ export function adjustObstacleHitboxes(worldGenerator: any) {
           if (obstacle.hitboxWidth === undefined) {
             obstacle.hitboxWidth = 15; // Smaller than visual
             obstacle.hitboxHeight = 20; // Smaller than visual
+          }
+          break;
+          
+        case 'carWreck':
+        case 'shipWreck':
+        case 'planeWreck':
+          // Set hitboxes for wrecks
+          if (obstacle.hitboxWidth === undefined) {
+            obstacle.hitboxWidth = 50;
+            obstacle.hitboxHeight = 40;
           }
           break;
       }
@@ -282,4 +291,71 @@ export function createExplosion(p: any, x: number, y: number, worldX: number, wo
       worldGenerator[currentAreaKey] = updatedObstacles;
     }
   }, 3000);  // Increased from 2000 to 3000 ms for longer effect
+}
+
+export function interactWithWreck(
+  p: any, 
+  player: any, 
+  worldX: number, 
+  worldY: number, 
+  wreck: any, 
+  questSystem: any
+): { 
+  metalCollected: number, 
+  copperCollected: number, 
+  fuelCanisterAvailable: boolean 
+} {
+  if (wreck.looted) {
+    return { 
+      metalCollected: 0, 
+      copperCollected: 0, 
+      fuelCanisterAvailable: !wreck.canisterCollected
+    };
+  }
+  
+  // Mark wreck as looted
+  wreck.looted = true;
+  
+  // Random amount of resources (between 1-8 of each)
+  const metalCollected = Math.floor(p.random(1, 9)); // 1 to 8
+  const copperCollected = Math.floor(p.random(1, 9)); // 1 to 8
+  
+  // Add a diary entry based on the wreck type
+  let diaryEntry = "";
+  switch (wreck.type) {
+    case 'carWreck':
+      diaryEntry = "I found the rusted chassis of an old car today, half-buried in the sand. It must have been here for decades. Stripped most of it for parts. The surprising thing was finding an intact fuel canister inside what remained of the trunk. These old vehicles weren't very efficient, but their fuel containers were built to last.";
+      break;
+    case 'shipWreck':
+      diaryEntry = "There's an old ship hull in the middle of the desert. Strange to think this place might have been underwater once. The metal was still in decent shape, protected from the worst of the elements by the sand. Found what looks like an old fuel container from the engine room. Might be useful for the bike.";
+      break;
+    case 'planeWreck':
+      diaryEntry = "I stumbled across the remains of a small aircraft today. Most of it was buried, just the tail and part of a wing sticking out. The instruments were long gone, but I salvaged some useful materials. In what remained of a storage compartment, I found an old aviation fuel canister. Lucky find.";
+      break;
+  }
+  
+  // Add the diary entry
+  if (questSystem && diaryEntry) {
+    for (let i = 0; i < questSystem.diaryEntries.length; i++) {
+      if (!questSystem.diaryEntries[i]) {
+        questSystem.diaryEntries[i] = diaryEntry;
+        break;
+      }
+    }
+  }
+  
+  return {
+    metalCollected,
+    copperCollected,
+    fuelCanisterAvailable: true
+  };
+}
+
+export function collectWreckFuelCanister(wreck: any): boolean {
+  if (wreck.canisterCollected || !wreck.looted) {
+    return false;
+  }
+  
+  wreck.canisterCollected = true;
+  return true;
 }

@@ -1,3 +1,4 @@
+
 import p5 from 'p5';
 
 export default class WorldGenerator {
@@ -11,6 +12,7 @@ export default class WorldGenerator {
   edgeBuffer: number = 100; // Increased from 50 to 100px buffer from edges
   COPPER_CHANCE: number = 0.25; // Default copper spawn chance
   FUEL_CANISTER_CHANCE: number = 0.1; // Default fuel canister spawn chance
+  WRECK_SPAWN_CHANCE: number = 0.08; // Very small chance for wrecks to spawn
 
   constructor(p: any) {
     this.p = p;
@@ -302,6 +304,28 @@ export default class WorldGenerator {
             shape: this.generateCactusShape(size, zoneKey, i),
             size: size
           });
+        }
+        
+        // Add rare vehicle wrecks with small chance
+        if (this.p.random() < this.WRECK_SPAWN_CHANCE) {
+          const wreckTypes = ['carWreck', 'shipWreck', 'planeWreck'];
+          const wreckType = wreckTypes[Math.floor(this.p.random(wreckTypes.length))];
+          let position = this.getValidPosition();
+          
+          areaObstacles.push({
+            x: position.x,
+            y: position.y,
+            type: wreckType,
+            rotation: this.p.random(this.p.TWO_PI),
+            size: this.p.random(1.0, 1.5),
+            looted: false,
+            canisterCollected: false,
+            buriedDepth: this.p.random(0.4, 0.7), // How deep it's buried
+            hitboxWidth: 50,
+            hitboxHeight: 40
+          });
+          
+          console.log(`Generated a ${wreckType} at world coordinates: ${x}, ${y}`);
         }
       }
       
