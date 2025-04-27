@@ -3,7 +3,7 @@ import p5 from 'p5';
 import Player from '../../entities/Player';
 import Hoverbike from '../../entities/Hoverbike';
 import WorldGenerator from '../../world/WorldGenerator';
-import { GameRenderer } from '../../rendering/GameRenderer';
+import GameRenderer from '../../rendering/GameRenderer';
 import { emitGameStateUpdate } from '../../utils/gameUtils';
 import { QuestSystem, initializeQuestSystem } from '../quests/QuestSystem';
 import { placeMilitaryCrate } from '../quests/MilitaryCrateQuest';

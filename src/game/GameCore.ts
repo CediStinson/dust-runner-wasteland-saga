@@ -3,7 +3,7 @@ import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
 import WorldGenerator from '../world/WorldGenerator';
-import { GameRenderer } from '../rendering/GameRenderer';
+import GameRenderer from '../rendering/GameRenderer';
 import { WorldData } from '../types/GameTypes';
 import { QuestSystem } from './quests/QuestSystem';
 import { GameStateManager } from './state/GameStateManager';
