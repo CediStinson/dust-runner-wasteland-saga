@@ -1,39 +1,205 @@
 import p5 from 'p5';
-import { TerrainGenerator } from './generators/TerrainGenerator';
-import { ObstacleShapeGenerator } from './generators/ObstacleShapeGenerator';
-import { ResourceGenerator } from './generators/ResourceGenerator';
 
 export default class WorldGenerator {
-  private generatedAreas: Set<string>;
-  private obstacles: Record<string, any[]>;
-  private resources: Record<string, any[]>;
-  private windmillAngle: number;
-  private edgeBuffer: number = 100;
-  private COPPER_CHANCE: number = 0.25;
-  private FUEL_CANISTER_CHANCE: number = 0.1;
-  private WRECK_SPAWN_CHANCE: number = 0.08;
-  private terrainGenerator: TerrainGenerator;
-  private obstacleGenerator: ObstacleShapeGenerator;
-  private resourceGenerator: ResourceGenerator;
+  p: any;
+  generatedAreas: Set<string>;
+  obstacles: Record<string, any[]>;
+  resources: Record<string, any[]>;
+  sandTextures: Record<string, any>;
+  grassTextures: Record<string, any>;
+  windmillAngle: number;
+  edgeBuffer: number = 100; // Increased from 50 to 100px buffer from edges
+  COPPER_CHANCE: number = 0.25; // Default copper spawn chance
+  FUEL_CANISTER_CHANCE: number = 0.1; // Default fuel canister spawn chance
 
-  constructor(private p: any) {
+  constructor(p: any) {
+    this.p = p;
     this.generatedAreas = new Set<string>();
     this.obstacles = {};
     this.resources = {};
+    this.sandTextures = {};
+    this.grassTextures = {};
     this.windmillAngle = 0;
-    this.terrainGenerator = new TerrainGenerator(p);
-    this.obstacleGenerator = new ObstacleShapeGenerator(p);
-    this.resourceGenerator = new ResourceGenerator(p);
+  }
+
+  generateRockShape(size: number, aspectRatio: number) {
+    let shape = [];
+    let numPoints = this.p.floor(this.p.random(8, 12));
+    let baseRadius = this.p.random(20, 30) * size;
+    let noiseScale = this.p.random(0.3, 0.7);
+    this.p.noiseSeed(this.p.random(1000));
+
+    for (let i = 0; i < numPoints; i++) {
+      let angle = this.p.map(i, 0, numPoints, 0, this.p.TWO_PI);
+      let radius = baseRadius + this.p.noise(angle * noiseScale) * 8 - 4;
+      let x = this.p.cos(angle) * radius * (aspectRatio > 1 ? aspectRatio : 1) + this.p.random(-3, 3);
+      let y = this.p.sin(angle) * radius * (aspectRatio < 1 ? 1 / this.p.abs(aspectRatio) : 1) + this.p.random(-3, 3);
+      shape.push({ x, y });
+    }
+    return shape;
+  }
+
+  generateBushShape(size: number) {
+    let shape = [];
+    let numPoints = this.p.floor(this.p.random(8, 12));
+    let baseRadius = this.p.random(10, 15) * size;
+    this.p.noiseSeed(this.p.random(1000));
+
+    for (let i = 0; i < numPoints; i++) {
+      let angle = this.p.map(i, 0, numPoints, 0, this.p.TWO_PI);
+      let radius = baseRadius + this.p.noise(angle * 0.5) * 8 - 4;
+      let x = this.p.cos(angle) * radius + this.p.random(-3, 3);
+      let y = this.p.sin(angle) * radius + this.p.random(-3, 3);
+      shape.push({ x, y });
+    }
+    return shape;
+  }
+
+  generateCactusShape(size: number, zoneKey: string, index: number) {
+    let shape = [];
+    this.p.noiseSeed(zoneKey.hashCode() + index);
+    let baseHeight = 25 * size;
+    let baseWidth = 6 * size;
+
+    let bodyPoints = [];
+    for (let i = 0; i < 8; i++) {
+      let t = i / 7;
+      let x = this.p.lerp(-baseWidth, baseWidth, t);
+      let y = this.p.lerp(0, -baseHeight, t);
+      x += this.p.noise(t * 2) * 1 - 0.5;
+      bodyPoints.push({ x, y });
+    }
+    shape.push({ type: 'body', points: bodyPoints });
+
+    let armHeight = baseHeight * 0.5;
+    let armWidth = baseWidth * 0.6;
+    let leftArmPoints = [];
+    for (let j = 0; j < 6; j++) {
+      let t = j / 5;
+      let x = this.p.lerp(-baseWidth, -baseWidth - armWidth, t);
+      let y = this.p.lerp(-baseHeight * 0.5, -baseHeight * 0.5 - armHeight, t);
+      x += this.p.noise(t * 2 + 10) * 0.5 - 0.25;
+      leftArmPoints.push({ x, y });
+    }
+    shape.push({ type: 'arm', points: leftArmPoints });
+
+    let rightArmPoints = [];
+    for (let j = 0; j < 6; j++) {
+      let t = j / 5;
+      let x = this.p.lerp(baseWidth, baseWidth + armWidth, t);
+      let y = this.p.lerp(-baseHeight * 0.5, -baseHeight * 0.5 - armHeight, t);
+      x += this.p.noise(t * 2 + 20) * 0.5 - 0.25;
+      rightArmPoints.push({ x, y });
+    }
+    shape.push({ type: 'arm', points: rightArmPoints });
+
+    return shape;
+  }
+
+  generateCopperOre(zoneKey: string, nearbyRock: any) {
+    let shape = [];
+    let numPoints = this.p.floor(this.p.random(6, 9));
+    let baseRadius = this.p.random(6, 10);
+    this.p.noiseSeed(zoneKey.hashCode() + nearbyRock.x + nearbyRock.y);
+    
+    for (let i = 0; i < numPoints; i++) {
+      let angle = this.p.map(i, 0, numPoints, 0, this.p.TWO_PI);
+      let radius = baseRadius + this.p.noise(angle * 0.5) * 3 - 1.5;
+      let x = this.p.cos(angle) * radius;
+      let y = this.p.sin(angle) * radius;
+      shape.push({ x, y });
+    }
+    
+    let rockRadius = 25 * nearbyRock.size * (nearbyRock.aspectRatio > 1 ? nearbyRock.aspectRatio : 1);
+    let angleHash = (nearbyRock.x * 10000 + nearbyRock.y).toString().hashCode();
+    let angle = (angleHash % 628) / 100;
+    let oreX = nearbyRock.x + Math.cos(angle) * rockRadius;
+    let oreY = nearbyRock.y + Math.sin(angle) * rockRadius;
+    
+    oreX = this.p.constrain(oreX, 30, this.p.width - 30);
+    oreY = this.p.constrain(oreY, 30, this.p.height - 30);
+    
+    return {
+      x: oreX,
+      y: oreY,
+      type: 'copper',
+      shape: shape
+    };
+  }
+
+  generateSandTexture(zoneKey: string) {
+    let texture = this.p.createGraphics(this.p.width, this.p.height);
+    texture.noSmooth();
+    texture.noStroke();
+    this.p.noiseSeed(zoneKey.hashCode());
+    for (let i = 0; i < this.p.width; i += 4) {
+      for (let j = 0; j < this.p.height; j += 4) {
+        let noiseVal = this.p.noise(i * 0.01, j * 0.01);
+        let r = this.p.map(noiseVal, 0, 1, 220, 255);
+        let g = this.p.map(noiseVal, 0, 1, 180, 200);
+        let b = this.p.map(noiseVal, 0, 1, 100, 120);
+        texture.fill(r, g, b);
+        texture.rect(i, j, 4, 4);
+        if (noiseVal > 0.6) {
+          texture.fill(r - 20, g - 20, b - 20);
+          texture.rect(i + 1, j + 1, 2, 2);
+        }
+      }
+    }
+    this.sandTextures[zoneKey] = texture;
+  }
+
+  generateBurntGrassTexture(zoneKey: string) {
+    let texture = this.p.createGraphics(this.p.width, this.p.height);
+    texture.noSmooth();
+    texture.noStroke();
+    this.p.noiseSeed(zoneKey.hashCode() + 1);
+    for (let i = 0; i < this.p.width; i += 4) {
+      for (let j = 0; j < this.p.height; j += 4) {
+        let noiseVal = this.p.noise(i * 0.02, j * 0.02);
+        if (noiseVal > 0.55) {
+          let density = this.p.map(noiseVal, 0.55, 1, 0, 0.8);
+          if (this.p.random() < density) {
+            let colorVariation = this.p.random(-8, 8);
+            let r = 180 + colorVariation;
+            let g = 150 + colorVariation;
+            let b = 80 + colorVariation;
+            texture.fill(r, g, b, 220);
+            let height = this.p.random(2, 5);
+            let lean = this.p.random(-0.3, 0.3);
+            texture.beginShape();
+            texture.vertex(i, j);
+            texture.vertex(i + lean, j - height);
+            texture.vertex(i + 0.7, j);
+            texture.endShape(this.p.CLOSE);
+            this.p.fill(r + 15, g + 15, b + 15, 220);
+            texture.beginShape();
+            texture.vertex(i, j);
+            texture.vertex(i + lean * 0.7, j - height * 0.7);
+            texture.vertex(i + 0.5, j);
+            texture.endShape(this.p.CLOSE);
+          }
+        }
+      }
+    }
+    this.grassTextures[zoneKey] = texture;
+  }
+
+  getValidPosition() {
+    return {
+      x: this.p.random(this.edgeBuffer, this.p.width - this.edgeBuffer),
+      y: this.p.random(this.edgeBuffer, this.p.height - this.edgeBuffer)
+    };
   }
 
   generateNewArea(x: number, y: number) {
     let zoneKey = `${x},${y}`;
     if (!this.generatedAreas.has(zoneKey)) {
-      if (!this.terrainGenerator.getSandTexture(zoneKey)) {
-        this.terrainGenerator.generateSandTexture(zoneKey);
+      if (!this.sandTextures[zoneKey]) {
+        this.generateSandTexture(zoneKey);
       }
-      if (!this.terrainGenerator.getGrassTexture(zoneKey)) {
-        this.terrainGenerator.generateBurntGrassTexture(zoneKey);
+      if (!this.grassTextures[zoneKey]) {
+        this.generateBurntGrassTexture(zoneKey);
       }
       
       let areaObstacles = [];
@@ -42,7 +208,7 @@ export default class WorldGenerator {
         
         const centerX = this.p.width / 2;
         const centerY = this.p.height / 2;
-        const safeRadius = 200;
+        const safeRadius = 200; // Safe zone radius
         
         for (let i = 0; i < 5; i++) {
           let size = this.p.random(0.3, 2.0);
@@ -50,24 +216,93 @@ export default class WorldGenerator {
           
           let position;
           do {
-            position = this.resourceGenerator.getValidPosition(this.edgeBuffer);
+            position = this.getValidPosition();
           } while (this.p.dist(position.x, position.y, centerX, centerY) < safeRadius);
           
           areaObstacles.push({ 
             x: position.x, 
             y: position.y, 
             type: 'rock', 
-            shape: this.obstacleGenerator.generateRockShape(size, aspectRatio),
+            shape: this.generateRockShape(size, aspectRatio),
             size: size,
             aspectRatio: aspectRatio
           });
         }
         
-        // Generate other home base obstacles
-        this.generateHomeBaseObstacles(areaObstacles, safeRadius, centerX, centerY);
+        for (let i = 0; i < 3; i++) {
+          let size = this.p.random(0.5, 1.0);
+          
+          let position;
+          do {
+            position = this.getValidPosition();
+          } while (this.p.dist(position.x, position.y, centerX, centerY) < safeRadius);
+          
+          areaObstacles.push({ 
+            x: position.x, 
+            y: position.y, 
+            type: 'bush', 
+            shape: this.generateBushShape(size),
+            size: size
+          });
+        }
+        
+        for (let i = 0; i < 2; i++) {
+          let size = this.p.random(0.5, 1.2);
+          
+          let position;
+          do {
+            position = this.getValidPosition();
+          } while (this.p.dist(position.x, position.y, centerX, centerY) < safeRadius);
+          
+          areaObstacles.push({ 
+            x: position.x, 
+            y: position.y, 
+            type: 'cactus', 
+            shape: this.generateCactusShape(size, zoneKey, i),
+            size: size
+          });
+        }
       } else {
-        // Generate regular area obstacles
-        this.generateRegularAreaObstacles(areaObstacles, x, y);
+        for (let i = 0; i < 10; i++) {
+          let size = this.p.random(0.3, 2.0);
+          let aspectRatio = this.p.random(0.5, 2.0);
+          let position = this.getValidPosition();
+          
+          areaObstacles.push({ 
+            x: position.x, 
+            y: position.y, 
+            type: 'rock', 
+            shape: this.generateRockShape(size, aspectRatio),
+            size: size,
+            aspectRatio: aspectRatio
+          });
+        }
+        
+        for (let i = 0; i < 5; i++) {
+          let size = this.p.random(0.5, 1.0);
+          let position = this.getValidPosition();
+          
+          areaObstacles.push({ 
+            x: position.x, 
+            y: position.y, 
+            type: 'bush', 
+            shape: this.generateBushShape(size),
+            size: size
+          });
+        }
+        
+        for (let i = 0; i < 3; i++) {
+          let size = this.p.random(0.5, 1.2);
+          let position = this.getValidPosition();
+          
+          areaObstacles.push({ 
+            x: position.x, 
+            y: position.y, 
+            type: 'cactus', 
+            shape: this.generateCactusShape(size, zoneKey, i),
+            size: size
+          });
+        }
       }
       
       this.obstacles[zoneKey] = areaObstacles;
@@ -76,121 +311,13 @@ export default class WorldGenerator {
     }
   }
 
-  private generateHomeBaseObstacles(areaObstacles: any[], safeRadius: number, centerX: number, centerY: number) {
-    for (let i = 0; i < 3; i++) {
-      let size = this.p.random(0.5, 1.0);
-      let position;
-      do {
-        position = this.resourceGenerator.getValidPosition(this.edgeBuffer);
-      } while (this.p.dist(position.x, position.y, centerX, centerY) < safeRadius);
-      
-      areaObstacles.push({ 
-        x: position.x, 
-        y: position.y, 
-        type: 'bush', 
-        shape: this.obstacleGenerator.generateBushShape(size),
-        size: size
-      });
-    }
-    
-    for (let i = 0; i < 2; i++) {
-      let size = this.p.random(0.5, 1.2);
-      let position;
-      do {
-        position = this.resourceGenerator.getValidPosition(this.edgeBuffer);
-      } while (this.p.dist(position.x, position.y, centerX, centerY) < safeRadius);
-      
-      areaObstacles.push({ 
-        x: position.x, 
-        y: position.y, 
-        type: 'cactus', 
-        shape: this.obstacleGenerator.generateCactusShape(size, '0,0', i),
-        size: size
-      });
-    }
-  }
-
-  private generateRegularAreaObstacles(areaObstacles: any[], x: number, y: number) {
-    // Generate rocks
-    for (let i = 0; i < 10; i++) {
-      let size = this.p.random(0.3, 2.0);
-      let aspectRatio = this.p.random(0.5, 2.0);
-      let position = this.resourceGenerator.getValidPosition(this.edgeBuffer);
-      
-      areaObstacles.push({ 
-        x: position.x, 
-        y: position.y, 
-        type: 'rock', 
-        shape: this.obstacleGenerator.generateRockShape(size, aspectRatio),
-        size: size,
-        aspectRatio: aspectRatio
-      });
-    }
-    
-    // Generate bushes and cacti
-    this.generateVegetation(areaObstacles, x, y);
-    
-    // Generate wrecks
-    if (this.p.random() < this.WRECK_SPAWN_CHANCE) {
-      this.generateWreck(areaObstacles, x, y);
-    }
-  }
-
-  private generateVegetation(areaObstacles: any[], x: number, y: number) {
-    for (let i = 0; i < 5; i++) {
-      let size = this.p.random(0.5, 1.0);
-      let position = this.resourceGenerator.getValidPosition(this.edgeBuffer);
-      
-      areaObstacles.push({ 
-        x: position.x, 
-        y: position.y, 
-        type: 'bush', 
-        shape: this.obstacleGenerator.generateBushShape(size),
-        size: size
-      });
-    }
-    
-    for (let i = 0; i < 3; i++) {
-      let size = this.p.random(0.5, 1.2);
-      let position = this.resourceGenerator.getValidPosition(this.edgeBuffer);
-      
-      areaObstacles.push({ 
-        x: position.x, 
-        y: position.y, 
-        type: 'cactus', 
-        shape: this.obstacleGenerator.generateCactusShape(size, `${x},${y}`, i),
-        size: size
-      });
-    }
-  }
-
-  private generateWreck(areaObstacles: any[], x: number, y: number) {
-    const wreckTypes = ['carWreck', 'shipWreck', 'planeWreck'];
-    const wreckType = wreckTypes[Math.floor(this.p.random(wreckTypes.length))];
-    let position = this.resourceGenerator.getValidPosition(this.edgeBuffer);
-    
-    areaObstacles.push({
-      x: position.x,
-      y: position.y,
-      type: wreckType,
-      rotation: this.p.random(this.p.TWO_PI),
-      size: this.p.random(1.0, 1.5),
-      looted: false,
-      canisterCollected: false,
-      buriedDepth: this.p.random(0.4, 0.7),
-      hitboxWidth: 50,
-      hitboxHeight: 40
-    });
-    
-    console.log(`Generated a ${wreckType} at world coordinates: ${x}, ${y}`);
-  }
-
   generateResources(x: number, y: number, areaObstacles: any[]) {
     let areaResources = [];
     
     if (x !== 0 || y !== 0) {
       for (let i = 0; i < 5; i++) {
-        let position = this.resourceGenerator.getValidPosition(this.edgeBuffer);
+        let position = this.getValidPosition();
+        
         areaResources.push({ 
           x: position.x, 
           y: position.y, 
@@ -201,65 +328,86 @@ export default class WorldGenerator {
         });
       }
       
-      this.generateCanistersAndCopper(areaResources, areaObstacles, x, y);
+      // Add maximum of 1 fuel canister per tile with 10% chance
+      if (this.p.random() < this.FUEL_CANISTER_CHANCE) {
+        let position = this.getValidPosition();
+        areaResources.push({
+          x: position.x,
+          y: position.y,
+          type: 'fuelCanister',
+          rotation: this.p.random(this.p.TWO_PI),
+          size: this.p.random(0.8, 1.2),
+          collected: false,
+          hitboxWidth: 15,
+          hitboxHeight: 20
+        });
+      }
+      
+      let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
+      
+      for (let rock of rocks) {
+        if (this.p.random() < this.COPPER_CHANCE) {
+          areaResources.push(this.generateCopperOre(`${x},${y}`, rock));
+        }
+      }
     } else {
-      this.generateHomeBaseResources(areaResources);
+      const centerX = this.p.width / 2;
+      const centerY = this.p.height / 2;
+      const safeRadius = 200; // Safe zone radius
+      
+      for (let i = 0; i < 3; i++) {
+        let position;
+        do {
+          position = this.getValidPosition();
+        } while (this.p.dist(position.x, position.y, centerX, centerY) < safeRadius);
+        
+        areaResources.push({ 
+          x: position.x, 
+          y: position.y, 
+          type: 'metal',
+          rotation: this.p.random(this.p.TWO_PI),
+          size: this.p.random(0.7, 1.3),
+          buried: this.p.random(0.3, 0.7)
+        });
+      }
+      
+      // Add exactly 1 fuel canister in home area, but away from center
+      if (this.p.random() < this.FUEL_CANISTER_CHANCE) {
+        let position;
+        do {
+          position = this.getValidPosition();
+        } while (this.p.dist(position.x, position.y, centerX, centerY) < safeRadius);
+        
+        areaResources.push({
+          x: position.x,
+          y: position.y,
+          type: 'fuelCanister',
+          rotation: this.p.random(this.p.TWO_PI),
+          size: this.p.random(0.8, 1.2),
+          collected: false,
+          hitboxWidth: 15,
+          hitboxHeight: 20
+        });
+      }
+      
+      let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
+      
+      for (let rock of rocks) {
+        if (this.p.dist(rock.x, rock.y, centerX, centerY) >= safeRadius && this.p.random() < this.COPPER_CHANCE) {
+          areaResources.push(this.generateCopperOre(`${x},${y}`, rock));
+        }
+      }
     }
     
     this.resources[`${x},${y}`] = areaResources;
   }
 
-  private generateCanistersAndCopper(areaResources: any[], areaObstacles: any[], x: number, y: number) {
-    if (this.p.random() < this.FUEL_CANISTER_CHANCE) {
-      let position = this.resourceGenerator.getValidPosition(this.edgeBuffer);
-      areaResources.push({
-        x: position.x,
-        y: position.y,
-        type: 'fuelCanister',
-        rotation: this.p.random(this.p.TWO_PI),
-        size: this.p.random(0.8, 1.2),
-        collected: false,
-        hitboxWidth: 15,
-        hitboxHeight: 20
-      });
-    }
-    
-    let rocks = areaObstacles.filter(obs => obs.type === 'rock' && obs.size > 1.0);
-    for (let rock of rocks) {
-      if (this.p.random() < this.COPPER_CHANCE) {
-        areaResources.push(this.resourceGenerator.generateCopperOre(`${x},${y}`, rock));
-      }
-    }
-  }
-
-  private generateHomeBaseResources(areaResources: any[]) {
-    const centerX = this.p.width / 2;
-    const centerY = this.p.height / 2;
-    const safeRadius = 200;
-    
-    for (let i = 0; i < 3; i++) {
-      let position;
-      do {
-        position = this.resourceGenerator.getValidPosition(this.edgeBuffer);
-      } while (this.p.dist(position.x, position.y, centerX, centerY) < safeRadius);
-      
-      areaResources.push({ 
-        x: position.x, 
-        y: position.y, 
-        type: 'metal',
-        rotation: this.p.random(this.p.TWO_PI),
-        size: this.p.random(0.7, 1.3),
-        buried: this.p.random(0.3, 0.7)
-      });
-    }
-  }
-
   getSandTexture(zoneKey: string) {
-    return this.terrainGenerator.getSandTexture(zoneKey);
+    return this.sandTextures[zoneKey];
   }
 
   getGrassTexture(zoneKey: string) {
-    return this.terrainGenerator.getGrassTexture(zoneKey);
+    return this.grassTextures[zoneKey];
   }
 
   getObstacles() {
@@ -271,7 +419,8 @@ export default class WorldGenerator {
   }
 
   clearTextures() {
-    this.terrainGenerator.clearTextures();
+    this.sandTextures = {};
+    this.grassTextures = {};
   }
 
   getWindmillAngle() {
@@ -280,9 +429,5 @@ export default class WorldGenerator {
 
   updateWindmillAngle() {
     this.windmillAngle += 0.05;
-  }
-
-  setFuelCanisterChance(chance: number) {
-    this.FUEL_CANISTER_CHANCE = chance;
   }
 }

@@ -2,7 +2,6 @@
 import p5 from 'p5';
 import { PlayerInventory } from '../../../types/PlayerTypes';
 import { emitGameStateUpdate } from '../../../utils/gameUtils';
-import { interactWithWreck, collectWreckFuelCanister } from '../../../game/world/WorldInteraction';
 
 export class ResourceCollectionService {
   private p: any;
@@ -29,58 +28,6 @@ export class ResourceCollectionService {
     let collectionMade = false;
     let newInventory = { ...inventory };
     
-    // Check for wrecks first
-    if (game && game.worldGenerator) {
-      const currentObstacles = game.worldGenerator.getObstacles()[`${worldX},${worldY}`] || [];
-      let closestWreck = null;
-      let minWreckDistance = Infinity;
-      
-      for (const obstacle of currentObstacles) {
-        if (['carWreck', 'shipWreck', 'planeWreck'].includes(obstacle.type)) {
-          const distance = this.p.dist(x, y, obstacle.x, obstacle.y);
-          if (distance < 50 && distance < minWreckDistance) {
-            closestWreck = obstacle;
-            minWreckDistance = distance;
-          }
-        }
-      }
-      
-      if (closestWreck) {
-        if (!player.carryingFuelCanister && closestWreck.looted && !closestWreck.canisterCollected) {
-          // Player is collecting the fuel canister from the wreck
-          if (collectWreckFuelCanister(closestWreck)) {
-            player.carryingFuelCanister = true;
-            if (game.showMessage) {
-              game.showMessage("You found a fuel canister in the wreck!", 3000);
-            }
-            emitGameStateUpdate(player, hoverbike);
-            return { inventory: newInventory, collectionMade: true };
-          }
-        } else if (!closestWreck.looted) {
-          // Player is looting the wreck for the first time
-          const lootResult = interactWithWreck(
-            this.p,
-            player,
-            worldX,
-            worldY,
-            closestWreck,
-            game.questSystem
-          );
-          
-          newInventory.metal += lootResult.metalCollected;
-          newInventory.copper += lootResult.copperCollected;
-          
-          if (game.showMessage) {
-            game.showMessage(`You found ${lootResult.metalCollected} metal and ${lootResult.copperCollected} copper in the wreck!`, 3000);
-          }
-          
-          emitGameStateUpdate(player, hoverbike);
-          return { inventory: newInventory, collectionMade: true };
-        }
-      }
-    }
-    
-    // Original resource collection logic
     let closestResource = null;
     let minDistance = Infinity;
     
@@ -132,43 +79,6 @@ export class ResourceCollectionService {
     hoverbike: any,
     canDig: boolean
   ): void {
-    // Check for wrecks first
-    let closestWreck = null;
-    let minWreckDistance = Infinity;
-    
-    let currentObstacles = obstacles[`${worldX},${worldY}`] || [];
-    for (const obs of currentObstacles) {
-      if (['carWreck', 'shipWreck', 'planeWreck'].includes(obs.type)) {
-        const distance = p.dist(x, y, obs.x, obs.y);
-        if (distance < 50 && distance < minWreckDistance) {
-          closestWreck = obs;
-          minWreckDistance = distance;
-        }
-      }
-    }
-    
-    if (closestWreck) {
-      p.push();
-      p.fill(255, 255, 100, 150);
-      p.ellipse(closestWreck.x, closestWreck.y - 25, 5, 5);
-      p.fill(255);
-      p.textAlign(p.CENTER);
-      p.textSize(8);
-      p.text("E", closestWreck.x, closestWreck.y - 23);
-      
-      if (closestWreck.looted) {
-        if (!closestWreck.canisterCollected && !carryingFuelCanister) {
-          p.textSize(6);
-          p.text("Collect Fuel", closestWreck.x, closestWreck.y - 15);
-        }
-      } else {
-        p.textSize(6);
-        p.text("Loot Wreck", closestWreck.x, closestWreck.y - 15);
-      }
-      p.pop();
-    }
-    
-    // Original collectables display logic
     let closestResource = null;
     let minDistance = Infinity;
     let currentResources = resources[`${worldX},${worldY}`] || [];
@@ -195,6 +105,7 @@ export class ResourceCollectionService {
     }
     
     if (!carryingFuelCanister && canisterCollectCooldown === 0) {
+      let currentObstacles = obstacles[`${worldX},${worldY}`] || [];
       for (let obs of currentObstacles) {
         if (obs.type === 'fuelPump' && p.dist(x, y, obs.x, obs.y) < 60) {
           p.push();
@@ -213,6 +124,7 @@ export class ResourceCollectionService {
     
     let closestCanister = null;
     let minCanisterDistance = Infinity;
+    let currentObstacles = obstacles[`${worldX},${worldY}`] || [];
     
     for (let obs of currentObstacles) {
       if (obs.type === 'fuelCanister' && !obs.collected) {
