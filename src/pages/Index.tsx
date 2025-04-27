@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import GameSketch from '../components/GameSketch';
 import GameUI from '../components/GameUI';
 import { useAuth } from '@/context/AuthContext';
@@ -51,3 +51,4 @@ const Index = () => {
 };
 
 export default Index;
+

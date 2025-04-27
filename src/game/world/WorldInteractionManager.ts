@@ -1,9 +1,8 @@
-
 import p5 from 'p5';
 import Player from '../../entities/Player';
 import Hoverbike from '../../entities/Hoverbike';
 import { checkBorder } from './WorldBorder';
-import { checkHoverbikeCanisterCollisions, createExplosion } from './WorldInteraction';
+import { checkHoverbikeCanisterCollisions } from './WorldInteraction';
 import { isPlayerUnderTarpWrapper } from './HomeBaseHelper';
 import { getWorldData, loadWorldData } from '../state/SaveLoadManager';
 import { WorldData } from '../../types/GameTypes';
@@ -54,18 +53,6 @@ export class WorldInteractionManager {
       worldY,
       riding,
       this.worldGenerator,
-      renderer
-    );
-  }
-  
-  createExplosion(x: number, y: number, worldX: number, worldY: number, renderer: any): void {
-    createExplosion(
-      this.p,
-      x, 
-      y, 
-      worldX, 
-      worldY, 
-      this.worldGenerator, 
       renderer
     );
   }
