@@ -14,6 +14,7 @@ import { WorldInteractionManager } from '../world/WorldInteractionManager';
 import { PlayerInteractionManager } from '../player/PlayerInteractionManager';
 
 export interface GameInitializationState {
+  p: any;
   player: Player;
   hoverbike: Hoverbike;
   worldGenerator: WorldGenerator;
@@ -120,6 +121,7 @@ export class GameInitializer {
     
     // Create the initialization state
     const state: GameInitializationState = {
+      p: this.p,
       player,
       hoverbike,
       worldGenerator,
