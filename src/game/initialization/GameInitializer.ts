@@ -1,42 +1,24 @@
+
 import p5 from 'p5';
-import Player from '../../entities/Player';
-import Hoverbike from '../../entities/Hoverbike';
 import WorldGenerator from '../../world/WorldGenerator';
 import GameRenderer from '../../rendering/GameRenderer';
 import { emitGameStateUpdate } from '../../utils/gameUtils';
-import { QuestSystem, initializeQuestSystem } from '../quests/QuestSystem';
+import { initializeQuestSystem } from '../quests/QuestSystem';
 import { placeMilitaryCrate } from '../quests/MilitaryCrateQuest';
 import { generateTarpColor } from '../world/EnvironmentalEffects';
-import { TimeManager } from '../world/TimeManager';
-import { GameStateManager } from '../state/GameStateManager';
-import { WorldInteractionManager } from '../world/WorldInteractionManager';
-import { PlayerInteractionManager } from '../player/PlayerInteractionManager';
-
-export interface GameInitializationState {
-  p: any;
-  player: Player;
-  hoverbike: Hoverbike;
-  worldGenerator: WorldGenerator;
-  renderer: GameRenderer;
-  worldX: number;
-  worldY: number;
-  riding: boolean;
-  gameStarted: boolean;
-  exploredAreas: Set<string>;
-  tarpColor: { r: number; g: number; b: number; };
-  questSystem: QuestSystem;
-  militaryCrateLocation: { worldX: number, worldY: number };
-  timeManager: TimeManager;
-  stateManager: GameStateManager;
-  worldInteractionManager: WorldInteractionManager;
-  playerInteractionManager: PlayerInteractionManager;
-}
+import type { GameInitializationState } from './types/GameInitTypes';
+import { EntityInitializer } from './services/EntityInitializer';
+import { ManagerInitializer } from './services/ManagerInitializer';
 
 export class GameInitializer {
   private p: any;
+  private entityInitializer: EntityInitializer;
+  private managerInitializer: ManagerInitializer;
   
   constructor(p: any) {
     this.p = p;
+    this.entityInitializer = new EntityInitializer(p);
+    this.managerInitializer = new ManagerInitializer(p);
   }
   
   initialize(): GameInitializationState {
@@ -46,49 +28,20 @@ export class GameInitializer {
     const gameStarted = false;
     const exploredAreas = new Set<string>();
     
-    // Initialize quest system
+    // Initialize quest system and generate tarp color
     const questSystem = initializeQuestSystem();
-    
-    // Generate random tarp color
     const tarpColor = generateTarpColor();
     
+    // Initialize world generator
     const worldGenerator = new WorldGenerator(this.p);
-    // Replace direct property access with setter method
     worldGenerator.setFuelCanisterChance(0.15);
     
-    // Initialize player and hoverbike with references to each other
-    // We need to create placeholder objects first
-    let player = {} as Player;
-    let hoverbike = {} as Hoverbike;
-    
-    // Now fully initialize them with proper references
-    player = new Player(
-      this.p, 
-      this.p.width / 2, 
-      this.p.height / 2 - 50, 
-      worldX, 
-      worldY, 
-      worldGenerator.getObstacles(), 
-      worldGenerator.getResources(),
-      hoverbike,
-      riding,
-      null // Game reference will be set after creation
+    // Initialize entities
+    const { player, hoverbike } = this.entityInitializer.initializeEntities(
+      worldX, worldY, worldGenerator
     );
     
-    // Position the hoverbike under the tarp
-    hoverbike = new Hoverbike(
-      this.p, 
-      this.p.width / 2 - 120,
-      this.p.height / 2 - 50,
-      worldX, 
-      worldY, 
-      worldGenerator.getObstacles(),
-      player
-    );
-    
-    // Update player to reference the proper hoverbike
-    player.hoverbike = hoverbike;
-    
+    // Initialize renderer
     const renderer = new GameRenderer(
       this.p,
       worldGenerator,
@@ -96,20 +49,18 @@ export class GameInitializer {
       hoverbike,
       worldX,
       worldY,
-      0.25 // Initial timeOfDay
+      0.25
     );
     
     // Mark initial area as explored
     exploredAreas.add('0,0');
     
     // Initialize managers
-    const timeManager = new TimeManager(this.p);
-    const stateManager = new GameStateManager(null); // Game reference will be set after creation
-    const worldInteractionManager = new WorldInteractionManager(
-      this.p, worldGenerator, exploredAreas
-    );
-    const playerInteractionManager = new PlayerInteractionManager(
-      this.p, player, hoverbike, worldGenerator
+    const managers = this.managerInitializer.initializeManagers(
+      player,
+      hoverbike,
+      worldGenerator,
+      exploredAreas
     );
     
     // Initialize UI values
@@ -133,10 +84,7 @@ export class GameInitializer {
       tarpColor,
       questSystem,
       militaryCrateLocation,
-      timeManager,
-      stateManager,
-      worldInteractionManager,
-      playerInteractionManager
+      ...managers
     };
     
     // Set game references
