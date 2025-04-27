@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import Player from '../../entities/Player';
 import Hoverbike from '../../entities/Hoverbike';
@@ -54,8 +53,8 @@ export class GameInitializer {
     const tarpColor = generateTarpColor();
     
     const worldGenerator = new WorldGenerator(this.p);
-    // Adjust WorldGenerator's canister spawn rate
-    worldGenerator.FUEL_CANISTER_CHANCE = 0.15;
+    // Replace direct property access with setter method
+    worldGenerator.setFuelCanisterChance(0.15);
     
     // Initialize player and hoverbike with references to each other
     // We need to create placeholder objects first

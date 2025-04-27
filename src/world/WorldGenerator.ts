@@ -1,4 +1,3 @@
-
 import p5 from 'p5';
 import { TerrainGenerator } from './generators/TerrainGenerator';
 import { ObstacleShapeGenerator } from './generators/ObstacleShapeGenerator';
@@ -281,5 +280,9 @@ export default class WorldGenerator {
 
   updateWindmillAngle() {
     this.windmillAngle += 0.05;
+  }
+
+  setFuelCanisterChance(chance: number) {
+    this.FUEL_CANISTER_CHANCE = chance;
   }
 }
