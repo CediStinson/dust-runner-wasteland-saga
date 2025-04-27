@@ -11,4 +11,3 @@ export default class Game extends GameCore {
     initializeEnvironment(this.p, this.worldGenerator, this.tarpColor);
   }
 }
-

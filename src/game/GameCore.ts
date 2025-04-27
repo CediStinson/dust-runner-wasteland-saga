@@ -3,17 +3,14 @@ import p5 from 'p5';
 import Player from '../entities/Player';
 import Hoverbike from '../entities/Hoverbike';
 import WorldGenerator from '../world/WorldGenerator';
-import GameRenderer from '../rendering/GameRenderer';
-import { emitGameStateUpdate } from '../utils/gameUtils';
-import { QuestSystem, initializeQuestSystem } from './quests/QuestSystem';
-import { updateQuestSystem } from './quests/QuestUpdater';
-import { placeMilitaryCrate } from './quests/MilitaryCrateQuest';
-import { generateTarpColor } from './world/EnvironmentalEffects';
+import { GameRenderer } from '../rendering/GameRenderer';
 import { WorldData } from '../types/GameTypes';
+import { QuestSystem } from './quests/QuestSystem';
 import { GameStateManager } from './state/GameStateManager';
 import { TimeManager } from './world/TimeManager';
 import { WorldInteractionManager } from './world/WorldInteractionManager';
 import { PlayerInteractionManager } from './player/PlayerInteractionManager';
+import { GameInitializer } from './initialization/GameInitializer';
 
 export default class Game {
   p: any;
@@ -38,83 +35,12 @@ export default class Game {
 
   constructor(p: any) {
     this.p = p;
-    this.worldX = 0;
-    this.worldY = 0;
-    this.riding = false;
-    this.gameStarted = false;
-    this.exploredAreas = new Set<string>();
     
-    // Initialize quest system
-    this.questSystem = initializeQuestSystem();
+    // Initialize the game using the GameInitializer
+    const initialState = new GameInitializer(p).initialize();
     
-    // Generate random tarp color
-    this.tarpColor = generateTarpColor();
-    
-    this.worldGenerator = new WorldGenerator(p);
-    // Adjust WorldGenerator's canister spawn rate
-    this.worldGenerator.FUEL_CANISTER_CHANCE = 0.15;
-    
-    // Initialize player and hoverbike with references to each other
-    // We need to create placeholder objects first
-    this.player = {} as Player;
-    this.hoverbike = {} as Hoverbike;
-    
-    // Now fully initialize them with proper references
-    this.player = new Player(
-      p, 
-      p.width / 2, 
-      p.height / 2 - 50, 
-      this.worldX, 
-      this.worldY, 
-      this.worldGenerator.getObstacles(), 
-      this.worldGenerator.getResources(),
-      this.hoverbike,
-      this.riding,
-      this
-    );
-    
-    // Position the hoverbike under the tarp
-    this.hoverbike = new Hoverbike(
-      p, 
-      p.width / 2 - 120,
-      p.height / 2 - 50,
-      this.worldX, 
-      this.worldY, 
-      this.worldGenerator.getObstacles(),
-      this.player
-    );
-    
-    // Update player to reference the proper hoverbike
-    this.player.hoverbike = this.hoverbike;
-    
-    this.renderer = new GameRenderer(
-      p,
-      this.worldGenerator,
-      this.player,
-      this.hoverbike,
-      this.worldX,
-      this.worldY,
-      0.25 // Initial timeOfDay
-    );
-    
-    // Mark initial area as explored
-    this.exploredAreas.add('0,0');
-    
-    // Initialize managers
-    this.timeManager = new TimeManager(p);
-    this.stateManager = new GameStateManager(this);
-    this.worldInteractionManager = new WorldInteractionManager(
-      p, this.worldGenerator, this.exploredAreas
-    );
-    this.playerInteractionManager = new PlayerInteractionManager(
-      p, this.player, this.hoverbike, this.worldGenerator
-    );
-    
-    // Initialize UI values
-    emitGameStateUpdate(this.player, this.hoverbike);
-    
-    // Place military crate
-    this.militaryCrateLocation = placeMilitaryCrate(this.p, this.worldGenerator);
+    // Set up properties from the initialization
+    Object.assign(this, initialState);
   }
 
   update() {
@@ -130,6 +56,7 @@ export default class Game {
       return;
     }
     
+    // Update hoverbike if in the same area
     if (this.hoverbike.worldX === this.worldX && this.hoverbike.worldY === this.worldY) {
       this.hoverbike.update();
       
@@ -145,18 +72,7 @@ export default class Game {
     
     this.player.update();
     
-    // Update quest system
-    updateQuestSystem(
-      this.questSystem, 
-      this.player, 
-      this.hoverbike, 
-      this.p, 
-      this.worldX, 
-      this.worldY,
-      this.militaryCrateLocation
-    );
-    
-    // Handle player interactions at home base
+    // Handle world interactions through the WorldInteractionManager
     this.playerInteractionManager.handleHomeBaseInteractions(
       this.worldX,
       this.worldY,
@@ -193,7 +109,7 @@ export default class Game {
       // Render the world first
       this.renderer.render();
       
-      // Render quest UI through QuestRenderer
+      // Render quest UI
       this.stateManager.renderQuestUI(this.questSystem);
       
       // Render sleep animation if sleeping
